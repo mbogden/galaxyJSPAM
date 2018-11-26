@@ -1,0 +1,11 @@
+   git clone https://github.com/jacksonlanecole/WallinCode.git
+   git checkout development
+   git pull
+   vi modxy.py
+   git commit modxy.py
+   git push -u origin development
+   vi newfile.txt
+   git add newfile.txt
+   git commit
+   git push -u origin development
+

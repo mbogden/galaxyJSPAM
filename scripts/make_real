@@ -1,0 +1,108 @@
+#!/usr/bin/env python3
+
+from os import walk
+import os
+from sys import argv
+import numpy as np
+import scipy.ndimage as ndimage
+from scipy import misc
+import matplotlib
+matplotlib.use('agg')
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.animation as animation
+import glob
+import imageio
+
+
+class galaxies(object):
+    def load_data(self, filename):
+        data_file = open(filename, 'r')
+        point_data = np.empty(shape=[len(data_file.readlines()), 6], dtype=float)
+        data_file.seek(0)
+        for i, line in enumerate(data_file):
+            for j, value in enumerate(line.split()):
+                point_data[i, j] = float(value)
+
+        data_file.close()
+
+        return point_data
+
+    def __init__(self, data_file, galaxy_name):
+        self.data = self.load_data(data_file)
+        self.datafile = data_file
+        self.name = galaxy_name
+        self.x = self.data[:, 0]
+        self.y = self.data[:, 1]
+        self.z = self.data[:, 2]
+
+    def get_plot_list(self):
+        plot_list = input('Enter coordinates to be plotted in 2D separated by a comma:\n> ')
+        var_plot_list = [coord.strip() for coord in plot_list.split(',')]
+        return var_plot_list
+
+    def plot_2d(self, var_plot_list):
+        print('plotting')
+        fig = plt.figure()
+        rect = fig.patch
+        rect.set_facecolor('black')
+        ax = fig.gca()
+        # plt.xlim(-8,8)
+        # plt.ylim(-8,8)
+        # ax = fig.add_subplot(111, projection='3d')
+        ax.scatter(eval('self.'+var_plot_list[0]), eval('self.'+var_plot_list[1]), s=0.5, marker='.', c='white', edgecolor='None')
+        ax.set_frame_on(False)
+        plt.axis('off')
+        plt.savefig('{}_{}_{}{}_2d.png'.format(self.name, self.datafile, var_plot_list[0], var_plot_list[1]), facecolor=fig.get_facecolor(), edgecolor='none', dpi=1000, pad_inches=0)
+        plt.close()
+
+
+    def gaussian_blur(self, var_plot_list):
+        var1 = var_plot_list[0]
+        var2 = var_plot_list[1]
+        image_name = '{}_{}_{}{}_2d.png'.format(self.name, self.datafile, var1, var2)
+        image_name_wo_png = '{}_{}_{}{}_2d'.format(self.name, self.datafile, var1, var2)
+        gaussian_image_name = '{}-gaussian_smoothed.png'.format(image_name_wo_png)
+
+        if os.path.exists(gaussian_image_name) == True:
+            print('{} exists in the current directory. No image was created now.')
+        elif os.path.exists(image_name) == True:
+            image_data = imageio.imread(image_name)
+            gaussian_smoothed = ndimage.gaussian_filter(image_data, 8)
+            imageio.imwrite(gaussian_image_name, gaussian_smoothed)
+        else:
+            self.plot_2d(var_plot_list)
+            image_data = imageio.imread(image_name)
+            gaussian_smoothed = ndimage.gaussian_filter(image_data, 8)
+            imageio.imwrite(gaussian_image_name, gaussian_smoothed)
+
+    def median_blur(self, var_plot_list):
+        var1 = var_plot_list[0]
+        var2 = var_plot_list[1]
+        image_name = '{}_{}_{}{}_2d.png'.format(self.name, self.datafile, var1, var2)
+        image_name_wo_png = '{}_{}_{}{}_2d'.format(self.name, self.datafile, var1, var2)
+        median_image_name = '{}-median_smoothed.png'.format(image_name_wo_png)
+
+        if os.path.exists(median_image_name) == True:
+            print('{} exists in the current directory. No image was created now.')
+        elif os.path.exists(image_name) == True:
+            image_data = imageio.imread(image_name)
+            median_smoothed = ndimage.median_filter(image_data, 8)
+            imageio.imwrite(median_image_name, median_smoothed)
+        else:
+            self.plot_2d(var_plot_list)
+            image_data = imageio.imread(image_name)
+            median_smoothed = ndimage.median_filter(image_data, 8)
+            imageio.imwrite(median_image_name, median_smoothed)
+
+
+def main(argv):
+    galaxy = galaxies('a.101', 'testgalaxy')
+    var_plot_list = galaxy.get_plot_list()
+    galaxy.plot_2d(var_plot_list)
+    galaxy.gaussian_blur(var_plot_list)
+    galaxy.median_blur(var_plot_list)
+
+
+if __name__ == '__main__':
+    main(argv)

@@ -1,0 +1,6 @@
+gaussian_size 25
+gaussian_weight 2.5
+radial_constant 6
+norm_value 4
+image_rows 1000
+image_cols 1000
