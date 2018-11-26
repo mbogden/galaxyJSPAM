@@ -30,3 +30,5 @@ nohup*
 a.*
 a_*
 just_in_case
+bin
+*/bin
