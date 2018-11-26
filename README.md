@@ -2,7 +2,7 @@
 
 ## Table of Contents
 - [Overview](#overview)
-- [Get Started](#getstarted)
+- [Get Started](#gettingstarted)
 - [Targets Directory](#targets)
 - [jspamcli.py](#jspamcli.py)
 - [data_tools](#data_tools)
@@ -24,28 +24,29 @@ incorporation of various machine learning algorithms to immediately recognize
 and remove obviously "bad" models,
 thereby removing the need for a human-in-the-loop altogether.
 
-## Get Started<a id="getstarted">
+## Getting Started<a id="gettingstarted">
 **MAKE SURE TO DO ALL WORK INSIDE OF THE VIRTUALENVIRONMENT**
 
-To simplify things, we have included the entire `virtualenv-15.2.0` package
-found at
-[https://pypi.python.org/pypi/virtualenv/15.2.0](https://pypi.python.org/pypi/virtualenv/15.2.0). To setup
-the virtual environment install the required packages, issue the following
-commands from the root directory:
+### Prerequisites
+```
+```
 
+### Installing
+In order to resolve an issue with local development, `virtualenv` is included
+in this repository as `virtualenv-15.2.0`, and can be found at
+[https://pypi.python.org/pypi/virtualenv/15.2.0](https://pypi.python.org/pypi/virtualenv/15.2.0).
+To setup the virtual environment issue the following
+commands from the root directory:
 ```
 python3 virtualenv-15.2.0/virtualenv.py -p python3 ./env
-```
-
-At this point, the virtualenv can be activated by entering
-
-```
 source env/bin/activate
+pip install -r requirements.txt
 ```
 
-To install the required packages, issue the following command:
-
+Alternatively, if you have virtualenv already installed, use
 ```
+virtualenv env /path/to/python3 ./env
+source env/bin/activate
 pip install -r requirements.txt
 ```
 
