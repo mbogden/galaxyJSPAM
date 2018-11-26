@@ -2,12 +2,15 @@
 
 ## Table of Contents
 - [Overview](#overview)
-- [Get Started](#gettingstarted)
-- [Targets Directory](#targets)
-- [jspamcli.py](#jspamcli.py)
-- [data_tools](#data_tools)
-- [image_creator](#image_creator)
-- [comparison_code](#comparison_code)
+- [Getting Started](#gettingstarted)
+- [Specifications](#specifications)
+-- [jspamcli.py](#jspamcli.py)
+-- [Targets Directory](#targets)
+-- [data_tools](#data_tools)
+-- [image_creator](#image_creator)
+-- [comparison_code](#comparison_code)
+- [Notes](#notes)
+- [References](#references)
 
 ## Overview<a id="overview">
 This is the development branch of a fork of
@@ -50,19 +53,8 @@ source env/bin/activate
 pip install -r requirements.txt
 ```
 
-## Targets Directory<a id="targets">
-Real images (both uncalibrated and calibrated from SDSS DR7) and disk
-information for each target can be found in `targets`. The calibrated images
-are created using 
-Real images of the target galaxies are contained in the `target_images`
-directory. These are to be used as the reference images for comparison in
-testing.
-
-To my knowledge, the original dataset is based off of images from SDSS DR7, but
-the image directory will contain processed images of those same targets using
-data from SDSS DR14.
-
-## jspamcli.py<a id="jspamcli.py">
+## Specifications<a id="specifications">
+### jspamcli.py<a id="jspamcli.py">
 This fork of WallinCode contains `jspamcli.py`, a python3 script that runs
 specific runs or specific ranges of runs from the overlapping galaxy pairs
 table at
@@ -86,7 +78,20 @@ jspamcli accepts the following command line options:
 
 **WORKING ON ADDING USAGE INFORMATION...**
 
-## data_tools<a id="data_tools">
+### Targets Directory<a id="targets">
+Real images (both uncalibrated and calibrated from SDSS DR7) and disk
+information for each target can be found in `targets`. The calibrated images
+are created using 
+Real images of the target galaxies are contained in the `target_images`
+directory. These are to be used as the reference images for comparison in
+testing.
+
+To my knowledge, the original dataset is based off of images from SDSS DR7, but
+the image directory will contain processed images of those same targets using
+data from SDSS DR14.
+
+
+### data_tools<a id="data_tools">
 This is a package that will contain any data tools that can be written as a
 general purpose tool. Right now, it contains
 - `structure.py`: This is a general_purpose directory structure creator.
@@ -94,16 +99,16 @@ general purpose tool. Right now, it contains
 for links to the zipped target data files. This may not belong in the package,
 but as of right now that is its home.
 
-## image_creator<a id="image_creator">
+### image_creator<a id="image_creator">
 
-## comparison_code<a id="comparison_code">
+### comparison_code<a id="comparison_code">
 
-# Notes
+## Notes<a id="notes">
 All development is currently being done on the
 [development](https://github.com/jacksonlanecole/WallinCode/tree/development)
 branch of this fork. Check it out there!
 
-# References
+## References<a id="references">
 A. Holincheck. *A Pipeline for Constructing a Catalog of Multi-method Models
 of Interacting Galaxies*. PhD thesis, George Mason University, 2013.
 
