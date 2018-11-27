@@ -213,14 +213,21 @@ mod_run.o: $(F90SRCDIR)/mod_run.f90 parameters_module.o
 #im: $(CXXBIN)/im
 #
 #.PHONY: im
+#all_cxx: imall diff
 #
-#$(CXXBIN)/diff: $(CXXSRCDIR)/diff.cpp
-#	@echo "$(CXX) $(CXXFLAGS) $(LDFLAGS) -ggdb -o $@"
-#	$(CXX) $(CFLAGS) $(LDFLAGS) -ggdb -o $@"
+#imall: $(CXXSRCDIR)/imall.cpp  $(CXXSRCDIR)/imgCreator.cpp
+#	$(CXX) $(CXXFLAGS) $^ -o $(CXXBIN)/$@ -fopenmp -ggdb $(LDFLAGS)
 #
-#$(CXXBIN)/im: $(CXXBUILDDIR)/Galaxy_Class.o
-#	$(CXX) $(CXXFLAGS) $(LDFLAGS) -ggdb -o $@ $<
+#diff: $(CXXSRCDIR)/diff.cpp $(CXXSRCDIR)/imgClass.cpp
+#	$(CXX) $(CXXFLAGS) $^ -o $(CXXBIN)/$@ -ggdb $(LDFLAGS)
+
+#diff: $(CXXSRCDIR)/diff.cpp
+#	@echo "$(CXX) $(CXXFLAGS) $(LDFLAGS) -ggdb -o $(CXXBIN)/$@"
+#	$(CXX) $(CFLAGS) $(LDFLAGS) -ggdb -o $(CXXBIN)/$@
+#
+#im: $(CXXBUILDDIR)/Galaxy_Class.o
+#	$(CXX) $(CXXFLAGS) $(LDFLAGS) -ggdb -o $(CXXBIN)/$@ $<
 #
 #$(CXXBUILDDIR)/Galaxy_Class.o: $(CXXSRCDIR)/Galaxy_Class.cpp
 #	$(CXX) $(CXXFLAGS) $(CXXINCLUDES) -c -o $@ $<
-#
+
