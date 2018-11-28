@@ -26,9 +26,8 @@ def main(argv):
     if argv[1] == '-i':
         """This handles interactive (-i) processing.
         """
-        yes = frozenset(['yes', 'y'])
-        if (input('Do you need to download any input files? '\
-                '(yes/no)\n> ').lower() in yes):
+        yes = ['yes', 'y']
+        if (str(input('Do you need to download any input files? (yes/no)\n> ')).lower() in yes):
             get_target_data('input', 0, 'dummy')
 
         name, filename = get_input_file_INTERACTIVE()
@@ -260,8 +259,9 @@ def get_input_file_INTERACTIVE():
             if path.isfile('./input/' + f)]:
                 print(file_name)
 
-    name = input('Copy and paste the name of a file in the input '\
-            'directory you want to work with:\n> ')[:-len('.txt')]
+    name_input = input('Copy and paste the name of a file in the input '\
+                 'directory you want to work with:\n> ')
+    name = name_input[:-len('.txt')]
     filename = './input/' + name + '.txt'
 
     print('Target File Selected: {}'.format(path.splitext(filename)[0]))
