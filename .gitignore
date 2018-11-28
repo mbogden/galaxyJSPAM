@@ -35,6 +35,7 @@ a_*
 just_in_case
 bin
 */bin
+jspamcli.py
 
 # --------------------------------------------------------------------------- #
 # C/C++ Standard .gitignore
