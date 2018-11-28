@@ -58,7 +58,7 @@ ALERT  = @echo "\n--------------------------------------------\nBuilding target 
 F90         := gfortran -pg -fbounds-check -fimplicit-none -pedantic
 F90BIN      := fortran/bin
 F90SRCDIR   := fortran/src
-F90INCLUDES := fortran/includes
+F90INCLUDE := fortran/includes
 F90OBJDIR   := fortran/obj
 F90OBJS     := parameters_module.o io_module.o df_module.o setup_module.o \
 			   integrator.o init_module.o basic_run.o
@@ -70,11 +70,11 @@ F90MAINTARGETS := $(addprefix $(F90BIN)/,basic_run mod_run)
 # --------------------------------------------------------------------------- #
 # C++ settings
 # --------------------------------------------------------------------------- #
-CXX         := g++
-CXXFLAGS      := -Wall -std=c++17
+CXX         := g++-8
+CXXFLAGS    := -Wall -std=c++17
 CXXBIN      := cpp/bin
 CXXSRCDIR   := cpp/src
-CXXINCLUDES := cpp/includes
+CXXINCLUDE  := -I cpp/include
 CXXOBJDIR   := cpp/obj
 CXXBUILDDIR := cpp/build
 CXXLIBS      =
@@ -137,11 +137,11 @@ veryclean: clean
 
 ##########
 
-.c.o:
-	$(CC) $(CFLAGS) -c $<
-
-.cc.o:
-	$(CC) $(CFLAGS) -c $<
+#.c.o:
+#	$(CC) $(CFLAGS) -c $<
+#
+#.cc.o:
+#	$(CC) $(CFLAGS) -c $<
 
 #process_pnm: process_pnm.c
 #	$(CC) -o process_pnm process_pnm.c
@@ -209,6 +209,8 @@ mod_run.o: $(F90SRCDIR)/mod_run.f90 parameters_module.o
 
 # --------------------------------------------------------------------------- #
 # C++ FIXME
+# I'm not entirely sure where the errors are in the C++ portion, or how to fix
+# them.
 # --------------------------------------------------------------------------- #
 #im: $(CXXBIN)/im
 #
@@ -216,11 +218,12 @@ mod_run.o: $(F90SRCDIR)/mod_run.f90 parameters_module.o
 #all_cxx: imall diff
 #
 #imall: $(CXXSRCDIR)/imall.cpp  $(CXXSRCDIR)/imgCreator.cpp
-#	$(CXX) $(CXXFLAGS) $^ -o $(CXXBIN)/$@ -fopenmp -ggdb $(LDFLAGS)
-#
+#	echo $(CXX)
+#	$(CXX) $(CXXINCLUDE) $(CXXFLAGS) $^ -o $(CXXBIN)/$@ -fopenmp -ggdb $(LDFLAGS)
+##
 #diff: $(CXXSRCDIR)/diff.cpp $(CXXSRCDIR)/imgClass.cpp
-#	$(CXX) $(CXXFLAGS) $^ -o $(CXXBIN)/$@ -ggdb $(LDFLAGS)
-
+#	$(CXX) $(CXXINCLUDE) $(CXXFLAGS) $^ -o $(CXXBIN)/$@ -ggdb $(LDFLAGS)
+#
 #diff: $(CXXSRCDIR)/diff.cpp
 #	@echo "$(CXX) $(CXXFLAGS) $(LDFLAGS) -ggdb -o $(CXXBIN)/$@"
 #	$(CXX) $(CFLAGS) $(LDFLAGS) -ggdb -o $(CXXBIN)/$@
