@@ -1,12 +1,9 @@
-"""update
+"""update.py
 Author : Jackson Cole
 Affil  : Middle Tennessee State University
 Purpose: This script exists solely to update targets_done.txt,
          all_targets.txt, and remaining.txt. These files will help in
          figuring out which targets have not yet been processed.
-
-Notes  : This script should be made executable, as it calls specifically
-         python3 in the hashbang.
 """
 from os import listdir, path
 
