@@ -1,3 +1,5 @@
+// Author: Matt Ogden
+
 #include "imgCreator.hpp"
 
 using namespace std;

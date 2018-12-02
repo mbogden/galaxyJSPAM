@@ -1,3 +1,4 @@
+// Author: Matt Ogden
 #include <iostream>
 #include <fstream>
 #include <string>

@@ -1,3 +1,4 @@
+// Author: Matt Ogden
 #ifndef IMGCLASS_H
 #define IMGCLASS_H
 

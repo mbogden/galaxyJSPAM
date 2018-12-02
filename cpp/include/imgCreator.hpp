@@ -1,3 +1,4 @@
+// Author: Matt Ogden
 #ifndef IMGCREATOR_H
 #define IMGCREATOR_H
 

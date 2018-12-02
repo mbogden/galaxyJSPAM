@@ -1,3 +1,4 @@
+// Author: Matt Ogden
 #include "imgClass.hpp"
 
 #include <iostream>
