@@ -9,7 +9,7 @@ __all__ = ['MergerRun',
            'data_tools',
            'get_target_data']
 
-from merger_class import MergerRun
+from merger import MergerRun
 from galaxy import Galaxy
 from get_target_data import get_target_data
 import data_tools
