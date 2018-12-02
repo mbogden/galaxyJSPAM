@@ -5,7 +5,8 @@ Purpose: This is a general purpose directory structure creator. It takes
          a list of path elements as an argument.
 """
 
-from os import path, mkdir
+from os import mkidr, path
+
 
 class Structure:
     def __init__(self, path_list):

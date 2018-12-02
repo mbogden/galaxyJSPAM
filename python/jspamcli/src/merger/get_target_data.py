@@ -12,10 +12,12 @@ Notes  : This really does not belong in the data_tools package, but
          it's the best place for it right now, so here it lives.
 """
 
-import requests
-from bs4 import BeautifulSoup as bs
+from os import mkdir, path, remove, system
 import gzip
-from os import remove, mkdir, path, system
+
+from bs4 import BeautifulSoup as bs
+import requests
+
 
 def get_target_data(dest_path, switcher, target_given = 900):
 

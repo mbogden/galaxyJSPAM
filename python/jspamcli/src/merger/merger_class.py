@@ -9,22 +9,20 @@ Purpose: The MergerRun class is useful for encapsulating all data
          well. They do what they do.
 """
 
-from data_tools import Structure
-from galaxy import Galaxy
 import os
-from numpy import genfromtxt
-
 from sys import argv
-import numpy as np
-import scipy.ndimage as ndimage
-from scipy import misc
-import matplotlib
-matplotlib.use('agg')
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-import matplotlib.animation as animation
+
 import glob
 import imageio
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+from mpl_toolkits.mplot3d import Axes3D
+import numpy as np
+from scipy import misc
+import scipy.ndimage as ndimage
+
+from data_tools import Structure
+from galaxy import Galaxy
 
 
 class MergerRun:

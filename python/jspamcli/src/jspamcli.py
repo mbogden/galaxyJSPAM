@@ -10,10 +10,18 @@ Notes  : This script requires Python3.
 """
 
 from sys import argv
-from os import system, path, mkdir, chdir, rename, walk, listdir
+from os import (
+    chdir,
+    listdir,
+    mkdir,
+    path,
+    rename,
+    system,
+    walk,
+)
 
+from multiprocessing import cpu_count, Pool
 from numpy import genfromtxt
-from multiprocessing import Pool, cpu_count
 
 from merger import MergerRun, data_tools, get_target_data
 from data_tools import Structure
