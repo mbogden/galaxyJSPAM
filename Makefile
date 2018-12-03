@@ -36,6 +36,7 @@
 #FLAG =
 #
 #F90LIBS = -L/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk/usr/lib
+#F90LIBS = -L/Library/Developer/CommandLineTools/SDKs/MacOSX10.14.sdk/usr/lib
 
 # --------------------------------------------------------------------------- #
 # General settings
@@ -63,7 +64,7 @@ F90OBJDIR   := fortran/obj
 F90OBJS     := parameters_module.o io_module.o df_module.o setup_module.o \
 			   integrator.o init_module.o basic_run.o
 F90BUILDDIR := fortran/build
-F90LIBS =
+#F90LIBS =
 
 F90MAINTARGETS := $(addprefix $(F90BIN)/,basic_run mod_run)
 
@@ -153,11 +154,11 @@ veryclean: clean
 # ------------------------------------ #
 basic_run: $(F90OBJS)
 	$(ALERT)
-	$(F90) -o $(F90BIN)/$@ $(F90LIBS) -g $(addprefix $(F90OBJDIR)/,$^)
+	$(F90) -o $(F90BIN)/$@ $(F90LIBS) $(addprefix $(F90OBJDIR)/,$^)
 
 mod_run: $(F90OBJS)
 	$(ALERT)
-	$(F90) -o $(F90BIN)/$@ $(F90LIBS) -g $(addprefix $(F90OBJDIR)/,$^)
+	$(F90) -o $(F90BIN)/$@ $(F90LIBS) $(addprefix $(F90OBJDIR)/,$^)
 # ------------------------------------ #
 
 init_module.o: $(F90SRCDIR)/init_module.f90
