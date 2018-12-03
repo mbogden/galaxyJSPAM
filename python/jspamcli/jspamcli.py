@@ -51,12 +51,13 @@ def main(argv):
         path_to_info_file = './targets/' + name + '/' + name + '.info.txt'
 
         mergers = []
-        for init_run_string, run in zip(init_value_strings, run_list):
+        for init_value_string, run in zip(init_value_strings, run_list):
             mergers.append(MergerRun(path_to_info_file, n1_particles,
-                n2_particles, run, init_run_string))
+                n2_particles, run, init_value_string)
+            )
 
         for merger in mergers:
-            get_runs_scores_and_wipe(merger)
+            run_and_clean(merger)
 
     elif argv[1] == '-bi':
         """This handles batch processing... interactively (-bi).
@@ -110,7 +111,7 @@ def main(argv):
                         n2_particles, run, init_run_string))
 
                 for merger in mergers:
-                    get_runs_scores_and_wipe(merger)
+                    run_and_clean(merger)
 
 
     elif argv[1] == '-b':
@@ -148,7 +149,7 @@ def main(argv):
                             n2_particles, run, init_run_string))
 
                     for merger in mergers:
-                        get_runs_scores_and_wipe(merger)
+                        run_and_clean(merger)
 
 
     elif argv[1] == '-bm':
@@ -225,7 +226,7 @@ def main(argv):
                 # Creating the processes to map to multiple cores, then
                 # immediately getting the result
                 with Pool(processes = cores_requested) as pool:
-                    result = pool.map_async(get_runs_scores_and_wipe_unpack,
+                    result = pool.map_async(unpack_args_for_run_and_clean,
                             zip(all_mergers, range(len(all_mergers))))
                     result.get()
                 # ----------------------------------------------------------- #
@@ -337,7 +338,7 @@ def setup_target_structure(filename, run_number, n1_particles, n2_particles):
     return target_dirs
 
 
-def wipe(merger, distinguisher = 1):
+def clean_working_directory(merger, distinguisher = 1):
     """The current configuration of this program outputs ALL runfiles
     in the root directory where run_multiple is called. This function
     uses the Structure module in the data_tools package to create the
@@ -372,29 +373,29 @@ def wipe(merger, distinguisher = 1):
                         n2     = merger.secondary.particles,)))
 
 
-def get_runs_scores_and_wipe(merger, distinguisher = 1):
+def run_and_clean(merger, distinguisher = 1):
     """This function with a too-long name actually calls the Fortran
     simulation via basic_run.
     """
-    system('./basic_run -m {} -n1 {} -n2 {} {}'
+    system('./bin/basic_run -m {} -n1 {} -n2 {} {}'
             .format(distinguisher,
                     merger.primary.particles,
                     merger.secondary.particles,
                     merger.init))
-    wipe(merger, distinguisher)
+    clean_working_directory(merger, distinguisher)
 
 
-def get_runs_scores_and_wipe_unpack(zipped):
+def unpack_args_for_run_and_clean(zipped):
     """This function just unzips zipped arguments for
-    get_runs_scores_and_wipe. This was the only implementation that allowed
+    run_and_clean. This was the only implementation that allowed
     calling a multi-arg function with map_async using only one
     arg.
     """
-    get_runs_scores_and_wipe(zipped[0], zipped[1])
+    run_and_clean(zipped[0], zipped[1])
 
 
 def giffy(merger, dimensions, distinguisher = 1):
-    system('./basic_run -g DUMMY_ARG -m {} -n1 {} -n2 {} {}'
+    system('./bin/basic_run -g DUMMY_ARG -m {} -n1 {} -n2 {} {}'
             .format(distinguisher,
                     merger.primary.particles,
                     merger.secondary.particles,
