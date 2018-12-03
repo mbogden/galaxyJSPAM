@@ -5,7 +5,7 @@ Purpose: This is a general purpose directory structure creator. It takes
          a list of path elements as an argument.
 """
 
-from os import mkidr, path
+from os import mkdir, path
 
 
 class Structure:
