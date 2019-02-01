@@ -1,0 +1,35 @@
+These are primarily notes for Matthew Ogden
+
+Immediate To-Do
+- Pete
+  - Account accesses
+  - How you'll login
+    X2Go - VM
+      herschel access
+      system 64
+    Putty
+  - Github to download
+  - What the main programs are
+
+
+- Figure out what Jackson did to get things running
+- Become familiar with where things are
+- Get stuff running
+- parameter finder
+
+
+Future implementations
+- Standard image format?
+  - dedicated galaxy centers and resolution
+- Get Code organized and running
+- optimize pararmet
+- Consider greater weights based on distance from galaxy center
+- Histogram Adjustment?
+- Feature Extraction via OpenCV
+  1. Histogram of oriented gradients
+  2. Scale-invariant feature transform
+- Pattern recognition software
+- Machine Learning/ Tensor Flow
+
+
+
