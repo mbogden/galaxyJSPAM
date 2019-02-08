@@ -1,21 +1,33 @@
 These are primarily notes for Matthew Ogden
 
+
+
 Immediate To-Do
 - Pete
-  - Account accesses
-  - How you'll login
-    X2Go - VM
-      herschel access
-      system 64
-    Putty
   - Github to download
   - What the main programs are
-
 
 - Figure out what Jackson did to get things running
 - Become familiar with where things are
 - Get stuff running
 - parameter finder
+
+Maintenance Items
+- virtualenv was moved to archive folder.  No longer needed?
+- Version number for futures in requirements file changed
+- Add how you run jspamcli.py in command line to ReadMe
+- Seperate installation instructions from daily startup instructions.
+- jpsamcli -i download input file broken 
+- pip install lxml (To requirements?)
+- Write How-To-Run section.
+- Mention installing ALL in jspamcii.py
+- *****batch file ALL is broken for everything except -bm*****
+- Not all target info files are there
+  - Manually get?
+  - Does code have an auto way to get?
+  - program way to get from website?
+
+- 
 
 
 Future implementations
@@ -30,6 +42,4 @@ Future implementations
   2. Scale-invariant feature transform
 - Pattern recognition software
 - Machine Learning/ Tensor Flow
-
-
-
+- Run on cluster?
