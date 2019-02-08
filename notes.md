@@ -2,7 +2,7 @@
 
 These are notes meant for myself, Matthew Ogden, to keep and maintain but may be good for others to view. 
 
-##Immediate To-Do
+## Immediate To-Do
 
 - Get a base working version of everything
   - Installation. ( Completed. Do 'maintenance items' below. )
@@ -11,7 +11,7 @@ These are notes meant for myself, Matthew Ogden, to keep and maintain but may be
   - Difference code
   - Image parameter finder
 
-- Pete
+## Pete
   - GitHub
     - Make a github account
     - Github instruction sheet
@@ -37,7 +37,7 @@ These are notes meant for myself, Matthew Ogden, to keep and maintain but may be
 
 
 
-##Maintenance Items
+## Maintenance Items
 - Installation
   - virtualenv was moved to archive folder.  No longer needed? Move back? 
   - Version number for 'futures' is too new?
@@ -62,7 +62,7 @@ These are notes meant for myself, Matthew Ogden, to keep and maintain but may be
 
 
 
-##Future Things To-Do
+## Future Things To-Do
 
 - Optimize how to find Image Parameters
   - Requires working image creator and comparison code.
