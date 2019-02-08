@@ -1,49 +1,73 @@
-These are primarily notes for Matthew Ogden
-
-test change
-
+These are notes meant for myself, Matthew Ogden, to keep and maintain but may be good for others to view. 
 
 Immediate To-Do
-- Pete
-  - Github instruction sheet
-  - Give Pete access to write to my github repository?
-  - What the main programs are
-  - Consider giving him task to find all the target info files and target images.
-  - Create script that will read done_targets and will create a batch file with options to change particle numbers, runs, etc
 
-- Figure out what Jackson did to get things running
-- Become familiar with where things are
-- Get stuff running
-- parameter finder
+- Get a base working version of everything
+  - Installation. ( Completed. Do 'maintenance items' below. )
+  - jspamcli.py and basic_run ( Working. Partially complete )
+  - Image creator
+  - Difference code
+  - Image parameter finder
+
+- Pete
+  - Make a github
+    - Github instruction sheet
+    - Give access to write to galJSPAM github repository.
+
+  - Knowledge
+    - Review papers
+    - Get an understanding what main programs do.
+
+  - Possible things to do.
+    - Get all target images and info files? ( See below in 'maintenance items' )
+    - Create script that will create a run batch file. 
+      - See 'batch_run_files' for sample of batch file
+      - Convert Jackson's script in 'targets' folder? 
+      - Read targets_done.txt in targets folder
+      - Ask user or read file for below in batch file
+        - number of particles per galaxy
+        - all or some runs? 
+
+
 
 Maintenance Items
-- virtualenv was moved to archive folder.  No longer needed?
-- Version number for futures in requirements file changed
-- Add how you run jspamcli.py in command line to ReadMe
-- Seperate installation instructions from daily startup instructions.
-- jpsamcli -i download input file broken 
-- pip install lxml (To requirements?)
-- Write How-To-Run section.
-- Mention installing ALL in jspamcii.py
-- *****batch file ALL is broken for everything except -bm*****
+- Installation
+  - virtualenv was moved to archive folder.  No longer needed? Move back? 
+  - Version number for 'futures' is too new?
+  - add 'pip install lxml' (To requirements?)
+
+- Separate installation and daily startup instructions for jspamcli.py in readme.
+
+- Add how you run jspamcli.py in command line to ReadMe with different options.
+  - Consider adding execution instructions for all code.
+
+- JSPAMCLI.py
+  - jpsamcli -i download input file broken 
+  - *****batch file ALL is broken for everything except -bm*****
+  - Update/combine scripts for different arguments
+
 - Not all target info files are there
   - Manually get?
-  - Does code have an auto way to get?
+  - Did jackson make a script to auto get images from site?
   - program way to get from website?
+  - Do they need to be 'calibrated' like the others?
 
-- 
 
 
-Future implementations
+Future Things To-Do
+
+- Optimize how to find Image Parameters
+  - Requires working image creator and comparison code.
+  
 - Standard image format?
-  - dedicated galaxy centers and resolution
-- Get Code organized and running
-- optimize pararmet
-- Consider greater weights based on distance from galaxy center
-- Histogram Adjustment?
-- Feature Extraction via OpenCV
-  1. Histogram of oriented gradients
-  2. Scale-invariant feature transform
-- Pattern recognition software
-- Machine Learning/ Tensor Flow
-- Run on cluster?
+  - dedicated galaxy centers and resolution in image.
+
+- New Comparison methods
+  - Consider greater weights for pixel difference based on distance from galaxy center
+  - Feature Extraction via OpenCV
+    1. Histogram of oriented gradients
+    2. Scale-invariant feature transform
+  - Pattern recognition software
+  - Machine Learning/ Tensor Flow
+- Modify to run on cluster.
+- Analyze Histogram and Adjust as new image parameter?
