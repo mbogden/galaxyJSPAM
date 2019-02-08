@@ -4,8 +4,11 @@ These are primarily notes for Matthew Ogden
 
 Immediate To-Do
 - Pete
-  - Github to download
+  - Github instruction sheet
+  - Give Pete access to write to my github repository?
   - What the main programs are
+  - Consider giving him task to find all the target info files and target images.
+  - Create script that will read done_targets and will create a batch file with options to change particle numbers, runs, etc
 
 - Figure out what Jackson did to get things running
 - Become familiar with where things are
