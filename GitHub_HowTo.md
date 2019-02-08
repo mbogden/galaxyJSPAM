@@ -34,15 +34,15 @@ As you modifying files in the repository such as adding and modifying files, the
 
 1. Once you've made changes to a file, you will need to add it to the next commit.  You can add multiple files to the same commit.  
 
-- `git add file.txt`
+  - `git add file.txt`
 
 2.  Commits are saved locally first.  It's good practice to make a 'commit' whenever you create or change a file, even if it's a minor change.  It will save your progress and please always attach a message/comment specifying the change.
 
-- `git commit -m 'This is a comment.  Ex. Altered function Foo to file.c'`
+  - `git commit -m 'This is a comment.  Ex. Altered function Foo to file.c'`
 
 3. Push your local commit to online repository.  Pushing it out to the online repository will allow everyone to see and benefit from the changes.  It is wise to first always pull from the repository before pushing your own changes or bad things may happen. 
 
-- `git pull`
-- `git push`
+  - `git pull`
+  - `git push`
 
 
