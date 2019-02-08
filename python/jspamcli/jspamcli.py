@@ -26,6 +26,7 @@ from numpy import genfromtxt
 from merger import MergerRun, data_tools, get_target_data
 from data_tools import Structure
 
+devPrint = True # Added to help me trouble shoot.  -Matthew Ogden
 
 def main(argv):
     """This program accepts command line arguments, and they are dealt
@@ -88,6 +89,8 @@ def main(argv):
                 for line in f:
                     if line.startswith('#') == False:
                         lines.append(line.rstrip().split(','))
+            if devPrint:
+                print(lines)
 
             for line in lines:
                 name = line[0]
@@ -106,11 +109,19 @@ def main(argv):
                         '.info.txt'
 
                 mergers = []
+
+                if devPrint:
+                    print('In -bi main.  Creating merger and running: ',name)
+
                 for init_run_string, run in zip(init_value_strings, run_list):
                     mergers.append(MergerRun(path_to_info_file, n1_particles,
                         n2_particles, run, init_run_string))
 
+                if devPrint:
+                    print('about to run ',len(mergers), ' mergers')
                 for merger in mergers:
+                    if devPrint:
+                        print('About to run merger...')
                     run_and_clean(merger)
 
 
@@ -307,7 +318,12 @@ def get_init(filename, first_run, last_run, do_all = False):
     if not do_all:
         for i, line in enumerate(open(filename, 'r')):
             if i in range(first_run - 1, last_run):
-                init_value_strings.append(line.split('\t')[1].strip())
+                try:
+                    init_value_strings.append(line.split('\t')[1].strip())
+                except:
+                    print('#####   WARNING   #####')
+                    print(' Failed read line number ',i, ' in file ',filename)
+                    print(' Line: ',line)
 
     else:
         first_run = 0
