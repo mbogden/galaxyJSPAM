@@ -7,7 +7,7 @@ These are just a few basic functions for initial installation and commands I dis
 You will first need to download your own local repository to start using and modifying. 
 
 - Initial installation
-`git install https://github.com/mbogden/galaxyJSPAM.git`
+`git clone https://github.com/mbogden/galaxyJSPAM.git`
 
 
 ### Change branch.  
