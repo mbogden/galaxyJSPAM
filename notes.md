@@ -40,6 +40,7 @@ These are notes meant for myself, Matthew Ogden, to keep and maintain but may be
 
 ## Maintenance Items
 - Installation
+  - Add git clone command in readme.md
   - virtualenv was moved to archive folder.  No longer needed? Move back? 
   - Version number for 'futures' is too new?
   - add 'pip install lxml' (To requirements?)
