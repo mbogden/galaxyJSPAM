@@ -28,17 +28,19 @@ and remove obviously "bad" models,
 thereby removing the need for a human-in-the-loop altogether.
 
 ## Getting Started<a id="gettingstarted">
-**MAKE SURE TO DO ALL WORK INSIDE OF THE VIRTUALENVIRONMENT**
 
-### Prerequisites
-```
-```
+**MAKE SURE TO DO ALL WORK INSIDE OF THE VIRTUALENVIRONMENT**
 
 ### Installing
 
-
-- Initial installation
+Currently, active work is being done in a student's repository on GitHub and can be downloaded via git command.
 `git clone https://github.com/mbogden/galaxyJSPAM.git`
+
+Move into the directory and run the Makefile.
+```
+cd galaxyJSPAM
+make
+```
 
 In order to resolve an issue with local development, `virtualenv` is included
 in this repository as `virtualenv-15.2.0`, and can be found at
