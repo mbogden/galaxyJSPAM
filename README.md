@@ -35,6 +35,11 @@ thereby removing the need for a human-in-the-loop altogether.
 ```
 
 ### Installing
+
+
+- Initial installation
+`git clone https://github.com/mbogden/galaxyJSPAM.git`
+
 In order to resolve an issue with local development, `virtualenv` is included
 in this repository as `virtualenv-15.2.0`, and can be found at
 [https://pypi.python.org/pypi/virtualenv/15.2.0](https://pypi.python.org/pypi/virtualenv/15.2.0).
