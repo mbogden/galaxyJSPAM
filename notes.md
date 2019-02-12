@@ -18,6 +18,9 @@ These are notes meant for myself, Matthew Ogden, to keep and maintain but may be
     - Github instruction sheet
     - Give access to write to galaxyJSPAM github repository.
 
+  - Download galaxyJSPAM
+    - install and begin creating some particle files.
+
   - Knowledge
     - Review papers
     - Get an understanding what main programs do.
@@ -78,6 +81,8 @@ These are notes meant for myself, Matthew Ogden, to keep and maintain but may be
     1. Histogram of oriented gradients
     2. Scale-invariant feature transform
   - Pattern recognition software
+    - SVD facial recognition
   - Machine Learning/ Tensor Flow
+  - Use all comparison methods and weight their results. 
 - Modify to run on cluster.
 - Analyze Histogram and Adjust as new image parameter?
