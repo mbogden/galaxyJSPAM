@@ -58,6 +58,12 @@ source env/bin/activate
 pip install -r requirements.txt
 ```
 
+To check if jspamcli.py and basic_run are working, feel free to run a quick batch.  The particle files will show up in the output folder. 
+
+```
+python3 jspamcli.py -bm 3 working_sample.txt
+```
+
 ## Specifications<a id="specifications">
 ### jspamcli.py<a id="jspamcli.py">
 This fork of WallinCode contains `jspamcli.py`, a python3 script that runs
@@ -120,3 +126,4 @@ of Interacting Galaxies*. PhD thesis, George Mason University, 2013.
 A. J. Holincheck, J. F. Wallin, K. Borne, L. Fortson, C. Lintott, A. M. Smith, S. Bamford, W. C. Keel, and M. Parrish. Galaxy Zoo: Mergers - Dynamical models of interacting galaxies. , 459:720–745, June 2016. doi: 10.1093/mnras/stw649.
 
 J. F. Wallin, A. J. Holincheck, and A. Harvey. JSPAM: A restricted three-body code for simulating interacting galaxies. *Astronomy and Computing*, 16:26–33, July 2016. doi: 10.1016/j.ascom.2016.03.005.
+
