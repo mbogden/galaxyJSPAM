@@ -101,6 +101,7 @@ fillbin:
 .PHONY: fillbin
 
 setup:
+	@ln -s python/jspamcli/jspamcli.py .
 	@$(MKDIR) $(F90OBJDIR)
 	@$(MKDIR) $(F90BUILDDIR)
 	@$(MKDIR) $(F90BIN)
@@ -236,3 +237,5 @@ mod_run.o: $(F90SRCDIR)/mod_run.f90 parameters_module.o
 #$(CXXBUILDDIR)/Galaxy_Class.o: $(CXXSRCDIR)/Galaxy_Class.cpp
 #	$(CXX) $(CXXFLAGS) $(CXXINCLUDES) -c -o $@ $<
 
+
+#

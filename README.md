@@ -28,13 +28,18 @@ and remove obviously "bad" models,
 thereby removing the need for a human-in-the-loop altogether.
 
 ## Getting Started<a id="gettingstarted">
+
 **MAKE SURE TO DO ALL WORK INSIDE OF THE VIRTUALENVIRONMENT**
 
-### Prerequisites
+### Installing
+
+Currently, active work is being done in a student's repository on GitHub and can be downloaded via git command.   Move into the directory and run the Makefile.
 ```
+git clone https://github.com/mbogden/galaxyJSPAM.git
+cd galaxyJSPAM
+make
 ```
 
-### Installing
 In order to resolve an issue with local development, `virtualenv` is included
 in this repository as `virtualenv-15.2.0`, and can be found at
 [https://pypi.python.org/pypi/virtualenv/15.2.0](https://pypi.python.org/pypi/virtualenv/15.2.0).
