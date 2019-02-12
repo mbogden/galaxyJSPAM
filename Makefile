@@ -108,6 +108,7 @@ setup:
 	@$(MKDIR) $(CXXBUILDDIR)
 	@$(MKDIR) $(CXXBIN)
 	@$(MKDIR) $(BIN)
+	@$(MKDIR) output
 .PHONY: setup
 
 clean:
