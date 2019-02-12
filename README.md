@@ -33,7 +33,7 @@ thereby removing the need for a human-in-the-loop altogether.
 
 ### Installing
 
-Currently, active work is being done in a student's repository on GitHub and can be downloaded via git command.   Move into the directory and run the Makefile.
+Currently, active work is being done in a student's repository on GitHub and can be downloaded via git command.  Move into the directory and run the Makefile to install. 
 ```
 git clone https://github.com/mbogden/galaxyJSPAM.git
 cd galaxyJSPAM
