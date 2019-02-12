@@ -58,11 +58,24 @@ source env/bin/activate
 pip install -r requirements.txt
 ```
 
-To check if jspamcli.py and basic_run are working, feel free to run a quick batch.  The particle files will show up in the output folder. 
+To check if jspamcli.py and basic_run are working (primary code to make particle files), feel free to run a quick batch.  The particle files will show up in the output folder. 
 
 ```
 python3 jspamcli.py -bm 3 working_sample.txt
 ```
+
+
+## Daily Instructions
+
+### Particle Files
+As of now, the best current method for batch creation of particle files is to use the jspamcli.py code to run basic_run.  In order to run jspamcli.py, you need to enter the virtual environment created during installation.
+
+```
+source env/bin/activate
+python3 jspamcli.py -bm 3 working_sample.txt
+```
+
+
 
 ## Specifications<a id="specifications">
 ### jspamcli.py<a id="jspamcli.py">
