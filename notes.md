@@ -3,19 +3,18 @@
 
 These are notes meant for myself, Matthew Ogden, to keep and maintain but may be good for others to view. test.
 
-## Immediate To-Do
+## Matt's Immediate To-Do
 
-- Get a base working version of everything
-  - Installation. ( Completed. Do 'maintenance items' below. )
-  - jspamcli.py and basic_run ( Working. Partially complete )
+- Get a base working version of everything and write brief instructions and summary in README.md. 
+  - Installation w/ instructions on README.md ( Completed. )
+  - jspamcli.py and basic_run ( In progress.  Partially complete )
   - Image creator
   - Difference code
   - Image parameter finder
 
+
 ## Pete
   - GitHub
-    - Make a github account
-    - Github instruction sheet
     - Give access to write to galaxyJSPAM github repository.
 
   - Download galaxyJSPAM
@@ -27,7 +26,8 @@ These are notes meant for myself, Matthew Ogden, to keep and maintain but may be
     - Ask Wallin what are good things to know.
     - learn what Graham is doing and how it'll relate.
 
-  - Possible things to do.
+  - Possible scripts you can write at some point. 
+    - Create user friendly script to create model variables to read into JSPAM. 
     - Get all target images and info files? ( See below in 'maintenance items' )
     - Create script that will create a run batch file. 
       - See 'batch_run_files' for sample of batch file
@@ -35,23 +35,24 @@ These are notes meant for myself, Matthew Ogden, to keep and maintain but may be
       - Read targets_done.txt in targets folder
       - Ask user or read file for below in batch file
         - number of particles per galaxy
-        - all or some runs? 
-    
-    - Create user friendly script to create model variables to read into JSPAM. 
+        - all or some runs - Machine Learning/ Tensor Flow
+    - Use all comparison methods and weight their results. 
+
+
+
 
 
 
 ## Maintenance Items
-- Installation
-  - Add git clone command in readme.md
-  - virtualenv was moved to archive folder.  No longer needed? Move back? 
-  - Version number for 'futures' is too new?
-  - add 'pip install lxml' (To requirements?)
 
-- Separate installation and daily startup instructions for jspamcli.py in readme.
+- Daily Instructions for anyone to follow.
+  - jspamcli.py
+  - basic_run
+  - image creator
+  - difference code
+  - parameter finder
 
 - Add how you run jspamcli.py in command line to ReadMe with different options.
-  - Consider adding execution instructions for all code.
 
 - JSPAMCLI.py
   - jpsamcli -i download input file broken 
@@ -69,20 +70,23 @@ These are notes meant for myself, Matthew Ogden, to keep and maintain but may be
 
 ## Future Things To-Do
 
+- Modify to run on cluster.
+
 - Optimize how to find Image Parameters
   - Requires working image creator and comparison code.
   
 - Standard image format?
   - dedicated galaxy centers and resolution in image.
+  - Analyze Histogram and Adjust as new image parameter?
 
 - New Comparison methods
+
   - Consider greater weights for pixel difference based on distance from galaxy center
   - Feature Extraction via OpenCV
     1. Histogram of oriented gradients
     2. Scale-invariant feature transform
   - Pattern recognition software
     - SVD facial recognition
-  - Machine Learning/ Tensor Flow
-  - Use all comparison methods and weight their results. 
-- Modify to run on cluster.
-- Analyze Histogram and Adjust as new image parameter?
+ 
+ 
+
