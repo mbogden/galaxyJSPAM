@@ -8,7 +8,7 @@ These are notes meant for myself, Matthew Ogden, to keep and maintain but may be
 - Get a base working version of everything and write brief instructions and summary in README.md. 
   - Installation w/ instructions on README.md ( Completed. )
   - jspamcli.py and basic_run ( In progress.  Partially complete )
-  - Image creator
+  - Image creator ( Completed )
   - Difference code
   - Image parameter finder
 
@@ -17,11 +17,13 @@ These are notes meant for myself, Matthew Ogden, to keep and maintain but may be
   - GitHub
     - Give access to write to galaxyJSPAM github repository.
 
-  - Download galaxyJSPAM
+  - galaxyJSPAM
     - install and begin creating some particle files.
+    - Learn what is takes to do a basic run of JSPAM.
+    - Use jspamcli.py to do batch basic runs. 
 
   - Knowledge
-    - Review papers
+    - Review papers. (Thesis, Toomre
     - Get an understanding what main programs do.
     - Ask Wallin what are good things to know.
     - learn what Graham is doing and how it'll relate.
@@ -41,9 +43,18 @@ These are notes meant for myself, Matthew Ogden, to keep and maintain but may be
 
 
 
-
-
 ## Maintenance Items
+
+- Include c++ compilation script in readme
+  - Get a working script for compiling c++ image creation code. 
+
+
+- Occasional error about -bm in jspamcli.py reading as a float instead of integer for cores.
+- Change jspmacli.py to just point to batch_run_files/batch_file.txt instead of typing full name. 
+- Add quick test for img.sh in readme.md
+
+
+
 
 - Daily Instructions for anyone to follow.
   - jspamcli.py
@@ -69,6 +80,16 @@ These are notes meant for myself, Matthew Ogden, to keep and maintain but may be
 
 
 ## Future Things To-Do
+
+- Rework run folder organization
+  - How essential is it to keep sdss# and run# on particle files if they're in the correct directory? 
+  - add 'pts.txt' to end instead of '.txt'
+  - change '.' to 'underscore' for clarity in jspamcli.py
+  - info file assumed #particles is set once created
+  - consider adding paramFile name next to image name in info file instead of relying on image name.
+
+
+- Consider making a file listing directories the other programs can read to know where output directories, source files, exe files, etc are
 
 - Modify to run on cluster.
 
