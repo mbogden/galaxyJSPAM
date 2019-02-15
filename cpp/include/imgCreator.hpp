@@ -36,14 +36,27 @@ struct paramStruct{
 	float norm_value;
 	int image_rows;
 	int image_cols;
+
+    void loadParam( string inName, int gSize, float gWeight, float rConstant, float nValue, int imgRows, int imgCols ){
+      name = inName;
+      gaussian_size = gSize;
+      gaussian_weight = gWeight;
+      radial_constant = rConstant;
+      norm_value = nValue;
+      image_rows = imgRows;
+      image_cols = imgCols;
+    }
 	
 	void loadParam(ifstream& fin){
 		string str;
 		fin >> name;
 		while( fin >> str ){
 			//cout << str << endl;
-			if( str.compare("gaussian_size")==0)
+			if( str.compare("gaussian_size")==0){
 				fin >> gaussian_size;
+                cout << gaussian_size <<endl;
+              }
+
 			else if ( str.compare("gaussian_weight")==0)
 				fin >> gaussian_weight;
 			else if ( str.compare("radial_constant")==0)
@@ -128,8 +141,10 @@ public:
 	bool prepare();	
 	void changeParam(paramStruct paramIn);
 	void compare(Galaxy &g1, Galaxy &g2);
-	void makeGaussianBlur();
+	void makeGaussianBlur();	
 	void makeImage2();
+	void makeImage2(bool saveImg);
+	void makeImage2(string saveLocNmae);
 	void makeImage();
 	void makeImageOLD();
 	void writeInfo();

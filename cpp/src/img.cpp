@@ -9,7 +9,7 @@ void getDir(vector<string> &myVec, string dirPath);
 bool removeFromDirectory(string in);
 
 //  In command line.
-//  ./image_creator.exe    sdss_directory    param_file
+//  ./image_creator.exe    run_directory    param_file
 int main(int argc, char *argv[]){
 
 	bool overWriteImages = true;
@@ -19,6 +19,9 @@ int main(int argc, char *argv[]){
     cout << endl;
     //  Get main Directory
     string mainPath = argv[1];
+
+    cout << "HI!@   IT'S MATTHEW!" << endl;
+
 	
 	//  Add '/' to directory string if not already present
     string temp = mainPath.substr(mainPath.size()-1,1);
@@ -38,10 +41,11 @@ int main(int argc, char *argv[]){
 	paramfile.close();
 
 
+    /*
 	//  Grab run folders
-    vector<string> runNames;
-    getDir(runNames,mainPath); // get all files/folders in directory.
-    runNames.erase(remove_if(runNames.begin(),runNames.end(),removeFromDirectory),runNames.end());  // filter.
+    vector<string> runFiles;
+    getDir(runFiles,mainPath); // get all files/folders in directory.
+    //runFiles.erase(remove_if(runFiles.begin(),runFiles.end(),removeFromDirectory),runFiles.end());  // filter.
 	sort(runNames.begin(), runNames.end()); // sort
 	
     if (runNames.size()==0){
@@ -49,32 +53,22 @@ int main(int argc, char *argv[]){
 		return 0;
     }
 
+    */
 
-    //  Parallization implementation
-	int numThreads;
-	#pragma omp parallel
-		numThreads = omp_get_num_threads();
-    numThreads /= 2;  // Only use half of available threads. 
-	
-	printf("Using %d threads\n",numThreads);
-	
-    #pragma omp parallel num_threads(numThreads)  
-	{		
-		#pragma omp for
-		for (int unsigned iRun=0; iRun < runNames.size(); iRun++)
-		{
-			//printf("In thread %d \n",omp_get_thread_num());
-			string tempStr = mainPath + runNames[iRun]+'/';
-			//ImgCreator *myCreator;
-			//myCreator = new ImgCreator(tempStr, param, overWriteImages, printStdWarnings);			
-			ImgCreator myCreator(tempStr, param, overWriteImages, printStdWarnings);			
-			if( myCreator.prepare() ){
-				myCreator.makeImage2();
-				myCreator.writeInfo();
-				myCreator.delMem();
-			}	
-			//delete myCreator;
-		}
+    printf("About to create image!\n");
+  
+    //for (int unsigned iRun=0; iRun < runNames.size(); iRun++)
+    {
+        //string tempStr = mainPath + runNames[iRun]+'/';
+
+        ImgCreator myCreator(mainPath, param, overWriteImages, printStdWarnings);			
+        if( myCreator.prepare() ){
+            myCreator.makeImage2();
+            myCreator.writeInfo();
+            myCreator.delMem();
+        }	
+        else
+          printf("In img.cpp.  Creating image for %s failed.\n",mainPath.c_str());
     }
 
     cout<<endl;

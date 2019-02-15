@@ -333,7 +333,7 @@ ImgCreator::ImgCreator(string in, paramStruct paramIn){
 	runDir = in;
 	param = paramIn;
 	printStdWarning = false;
-	overWriteImages = true;
+	overWriteImages = false;
 	numThreads = 1;
 	
 	img = Mat(param.image_rows,param.image_cols,CV_32F, Scalar(0));
@@ -387,9 +387,7 @@ ImgCreator::ImgCreator(int numThreadsIn, string in, paramStruct paramIn, bool ov
 void ImgCreator::changeParam(paramStruct paramIn){
 	
 	param = paramIn;	
-	/************************** CHANGE ME ******************/
-    //picName = sdssName + '.' + runName + '.' + param.name + ".model.png";
-    picName = "images/" + sdssName + '.' + runName + '.' + param.name + ".model.png";
+	picName = sdssName + '.' + runName + '.' + param.name + ".model.png";
 	picName = runDir + picName;
 	
 	img.release();
@@ -432,29 +430,6 @@ void ImgCreator::makeImage2(){
 	normalize_image2();
 	dest.convertTo(dest,CV_8UC3,255.0);
 	imwrite(picName,dest);
-
-}
-
-void ImgCreator::makeImage2(bool saveImg){
-	
-	g1.dot_write(img,'f');
-	g2.dot_write(img,'f');
-	GaussianBlur(img, img, Size(param.gaussian_size,param.gaussian_size), param.gaussian_weight, 0);
-	normalize_image2();
-	dest.convertTo(dest,CV_8UC3,255.0);
-	if (saveImg)
-		imwrite(picName,dest);
-}
-
-
-void ImgCreator::makeImage2(string saveLocName){
-	
-	g1.dot_write(img,'f');
-	g2.dot_write(img,'f');
-	GaussianBlur(img, img, Size(param.gaussian_size,param.gaussian_size), param.gaussian_weight, 0);
-	normalize_image2();
-	dest.convertTo(dest,CV_8UC3,255.0);
-	//imwrite(saveLocName,dest);
 
 }
 
