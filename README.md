@@ -75,7 +75,8 @@ source env/bin/activate
 python3 jspamcli.py -bm 3 working_sample.txt
 ```
 
-
+### WARNING
+*As of right now, only -bm is certain to work with batch file.*
 
 ## Specifications<a id="specifications">
 ### jspamcli.py<a id="jspamcli.py">
