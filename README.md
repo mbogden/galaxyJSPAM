@@ -58,11 +58,17 @@ source env/bin/activate
 pip install -r requirements.txt
 ```
 
-To check if jspamcli.py and basic_run are working (primary code to make particle files), feel free to run a quick batch.  The particle files will show up in the output folder. 
+* To check if jspamcli.py and basic_run are working (primary code to make particle files), feel free to run a quick batch.  The particle files will show up in the output folder. 
 
 ```
 python3 jspamcli.py -bm 3 working_sample.txt
 ```
+
+* To check if image creation code is working run the following after running the above.
+```
+./img.sh
+```
+There should now be an image in output -> 588.... -> run0000.
 
 
 ## Daily Instructions
