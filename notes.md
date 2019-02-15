@@ -12,58 +12,19 @@ These are notes meant for myself, Matthew Ogden, to keep and maintain but may be
   - Difference code
   - Image parameter finder
 
-
-## Pete
-  - GitHub
-    - Give access to write to galaxyJSPAM github repository.
-
-  - galaxyJSPAM
-    - install and begin creating some particle files.
-    - Learn what is takes to do a basic run of JSPAM.
-    - Use jspamcli.py to do batch basic runs. 
-
-  - Knowledge
-    - Review papers. (Thesis, Toomre
-    - Get an understanding what main programs do.
-    - Ask Wallin what are good things to know.
-    - learn what Graham is doing and how it'll relate.
-
-  - Possible scripts you can write at some point. 
-    - Create user friendly script to create model variables to read into JSPAM. 
-    - Get all target images and info files? ( See below in 'maintenance items' )
-    - Create script that will create a run batch file. 
-      - See 'batch_run_files' for sample of batch file
-      - Convert Jackson's script in 'targets' folder? 
-      - Read targets_done.txt in targets folder
-      - Ask user or read file for below in batch file
-        - number of particles per galaxy
-        - all or some runs - Machine Learning/ Tensor Flow
-    - Use all comparison methods and weight their results. 
-
-
-
-
 ## Maintenance Items
 
-- Include c++ compilation script in readme
-  - Get a working script for compiling c++ image creation code. 
-
+- Convert C++ image creation script to Makefile
 
 - Occasional error about -bm in jspamcli.py reading as a float instead of integer for cores.
 - Change jspmacli.py to just point to batch_run_files/batch_file.txt instead of typing full name. 
-- Add quick test for img.sh in readme.md
 
-
-
-
-- Daily Instructions for anyone to follow.
+- Add standard daily Instructions to follow in README.md for everything.
   - jspamcli.py
   - basic_run
   - image creator
   - difference code
   - parameter finder
-
-- Add how you run jspamcli.py in command line to ReadMe with different options.
 
 - JSPAMCLI.py
   - jpsamcli -i download input file broken 
@@ -79,19 +40,52 @@ These are notes meant for myself, Matthew Ogden, to keep and maintain but may be
 
 
 
+## Pete
+
+  - galaxyJSPAM
+    - install and begin creating some particle files.
+    - Learn how to do a basic run of JSPAM.
+    - Use jspamcli.py to do batch basic runs. 
+
+  - Knowledge
+    - Review papers. (Thesis, Toomre & Toomre, JSPAM, Galaxy Zoo )
+    - Get an understanding what main programs do.
+    - Ask Wallin what are good things to know.
+    - learn what Graham is doing and how it'll relate.
+
+  - Possible scripts you can write at some point. 
+    - Create user friendly script to create model values to read into JSPAM. 
+    - Get all target images and info files? ( See above in 'maintenance items' )
+    - Create script that will create a run batch file. 
+      - See 'batch_run_files' for sample of batch file
+
+      - Read targets_done.txt in targets folder
+      - Ask user or read file for below in batch file
+        - number of particles per galaxy
+        - all or some runs 
+      - Convert Jackson's script in 'targets' folder? 
+        
+
+
+
 ## Future Things To-Do
 
 - Rework run folder organization
-  - How essential is it to keep sdss# and run# on particle files if they're in the correct directory? 
+  - How essential is it to keep sdss# and run# in particle file name?
   - add 'pts.txt' to end instead of '.txt'
   - change '.' to 'underscore' for clarity in jspamcli.py
   - info file assumed #particles is set once created
   - consider adding paramFile name next to image name in info file instead of relying on image name.
 
+- Convert things to hdf5 format to condense space? 
 
 - Consider making a file listing directories the other programs can read to know where output directories, source files, exe files, etc are
 
 - Modify to run on cluster.
+  - jspam
+  - image creation
+  - difference code
+  - image parameter
 
 - Optimize how to find Image Parameters
   - Requires working image creator and comparison code.
@@ -102,12 +96,12 @@ These are notes meant for myself, Matthew Ogden, to keep and maintain but may be
 
 - New Comparison methods
 
+  - Use all comparison methods and weight their results. 
   - Consider greater weights for pixel difference based on distance from galaxy center
   - Feature Extraction via OpenCV
     1. Histogram of oriented gradients
     2. Scale-invariant feature transform
   - Pattern recognition software
     - SVD facial recognition
- 
- 
+  - Machine Learning/ Tensor Flow
 
