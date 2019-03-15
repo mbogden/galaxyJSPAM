@@ -10,9 +10,14 @@ These are notes meant for myself, Matthew Ogden, to keep and maintain but may be
   - jspamcli.py and basic_run ( In progress.  Partially complete )
   - Image creator ( Completed )
   - Difference code
+    - Make super simple program that take two images and output file and does direct comparison.
+    - creates output folder with misc info like difference method name, no other info.
+    - Feed that program name into python script to create mass difference maker.
   - Image parameter finder
 
 ## Maintenance Items
+
+- There are is a set of imgCreator files and imgClass files in img_creator and difference_code.  Are they outdated versions of the same class files? 
 
 - Convert C++ image creation script to Makefile
 
@@ -31,6 +36,7 @@ These are notes meant for myself, Matthew Ogden, to keep and maintain but may be
   - *****batch file ALL is broken for everything except -bm*****
   - Update/combine scripts for different arguments
   - Why is 'q  10000 some# some#' being printed out?!
+  - only -bm working when not using 'ALL'
 
 - Not all target info files are there
   - Manually get from site?
@@ -38,6 +44,8 @@ These are notes meant for myself, Matthew Ogden, to keep and maintain but may be
   - program way to get from website?
   - Do they need to be 'calibrated' like the others?
 
+- pip3 install imageio?
+- If you start at run '0' in batchfile, it will make a run '-001'? 
 
 
 ## Pete
@@ -97,7 +105,9 @@ These are notes meant for myself, Matthew Ogden, to keep and maintain but may be
 - New Comparison methods
 
   - Use all comparison methods and weight their results. 
+
   - Consider greater weights for pixel difference based on distance from galaxy center
+  - Use inital points to create a weighted image for final image comparison
   - Feature Extraction via OpenCV
     1. Histogram of oriented gradients
     2. Scale-invariant feature transform
