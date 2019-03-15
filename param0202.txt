@@ -1,4 +1,4 @@
-testName
+param0202
 gaussian_size 25
 gaussian_weight 5
 radial_constant 4
