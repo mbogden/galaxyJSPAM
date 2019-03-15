@@ -20,9 +20,6 @@ int main(int argc, char *argv[]){
     //  Get main Directory
     string mainPath = argv[1];
 
-    cout << "HI!@   IT'S MATTHEW!" << endl;
-
-	
 	//  Add '/' to directory string if not already present
     string temp = mainPath.substr(mainPath.size()-1,1);
     if (temp != "/")
