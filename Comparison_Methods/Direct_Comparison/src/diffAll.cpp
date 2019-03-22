@@ -55,9 +55,47 @@ bool processRun( runData &myRun );
 int main(int argc, char *argv[]){
     cout << endl;
 
+	// Simple comparison
+	if ( strcmp(argv[1], "-s") == 0 ){
+
+	  printf("In Simple Image Compare\n");
+	  printf("Opening images\n");
+	  Mat img1 = imread( argv[2], CV_LOAD_IMAGE_GRAYSCALE );
+	  Mat img2 = imread( argv[3], CV_LOAD_IMAGE_GRAYSCALE );
+	  Mat img2Resize;
+	  Mat diffMat;
+
+	  printf("resizing\n");
+	  resize(img2, img2Resize, img1.size());
+                    
+	  printf("Finding difference\n");
+	  absdiff( img1, img2Resize, diffMat);
+	  
+
+	  printf("Scoring\n");
+	  float score = rateDiff(diffMat);
+	  score = 1.0 - score; // 1 is good, 0 is bad.
+	  if (score<0)
+		  score = 0;
+
+	  printf("Opening Score file\n");
+	  ofstream scoreFile;
+	  scoreFile.open( argv[4] );
+
+	  scoreFile << score << endl;
+
+	  scoreFile.close();
+
+	  return 0;
+	}
+
     dirPath = argv[1];
     targetPath = argv[2];
     targetInfoPath = argv[3];
+	  
+	printf("I made it in here!\n");
+
+
 
     if ( !processMainDir())  //  Finds and sorts through main directory.  Returns true or false to continue.
         return 0;
@@ -438,7 +476,7 @@ bool processRun( runData &myRun ){
     }
 
     if ( !imgFound ){
-        printf("No images found in %s Skipping directory...\n",myRun.path.c_str());
+        //printf("No images found in %s Skipping directory...\n",myRun.path.c_str());
         return false;
     }
     if ( !infoFound ){
