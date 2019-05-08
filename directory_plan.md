@@ -8,14 +8,14 @@
 <details><summary>SPAM</summary>
 <p>
 
-### Level 2
+### 	Level 2
 </p>
 </details>
 
 <details><summary>Image Creation</summary>
 <p>
 
-### Level 2
+### 	Level 2
 
 </p>
 </details>
@@ -23,7 +23,7 @@
 <details><summary>Scoring Methods</summary>
 <p>
 
-### Level 2
+### 	Level 2
 
 </p>
 </details>
@@ -32,7 +32,7 @@
 <details><summary>Data</summary>
 <p>
 
-### Level 2
+### 	Level 2
 
 </p>
 </details>
