@@ -12,6 +12,7 @@
 <details><summary>Dir 1</summary>
 
 </p>
+</details>
 
 <details><summary>Image Creation</summary>
 <p>
@@ -20,6 +21,7 @@
 <details><summary>Dir 1</summary>
 
 </p>
+</details>
 
 <details><summary>Scoring Methods</summary>
 <p>
@@ -28,6 +30,7 @@
 <details><summary>Dir 1</summary>
 
 </p>
+</details>
 
 <details><summary>Data</summary>
 <p>
@@ -36,6 +39,7 @@
 <details><summary>Dir 1</summary>
 
 </p>
+</details>
 
 
 
