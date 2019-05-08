@@ -1,12 +1,56 @@
-## Directory Plan
-<details>
+# Directory Plan
+## Level 1
+### Files:
+- Readme.md
+- directory_plan.md
+- notes.md
+
+<details><summary>SPAM</summary>
 <p>
 
-### Hidden stuff
-<details>
+### Level 2
+<details><summary>Dir 1</summary>
+
+</p>
+
+<details><summary>Image Creation</summary>
 <p>
 
-#### More hidden stuff
+### Level 2
+<details><summary>Dir 1</summary>
+
+</p>
+
+<details><summary>Scoring Methods</summary>
+<p>
+
+### Level 2
+<details><summary>Dir 1</summary>
+
+</p>
+
+<details><summary>Data</summary>
+<p>
+
+### Level 2
+<details><summary>Dir 1</summary>
+
+</p>
+
+
+
+
+# Example collapsible
+## Level 1
+<details><summary>SPAM</summary>
+<p>
+
+### Level 2
+<details>
+<details><summary>Dir 1</summary>
+<p>
+
+#### Level 3
 
 </p>
 </p>
