@@ -9,27 +9,21 @@
 <p>
 
 ### Level 2
-<details><summary>Dir 1</summary>
-
 </p>
-</details>
 </details>
 
 <details><summary>Image Creation</summary>
 <p>
 
 ### Level 2
-<details><summary>Dir 1</summary>
 
 </p>
-</details>
 </details>
 
 <details><summary>Scoring Methods</summary>
 <p>
 
 ### Level 2
-<details><summary>Dir 1</summary>
 
 </p>
 </details>
@@ -39,10 +33,8 @@
 <p>
 
 ### Level 2
-<details><summary>Dir 1</summary>
 
 </p>
-</details>
 </details>
 
 
