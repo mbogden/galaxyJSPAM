@@ -1,0 +1,53 @@
+# This is the inital attempt to describe the directory layout for my project
+
+project_SIMR
+|  - ReadMe.md
+|  - Notes.md
+|
+|__SPAM
+|  |  - ReadMe.txt
+|  |  - file2.txt
+|  |
+|  |__fortran
+|  |  |  - Makefile
+|  |  |  - file2.txt
+|  |  |
+|  |  |__obj 	# Used during compilation
+|  |  |
+|  |  |__src 	# Source code for SPAM in fortran
+|  |  |  - basic_run.f90
+|  |  |  - df_module.f90
+|  |  |  - init_module.f90
+|  |  |  - integrator.f90
+|  |  |  - io_module.f90
+|  |  |  - mod_run.f90
+|  |  |  - parameters_module.f90
+|  |  |  - setup_module.f90
+|  |
+|  |__bin
+|     |  - basicRun 		# Final fortran executable
+|     |  - batchRuns.py 	# Script for batch basicRuns
+|     |  - clusterRuns.py 	# Script for running on babbage_cluster
+|
+|__Image_Creation
+|  |
+|  |
+|
+|__Machine_Scoring_Methods
+|  |
+|  |
+|
+|__Input_Data
+|  |
+|  |__batch_SPAM 		# Contains files with information meant for scripts to run SPAM
+|  |  
+|  |__target_images 	# Contains directories and target images with information
+|  |
+|  |__zoo_models 		# Contains files by sdss name with list of model information
+|
+|
+|
+|__SIMR_Data
+   |
+   |
+   | 
