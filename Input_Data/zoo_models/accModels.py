@@ -5,6 +5,8 @@ print('In accumulate model script')
 import os
 import re
 
+genNum = 0 # Because we're reading from zoo model files
+
 rawModelLoc = 'from_site/'
 new_loc = 'for_cluster/'
 
@@ -32,7 +34,7 @@ for docLoc in sdssModelList:
         score = t2[1]
         runData = t1[1]
         
-        oLine = '%s %d %s %s\n' % (sdssName, n, score, runData)
+        oLine = '%s %d %d %s %s\n' % (sdssName, genNum, n, score, runData)
         bigFile.write(oLine)
 
         n += 1
