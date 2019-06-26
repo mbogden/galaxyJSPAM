@@ -24,6 +24,7 @@ useParProc = False
 nProc = 1
 
 basicRun = 'SPAM/bin/basic_run'
+uniqID = 0
 
 outputDir = ''
 makeRunDir = True   #Create run directory to save particle files in
@@ -72,7 +73,7 @@ def main():
     # begin Execution
 
     if useModelData:
-        uID = 10
+        uID = uniqID
 
         # Prep to move to directory
         if makeRunDir:
@@ -123,10 +124,10 @@ def createInfoFile( oDir ):
 # end Create Info File
 
 
-def movePartFiles( uniqID, oDir ):
+def movePartFiles( uID, oDir ):
  
     # Check if particle files were created
-    fileNames = [ 'a_%s.000' % uniqID, 'a_%s.101' % uniqID]
+    fileNames = [ 'a_%s.000' % uID, 'a_%s.101' % uID]
     if not ( path.isfile(fileNames[0]) and path.isfile(fileNames[1])):
         print('###  WARNING  ###')
         print('Particle files not found')
@@ -145,7 +146,7 @@ def movePartFiles( uniqID, oDir ):
 
     # Move particle files to output
     try:
-        mvCmd = 'mv a_%d.* %s' % ( uniqID, oDir ) 
+        mvCmd = 'mv a_%d.* %s' % ( uID, oDir ) 
         system(mvCmd)
 
     except:
@@ -159,9 +160,9 @@ def movePartFiles( uniqID, oDir ):
 
 
 
-def runBasicRun( nPart, uniqID, data ):
+def runBasicRun( nPart, uID, data ):
 
-    sysCmd = './%s -m %d -n1 %d -n2 %d %s' % ( basicRun, uniqID, nPart, nPart, data )
+    sysCmd = './%s -m %d -n1 %d -n2 %d %s' % ( basicRun, uID, nPart, nPart, data )
     print('Running command: ',sysCmd)
     try:
         retVal = system(sysCmd)   # Consider implementing a way to check return val from spam code
@@ -227,9 +228,21 @@ def readCommandLine():
         if arg == '-0':
             print('You found Zero')
 
+
         # Define spam executable location
         elif arg == '-spam':
             basicRun = argv[i+1]
+
+        # Define spam executable location
+        elif arg == '-uID':
+            try:
+                uniqID = int(argv[i+1])
+            except:
+                print('\'%s\' is an invalid number spam basic run unique id' %  argv[i+1] )
+                print('Exiting...\n')
+                exit(-1)
+        # end '-n'
+
 
         # Specify the number of particles in each galaxy
         elif arg == '-n':
@@ -244,6 +257,8 @@ def readCommandLine():
         # Output Directory
         elif arg == '-o':
             outputDir = argv[i+1]
+            if outputDir[-1] != '/':
+                outputDir = outputDir + '/'
        
         # Check if wants a run directory or not
         elif arg == '-createDir':
