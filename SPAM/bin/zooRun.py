@@ -52,6 +52,7 @@ def main():
     readCommandLine()
 
     # Print info being used
+    print( printAll)
     if printAll:
         print('Using SPAM basic_run: \'%s\'' % basicRun)
         print('Using %d particles in basic_run' % nPart)
