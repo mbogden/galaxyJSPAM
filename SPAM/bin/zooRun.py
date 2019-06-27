@@ -17,11 +17,7 @@ from os import (
 
 # Default Global Variables
 
-interactiveMode = False     # For future implementations
-
-# Incomplete implemenation
-useParProc = False
-nProc = 1
+printAll = False
 
 basicRun = 'SPAM/bin/basic_run'
 uniqID = 0
@@ -29,8 +25,8 @@ uniqID = 0
 outputDir = ''
 makeRunDir = True   #Create run directory to save particle files in
 compressFiles = False
+overWrite = False
 
-printAll = False
 
 maxN = 10000000     # Arbitrary limit, can be changed if needed
 nPart = 10000       # default 10k
@@ -84,6 +80,10 @@ def main():
             oDir = outputDir + 'run_' + str(genNum).zfill(2) + '_' + str(runNum).zfill(4) + '/'
         else:
             oDir = outputDir
+
+        if not overWrite and path.exists(oDir):
+            print('%d : Directory already exists, exiting' % ( uniqID))
+            return 1
 
         partCreated = runBasicRun( nPart, uID, modelData )
 
