@@ -168,7 +168,7 @@ def movePartFiles( uID, oDir ):
             if pName == '':
                 mvCmd = 'mv a_%d_*.zip %s' % (uID, oDir)
                 system(mvCmd)
-            else
+            else:
                 mv1Cmd = 'mv a_%d_000.zip %s' % (uID, oDir + pName + '_000.zip')
                 mv2Cmd = 'mv a_%d_101.zip %s' % (uID, oDir + pName + '_101.zip')
                 system(mv1Cmd)
