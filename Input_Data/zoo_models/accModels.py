@@ -5,14 +5,18 @@ print('In accumulate model script')
 import os
 import re
 
+just1Line = True
+
+
 genNum = 0 # Because we're reading from zoo model files
+
 
 rawModelLoc = 'from_site/'
 new_loc = 'for_cluster/'
 
 sdssModelList = os.listdir(rawModelLoc)
 
-bigFile = open('bigCompList.txt','w')
+bigFile = open('sdss2List.txt','w')
     
 for docLoc in sdssModelList:
 
@@ -22,7 +26,7 @@ for docLoc in sdssModelList:
     docFullLoc = rawModelLoc + docLoc
     inFile = open(docFullLoc, 'r')
 
-    for line in inFile:
+    for i,line in enumerate(inFile):
         l = line.strip()
         t1 = l.split('\t')
         t2 = t1[0].split(',')
@@ -36,6 +40,9 @@ for docLoc in sdssModelList:
         
         oLine = '%s %d %d %s %s\n' % (sdssName, genNum, n, score, runData)
         bigFile.write(oLine)
+
+        if just1Line:
+            break
 
         n += 1
     # End for i,line in enumerate(inFile):
