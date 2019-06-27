@@ -114,8 +114,8 @@ def createInfoFile( oDir ):
 
     infoFile.write('SPAM Particle Information\n')
     infoFile.write('sdss_name %s\n' % sdssName )
-    infoFile.write('generation %s\n' % str(genNum).zfill(2) )
-    infoFile.write('run_number %s\n' % str(runNum).zfill(4) )
+    infoFile.write('generation %d\n' % genNum )
+    infoFile.write('run_number %d\n' % runNum )
     infoFile.write('g1_num_particles %d\n' % nPart)
     infoFile.write('g2_num_particles %d\n' % nPart)
     infoFile.write('\n')
@@ -127,7 +127,7 @@ def createInfoFile( oDir ):
 def movePartFiles( uID, oDir ):
  
     # Check if particle files were created
-    fileNames = [ 'a_%s.000' % uID, 'a_%s.101' % uID]
+    fileNames = [ 'a_%d.000' % uID, 'a_%d.101' % uID]
     if not ( path.isfile(fileNames[0]) and path.isfile(fileNames[1])):
         print('###  WARNING  ###')
         print('Particle files not found')
@@ -219,7 +219,7 @@ def readZooFile( zooFile, nZooRuns):
 def readCommandLine():
 
     global basicRun, nPart, outputDir, makeRunDir
-    global sdssName, runNum, genNum 
+    global sdssName, runNum, genNum, uniqID
     global useZooFile, zooDir, zooFile, allZooRuns, nZooRuns
     global useModelData, modelData
 
