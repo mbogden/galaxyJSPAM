@@ -31,6 +31,7 @@ overWrite = False
 maxN = 10000000     # Arbitrary limit, can be changed if needed
 nPart = 10000       # default 10k
 
+pName = ''
 sdssName = '00'
 runNum = 0000
 genNum = 00
@@ -134,6 +135,7 @@ def movePartFiles( uID, oDir ):
  
     # Check if particle files were created
     fileNames = [ 'a_%d.000' % uID, 'a_%d.101' % uID]
+
     if not ( path.isfile(fileNames[0]) and path.isfile(fileNames[1])):
         print('###  WARNING  ###')
         print('Particle files not found')
@@ -155,6 +157,7 @@ def movePartFiles( uID, oDir ):
     if compressFiles:
         try:
             print('Zipping files')
+
             zipCmd1 = 'zip a_%d_000.zip a_%d.000' % (uID, uID)
             zipCmd2 = 'zip a_%d_101.zip a_%d.101' % (uID, uID)
 
@@ -162,9 +165,15 @@ def movePartFiles( uID, oDir ):
             system(zipCmd2)
 
             print('Moving files')
-            mvCmd = 'mv a_%d_*.zip %s' % (uID, oDir)
+            if pName == '':
+                mvCmd = 'mv a_%d_*.zip %s' % (uID, oDir)
+                system(mvCmd)
+            else
+                mv1Cmd = 'mv a_%d_000.zip %s' % (uID, oDir + pName + '_000.zip')
+                mv2Cmd = 'mv a_%d_101.zip %s' % (uID, oDir + pName + '_101.zip')
+                system(mv1Cmd)
+                system(mv2Cmd)
 
-            system(mvCmd)
 
             rmCmd = 'rm a_%d.*' % uID
             system(rmCmd)
@@ -252,7 +261,7 @@ def readZooFile( zooFile, nZooRuns):
 def readCommandLine():
 
     global basicRun, nPart, outputDir, makeRunDir
-    global sdssName, runNum, genNum, uniqID, compressFiles
+    global sdssName, runNum, genNum, uniqID, compressFiles, pName
     global useZooFile, zooDir, zooFile, allZooRuns, nZooRuns
     global useModelData, modelData, printAll, overWrite
 
@@ -310,6 +319,11 @@ def readCommandLine():
 
         elif arg == '-compress':
             compressFiles = True
+
+
+        # Specify name for particle file
+        elif arg == '-name':
+            pName = argv[i+1]
 
         # Specify SDSS Name
         elif arg == '-sdss':
