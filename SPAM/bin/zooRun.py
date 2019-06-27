@@ -19,6 +19,11 @@ from os import (
 
 printAll = False
 
+if printAll:
+    print('Print all true?')
+else:
+    print('Print false...')
+
 basicRun = 'SPAM/bin/basic_run'
 uniqID = 0
 
@@ -52,7 +57,11 @@ def main():
     readCommandLine()
 
     # Print info being used
-    print( printAll)
+    if printAll:
+        print('Print all true?')
+    else:
+        print('Print false...')
+
     if printAll:
         print('Using SPAM basic_run: \'%s\'' % basicRun)
         print('Using %d particles in basic_run' % nPart)
