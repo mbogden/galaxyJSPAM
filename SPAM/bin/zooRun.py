@@ -263,7 +263,7 @@ def readCommandLine():
     global basicRun, nPart, outputDir, makeRunDir
     global sdssName, runNum, genNum, uniqID, compressFiles
     global useZooFile, zooDir, zooFile, allZooRuns, nZooRuns
-    global useModelData, modelData, printAll
+    global useModelData, modelData, printAll, overWrite
 
     for i,arg in enumerate(argv):
 
@@ -305,6 +305,11 @@ def readCommandLine():
             if outputDir[-1] != '/':
                 outputDir = outputDir + '/'
        
+       
+        # Check if wants a run directory or not
+        elif arg == '-overwrite':
+            overWrite = True
+
         # Check if wants a run directory or not
         elif arg == '-createDir':
             makeRunDir = True
