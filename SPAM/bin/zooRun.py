@@ -30,6 +30,7 @@ outputDir = ''
 makeRunDir = True   #Create run directory to save particle files in
 compressFiles = False
 
+printAll = False
 
 maxN = 10000000     # Arbitrary limit, can be changed if needed
 nPart = 10000       # default 10k
@@ -55,21 +56,22 @@ def main():
     readCommandLine()
 
     # Print info being used
-    print('Using SPAM basic_run: \'%s\'' % basicRun)
-    print('Using %d particles in basic_run' % nPart)
+    if printAll:
+        print('Using SPAM basic_run: \'%s\'' % basicRun)
+        print('Using %d particles in basic_run' % nPart)
 
-    if useModelData:
-        print('Using model data\'%s\'' % modelData)
+        if useModelData:
+            print('Using model data\'%s\'' % modelData)
 
-    if useZooFile:
-        print('Using Zoo Model File: \'%s\' ' % zooFile )
+        if useZooFile:
+            print('Using Zoo Model File: \'%s\' ' % zooFile )
 
-        if nZooRuns > 0:
-            print('Using %d models from zoo file' % nZooRuns)
+            if nZooRuns > 0:
+                print('Using %d models from zoo file' % nZooRuns)
 
-        if allZooRuns:
-            print('Using all major models from Galaxy Zoo file')
-            nZooRuns = float("inf")     # set number of run to infinite to do all
+            if allZooRuns:
+                print('Using all major models from Galaxy Zoo file')
+                nZooRuns = float("inf")     # set number of run to infinite to do all
 
 
     # begin Execution
@@ -102,7 +104,8 @@ def main():
         # Begin generating runs
         sdssName = zooFile.split('/')[-1]
         sdssName = zooName.split('.')[0]
-        print('Using name %s' % zooName)
+        if printAll:
+            print('Using name %s' % zooName)
 
         # Changed runBasicRuns, recreate before using
         #runBasicRuns( zooName, nPart, modelList )
@@ -139,7 +142,8 @@ def movePartFiles( uID, oDir ):
     if not path.exists(oDir):
         createCmd = 'mkdir -p %s' % oDir
         try:
-            print('Creating directory %s' % oDir)
+            if printAll:
+                print('Creating directory %s' % oDir)
             system(createCmd)
         except:
             print('Failed to create new directory ',createCmd)
@@ -187,11 +191,14 @@ def movePartFiles( uID, oDir ):
 
 def runBasicRun( nPart, uID, data ):
 
+
     sysCmd = './%s -m %d -n1 %d -n2 %d %s' % ( basicRun, uID, nPart, nPart, data )
-    print('Running command: ',sysCmd)
+    if printAll:
+        print('Running command: ',sysCmd)
     try:
         retVal = system(sysCmd)   # Consider implementing a way to check return val from spam code
-        print('Command Complete')
+        if printAll:
+            print('Command Complete')
         return True
 
     except:
@@ -246,13 +253,16 @@ def readCommandLine():
     global basicRun, nPart, outputDir, makeRunDir
     global sdssName, runNum, genNum, uniqID, compressFiles
     global useZooFile, zooDir, zooFile, allZooRuns, nZooRuns
-    global useModelData, modelData
+    global useModelData, modelData, printAll
 
     for i,arg in enumerate(argv):
 
         if arg == '-0':
             print('You found Zero')
 
+        # Define if you want printing
+        elif arg == '-print':
+            printAll = True
 
         # Define spam executable location
         elif arg == '-spam':
@@ -404,6 +414,4 @@ def readCommandLine():
 
 
 # Execute everything after declaring functions
-print('')
 main()
-print('')
