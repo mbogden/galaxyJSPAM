@@ -28,7 +28,6 @@ int main( int argc, char *argv[]){
 
   // Run command
   system(totStr);
-  
 
   MPI_Barrier(MPI_COMM_WORLD);
 
