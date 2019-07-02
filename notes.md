@@ -4,6 +4,22 @@
 These are notes meant for myself, Matthew Ogden, to keep and maintain but may be good for others to view. test.
 
 ## Matt's Immediate To-Do
+Summer
+- Make simulation data for everything
+  - 100,000
+  - until it received 0 wins
+
+- Do runs
+- Masking
+- Score add
+  - resultion
+  - date
+  - experiment #
+  - Experiment Comments
+
+- Image creator
+  - add pixel center 
+
 
 - Get a base working version of everything and write brief instructions and summary in README.md. 
   - Installation w/ instructions on README.md ( Completed. )
@@ -14,6 +30,7 @@ These are notes meant for myself, Matthew Ogden, to keep and maintain but may be
     - creates output folder with misc info like difference method name, no other info.
     - Feed that program name into python script to create mass difference maker.
   - Image parameter finder
+
 
 ## Maintenance Items
 
@@ -43,6 +60,9 @@ These are notes meant for myself, Matthew Ogden, to keep and maintain but may be
   - Did jackson make a script to auto get images from site?
   - program way to get from website?
   - Do they need to be 'calibrated' like the others?
+
+- Folder Restructure
+  - Direct Difference Code has been moved to new folder
 
 - pip3 install imageio?
 - If you start at run '0' in batchfile, it will make a run '-001'? 
@@ -78,6 +98,10 @@ These are notes meant for myself, Matthew Ogden, to keep and maintain but may be
 
 ## Future Things To-Do
 
+- Read papers by Lior Shamir
+  - automatic pattern recognition
+  - wndchrm 
+
 - Rework run folder organization
   - How essential is it to keep sdss# and run# in particle file name?
   - add 'pts.txt' to end instead of '.txt'
@@ -86,6 +110,9 @@ These are notes meant for myself, Matthew Ogden, to keep and maintain but may be
   - consider adding paramFile name next to image name in info file instead of relying on image name.
 
 - Convert things to hdf5 format to condense space? 
+	-  NOPE!   Worse than zipping. 
+
+- Consider using native c/c++ binary floating point data maybe
 
 - Consider making a file listing directories the other programs can read to know where output directories, source files, exe files, etc are
 
@@ -114,4 +141,6 @@ These are notes meant for myself, Matthew Ogden, to keep and maintain but may be
   - Pattern recognition software
     - SVD facial recognition
   - Machine Learning/ Tensor Flow
+  - WNDCHRM - shamir
+
 
