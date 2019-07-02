@@ -84,7 +84,7 @@ def main():
             oDir = outputDir
 
         if not overWrite and path.exists(oDir):
-            print('zooRun.py %d : Directory already exists \'%s\' \nExiting' % ( uniqID, oDIr ))
+            print('zooRun.py %d : Directory already exists \'%s\' \nExiting' % ( uniqID, oDir ))
             return 1
 
         partCreated = runBasicRun( nPart, uID, modelData )
