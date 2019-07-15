@@ -5,11 +5,19 @@ These are notes meant for myself, Matthew Ogden, to keep and maintain but may be
 
 ## Matt's Immediate To-Do
 Summer
-- Make simulation data for everything
-  - 100,000
-  - until it received 0 wins
 
-- Do runs
+- Make simulation data for everything
+  - 100,000  ( in-prog on babbage )
+	- Catostrophic failure on babbage.  Use particle created so far and continue
+
+- Get Image-Creation going
+  - Making main image creator more versitile
+  - 
+
+- Create Versitile Direct pixel comparison
+  - 
+
+
 - Masking
 - Score add
   - resultion
@@ -102,23 +110,20 @@ Summer
   - automatic pattern recognition
   - wndchrm 
 
-- Rework run folder organization
+- Rework run folder organization  ( in-prog )
   - How essential is it to keep sdss# and run# in particle file name?
   - add 'pts.txt' to end instead of '.txt'
   - change '.' to 'underscore' for clarity in jspamcli.py
   - info file assumed #particles is set once created
   - consider adding paramFile name next to image name in info file instead of relying on image name.
 
-- Convert things to hdf5 format to condense space? 
-	-  NOPE!   Worse than zipping. 
-
 - Consider using native c/c++ binary floating point data maybe
 
-- Consider making a file listing directories the other programs can read to know where output directories, source files, exe files, etc are
+- Consider making a file listing directories the other programs can read to know where output directories, source files, exe files, etc are ( in-prog )
 
 - Modify to run on cluster.
-  - jspam
-  - image creation
+  - jspam  ( done )
+  - image creation ( in-prog )
   - difference code
   - image parameter
 
