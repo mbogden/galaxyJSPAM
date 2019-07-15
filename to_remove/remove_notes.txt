@@ -1,2 +1,0 @@
-I am making this directory to place unneeded items that will be removed at some point.
-I am not completely removing them in case I need them later.

@@ -28,6 +28,10 @@ Summer
   - experiment #
   - Experiment Comments
 
+- Consider adding a bin folder
+  - Batch run code.  This code simply reads a file and executes that line as a command
+  - cluster master/worker.  This code simple reads a file and executes one line at a time.
+
 - Get a base working version of everything and write brief instructions and summary in README.md. 
   - Installation w/ instructions on README.md ( Completed. )
   - jspamcli.py and basic_run ( In progress.  Partially complete )
@@ -45,8 +49,9 @@ Summer
 
 - Convert C++ image creation script to Makefile
 
-- Occasional error about -bm in jspamcli.py reading as a float instead of integer for cores.
-- Change jspmacli.py to just point to batch_run_files/batch_file.txt instead of typing full name. 
+- jspamacli.py will soon be obsolete
+  - Occasional error about -bm in jspamcli.py reading as a float instead of integer for cores.
+  - Change jspmacli.py to just point to batch_run_files/batch_file.txt instead of typing full name. 
 
 - Add standard daily Instructions to follow in README.md for everything.
   - jspamcli.py
