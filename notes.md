@@ -14,20 +14,19 @@ Summer
   - Making main image creator more versitile
   - 
 
-- Create Versitile Direct pixel comparison
-  - 
-
-
-- Masking
+- Comparison methods
+  - Reorgize
+	- Create Makefile
+  - Create Versitile Direct pixel comparison
+	- Inital python created
+	- Use inital particle file to create a 'mask' of pixels to ignore
+	- Use distance from center of galaxy as a weight of importance.
+  
 - Score add
   - resultion
   - date
   - experiment #
   - Experiment Comments
-
-- Image creator
-  - add pixel center 
-
 
 - Get a base working version of everything and write brief instructions and summary in README.md. 
   - Installation w/ instructions on README.md ( Completed. )
