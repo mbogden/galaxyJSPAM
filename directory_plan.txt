@@ -3,6 +3,7 @@
 project_SIMR
 |  - ReadMe.md
 |  - Notes.md
+|  - directory_plan.txt
 |
 |__SPAM
 |  |  - ReadMe.txt
@@ -34,8 +35,19 @@ project_SIMR
 |  |
 |
 |__Machine_Scoring_Methods
-|  |
-|  |
+|  |  - readme.txt
+|  |  - batch_run.py 		# Intended for executing batches (multiple runs/sdss)
+|  | 
+|  |__pixel_comparison 		# Directly compare pixels between two images
+|     | 
+|     |__cpp
+|     |  |__bin
+|     |  |__build
+|     |  |__src 		# Source Files. (Old code not currently in use)
+|     | 
+|     |__python
+| 		 - pixel_comparison.py 		# Current direct pixel comparison code
+|  
 |
 |__Input_Data
 |  |
@@ -47,7 +59,21 @@ project_SIMR
 |
 |
 |
-|__SIMR_Data
+|__SIMR_Data 			# Where most of the large datasets are located
    |
+   |___sdss_1 			# folder for data pertaining to sdss named 'sdss_1'
+   |  |
+   |  |__run_00_0001 	# run folder, generation 0, number 1
+   |  |  - info.txt 	# information file for run
+   |  |  - 100k.000 	# Initial particle file containing 100k points
+   |  |  - 100k.101 	# Final particle file containing 100k points
+   |  |  - 100k_param001_model.png 	 	# model image created with image parameter set 0001
+   |  |
+   |  |__run_00_0002
+   |  :
+   |  :
    |
+   |___sdss_2
    | 
+   :
+   :
