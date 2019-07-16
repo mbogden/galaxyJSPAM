@@ -29,7 +29,10 @@ printAll = True     # Keep true for inital development
 recordProg = False
 recordLoc = ''
 
+insert_uID = False
+offset_uID = 0
 
+reverse = False
 
 
 def main():
@@ -48,6 +51,8 @@ def main():
         sys.exit(-1)
     
     inList = list( inFile )
+    if reverse:
+        inList.reverse()
     lenList = len( inList )
 
     jobQueue = mp.Queue()
@@ -61,8 +66,6 @@ def main():
         cmd = cmd.strip()
         jobQueue.put(( i, lenList, cmd))
 
-    if recordProg:
-        oFile = open(recordLoc, 'w' )
 
     if printAll:
         printArg(lenList)
@@ -77,13 +80,11 @@ def main():
     for p in processes:
         p.join()
 
-    oFile.close()
 
 # End main
 
 
 def execute( jobQueue, lock ):
-    global oFile
 
     # Keep going until shared queue is empty
     while True:
@@ -98,6 +99,12 @@ def execute( jobQueue, lock ):
 
         else:
             
+
+            if insert_uID:
+                cmd = cmd.replace('-uID', '-uID %d' % (mp.current_process()._identity[0] + offset))
+
+            print('%d about to execute \'%s\'' % ( mp.current_process()._identity[0], cmd))
+
             os.system(cmd)
             printStr = '%s completed %d / %d - \'%s\'' % \
                         ( mp.current_process().name, i, n, cmd ) 
@@ -129,8 +136,8 @@ def printArg( lenList ):
 
 
 def readArg():
-    global fileLoc, parProc, nProc
-    global printAll, recordProg, recordLoc, oFile
+    global fileLoc, parProc, nProc, insert_uID, offset
+    global printAll, recordProg, recordLoc, reverse
 
     for i,arg in enumerate(sys.argv):
 
@@ -154,6 +161,18 @@ def readArg():
         elif arg == '-write':
             recordProg = True
             recordLoc = sys.argv[i+1]
+
+        # Tells batch_execution to insert uID where found
+        elif arg == '-uID':
+            insert_uID = True
+        
+        #Offset uID
+        elif arg == '-offset':
+            offset = int(sys.argv[i+1])
+
+        # reverse through list
+        elif arg == '-r':
+            reverse = True
 
     # End looping through arguments
 
