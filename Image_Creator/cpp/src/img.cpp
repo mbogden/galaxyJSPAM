@@ -3,6 +3,7 @@
 // Altered: 	11 July 2019
 // About: 		This program is my main program for reading particle files
 // 				Created by the SPAM program by Dr. Wallin
+// 				Very... Very disorganized... Can't rewrite atm
 
 
 #include "imgCreator.hpp"
@@ -15,59 +16,67 @@ using namespace std;
 int main(int argc, char *argv[]){
 
   
-	bool overWriteImages = false;
-	bool printStdWarnings = true;
-
-	string p1Loc = "", p2Loc = "";
-	string saveImageLoc = "";
-
 	// Read arguments
 	printf("Found %d arguments\n",argc);
 
+	string paramLoc;
+	imgCreator_input prepInput;
+
+
 	for( int i=0; i<argc; i++){
 
-	  //printf("Arg %d: %s\n",i,argv[i]);
 
 	  if ( string( argv[i] ) == "-overwrite" ){
 		printf("overwrite true\n");
-		overWriteImages = true;
+		prepInput.overWrite = true;
 	  }
 
-	  if ( string( argv[i] ) == "-p1" ){
-		p1Loc = string(argv[i+1]);
-		printf("Using initial particle file %s\n",p1Loc.c_str());
+	  else if ( string( argv[i] ) == "-runDir" ){
+		prepInput.runDir = string(argv[i+1]);
 	  }
 
-	  if ( string( argv[i] ) == "-p2" ){
-		p2Loc = string(argv[i+1]);
-		printf("Using final particle file %s\n",p2Loc.c_str());
+	  else if ( string( argv[i] ) == "-p1" ){
+		prepInput.p1Loc = string(argv[i+1]);
 	  }
 
-	  if ( string( argv[i] ) == "-o" ){
-		saveImageLoc = string(argv[i+1]);
-		printf("Saving image to %s\n",saveImageLoc.c_str());
+	  else if ( string( argv[i] ) == "-p2" ){
+		prepInput.p2Loc = string(argv[i+1]);
+	  }
+
+	  else if ( string( argv[i] ) == "-o" ){
+		prepInput.picName = string(argv[i+1]);
+	  }
+
+	  else if ( string( argv[i] ) == "-param" ){
+		paramLoc = string(argv[i+1]);
+		printf("Using image parameters found at %s\n",paramLoc.c_str());
+	  }
+
+	  else if ( string( argv[i] ) == "-info" ){
+		prepInput.infoName = string(argv[i+1]);
+	  }
+
+	  else if ( string( argv[i] ) == "-mask" ){
+		prepInput.makeMask = true;
+	  }
+
+	  else if ( string( argv[i] ) == "-unzip" ){
+		prepInput.unzip = true;
 	  }
 
 	}
 
 
-	return 0;
-
     cout << endl;
 	cout << "\nIn img.cpp" << endl;
-    //  Get main Directory
-    string mainPath = argv[1];
 
-	//  Add '/' to directory string if not already present
-    string temp = mainPath.substr(mainPath.size()-1,1);
-    if (temp != "/")
-        mainPath = mainPath + '/';
 
     // Open parameter file and save name
-    string tempParam = argv[2];
-	ifstream paramfile(tempParam.c_str());
-    if (paramfile.fail())
-        printf("Parameter file not found.  Using default param0001\n");
+	ifstream paramfile(paramLoc.c_str());
+    if (paramfile.fail()){
+        printf("Parameter file not found.\nExiting...\n");
+		return 0;
+	}
 
 	paramStruct param;
 	param.loadParam(paramfile);
@@ -76,14 +85,16 @@ int main(int argc, char *argv[]){
 
 
     printf("About to create image!\n");
-  
-	ImgCreator myCreator(mainPath, param, overWriteImages, printStdWarnings);			
-	printf("Constructor check\n");
 
-	if( myCreator.prepare() ){
-		printf("prepare check\n");
-		myCreator.makeImage2("testName.png");
-		printf("make image check\n");
+  
+	string mainPath;
+	ImgCreator myCreator(prepInput, param);			
+	
+
+	if( myCreator.new_prepare() ){
+		printf("Creating Image\n");
+		myCreator.makeImage2();
+		printf("Writing Info\n");
 		myCreator.writeInfo();
 		printf("write info check\n");
 	  	myCreator.delMem();

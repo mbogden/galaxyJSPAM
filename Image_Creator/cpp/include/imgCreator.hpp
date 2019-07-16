@@ -1,32 +1,29 @@
-// Author: Matt Ogden
+// Author: 		Matthew Ogden
+// Created: 	Fall 2018
+// Altered: 	15 july 2019
+// Description: 	Header file for my class for creating images
+//
 #ifndef IMGCREATOR_H
 #define IMGCREATOR_H
 
+#include <stdio.h>
 #include <unistd.h>
-#include <math.h>
 #include <iostream>
 #include <fstream>
-#include <iomanip>
-#include <cstdlib>
 #include <string>
-#include <vector>
-#include <sys/types.h>
 #include <dirent.h>
 #include <omp.h>
 
 #include "opencv2/core/core.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
-#include "opencv2/calib3d/calib3d.hpp"
+
+#include "spam_galaxy.hpp"
 
 
 using namespace std;
 using namespace cv;
 
 
-struct point{
-	double r,x,y,z,vx,vy,vz;
-};
 
 struct paramStruct{
 	string name;
@@ -88,30 +85,20 @@ struct paramStruct{
 
 
 
-class Galaxy
+
+struct imgCreator_input
 {
-public:
-	double ix,iy,iz,fx,fy,fz;  // beginning and final x,y,z coordinates;
-    double maxr, xmin, xmax, ymin, ymax, maxb, maxb2;
-	int npart;
-    int numThreads;
-	point *ipart, *fpart;
+  public:
+	string p1Loc, p2Loc, runDir, infoName, picName;
+	bool overWrite, printSTDWarning, unzip, makeMask;
 
-    Galaxy();
-
-	void read(ifstream& infile,int part, char state);
-	void write(Mat &img, int gsize, float weight, float radial_constant, point *pts);
-	void write(Mat &img, const Mat &blur, int gsize, float rconst, char state);
-    void simple_write( Mat &img, char state);
-	void dot_write(Mat &img,char state);
-	void calc_values();
-	void adj_points(int xsize, int ysize, int gsize, point *pts);
-	void add_center(double x, double y, double z, char state);
-	void add_center_circle(Mat &img);
-    void check_points();
-    void delMem();
+	imgCreator_input(){
+	  overWrite = false;
+	  printSTDWarning = false;
+	  unzip = false;
+	  makeMask = false;
+	}
 };
-
 
 
 
@@ -119,7 +106,7 @@ class ImgCreator
 {
 public:
 	int numThreads;
-	Mat img, dest, blur, imgTemp;
+	Mat img, dest, blur, imgTemp, mask_1;
 	string runDir, runName, sdssName, infoName, picName;
 	string fpartFileName, ipartFileName; 
 	vector<string> runFiles;
@@ -131,9 +118,20 @@ public:
 	int npart1, npart2;
 	double x,y,z;
 	bool picFound, infoFound , iFileFound , fFileFound , multPFiles;
-	bool printStdWarning, overWriteImages;
+	bool printStdWarning, overWriteImages, imageParamHeaderPresent;
+	bool unzip, makeMask;
+
+
 	
+	ImgCreator( imgCreator_input, paramStruct paramIn );
+	bool new_prepare();	
+	bool readInfoFile();
+	void make_mask(string saveLocNmae);
+
+
+
 	ImgCreator(string in, paramStruct paramIn);
+	ImgCreator(string p1LocIn, string p2LocIn, paramStruct paramIn, bool overIn, bool warnIn);
 	ImgCreator(string in, paramStruct paramIn, bool overIn, bool warnIn);
 	ImgCreator(int numThreadIn, string in, paramStruct paramIn, bool overIn, bool warnIn);
 	ImgCreator(string in, paramStruct paramIn, bool overIn, bool warnIn, int numThreadIn);
@@ -155,10 +153,6 @@ public:
 	void delMem();
 
 };
-
-
-
-
 
 
 
