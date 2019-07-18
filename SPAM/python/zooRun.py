@@ -1,7 +1,7 @@
 '''
 Author:     Matthew Ogden
 Created:    10 May 2019
-Altered:    25 Jun 2019
+Altered:    18 July 2019
 Purpose:    This program is meant to perform a runs of the SPAM software based on Zoo model files
 '''
 
@@ -202,7 +202,8 @@ def movePartFiles( uID, oDir ):
 def runBasicRun( nPart, uID, data ):
 
 
-    sysCmd = './%s -m %d -n1 %d -n2 %d %s' % ( basicRun, uID, nPart, nPart, data )
+    sysCmd = '.%s -m %d -n1 %d -n2 %d %s' % ( basicRun, uID, nPart, nPart, data )
+    #sysCmd = './%s -m %d -n1 %d -n2 %d %s' % ( basicRun, uID, nPart, nPart, data )
     if printAll:
         print('Running command: ',sysCmd)
     try:
