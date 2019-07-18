@@ -205,6 +205,7 @@ def runBasicRun( nPart, uID, data ):
 
 
     sysCmd = '.%s -m %d -n1 %d -n2 %d %s' % ( basicRun, uID, nPart, nPart, data )
+    print('About to run - \'%s\'' % sysCmd)
     #sysCmd = './%s -m %d -n1 %d -n2 %d %s' % ( basicRun, uID, nPart, nPart, data )
     if printAll:
         print('Running command: ',sysCmd)
