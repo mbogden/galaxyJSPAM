@@ -91,6 +91,7 @@ def main():
 
         partCreated = runBasicRun( nPart, uID, modelData )
 
+        partMoved = False
         if partCreated:
             partMoved = movePartFiles( uID, oDir )
 
@@ -204,6 +205,8 @@ def movePartFiles( uID, oDir ):
 def runBasicRun( nPart, uID, data ):
 
 
+    if basicRun[0] != '/':
+        basicRun = '/' + basicRun
     sysCmd = '.%s -m %d -n1 %d -n2 %d %s' % ( basicRun, uID, nPart, nPart, data )
     print('About to run - \'%s\'' % sysCmd)
     #sysCmd = './%s -m %d -n1 %d -n2 %d %s' % ( basicRun, uID, nPart, nPart, data )
