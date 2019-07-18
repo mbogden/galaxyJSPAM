@@ -1,0 +1,8 @@
+#!/bin/bash
+
+##
+#$ -N out_test
+#$ -pe mpi 4
+#$ -q all.q
+
+mpirun -np $NSLOTS $HOME/mpi_test c_test/testList.txt 

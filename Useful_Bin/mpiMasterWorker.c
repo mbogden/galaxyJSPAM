@@ -8,6 +8,8 @@
 #include <string.h>
 #include "mpi.h"
 
+char *str_replace(char *orig, char *rep, char *with);
+char *replaceWord(const char *s, const char *oldW, const char *newW);
 
 int main( int argc, char *argv[] ){
   int nProcs;
@@ -90,7 +92,6 @@ int main( int argc, char *argv[] ){
 	  // Wait until message is received containing line executable
 	  MPI_Recv( &destStr, strLen, MPI_CHAR, 0, strTag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-	  printf("%d received line %s\n",myRank,destStr);
 
 	  // Check if worker is done
 	  if ( strcmp( "end", destStr) == 0 ){
@@ -100,8 +101,20 @@ int main( int argc, char *argv[] ){
 
 	  // add uID to line
 	  // execute
+	  //
+	  printf("%d before %s\n",myRank,destStr);
+	  
 
-	  sleep(3);
+	  char oldID[50] = "-uID";
+	  char newID[50];
+
+	  sprintf( newID,"-uID %d",myRank);
+	  printf("replace %s\n",newID);
+	  
+	  char * cmd;
+	  cmd = replaceWord( destStr, oldID, newID);
+	  
+	  printf("%d executing %s\n",*cmd);
 
 	}
 
@@ -124,3 +137,98 @@ int main( int argc, char *argv[] ){
 
 }
 
+// You must free the result if result is non-NULL.
+char *str_replace(char *orig, char *rep, char *with) {
+    char *result; // the return string
+    char *ins;    // the next insert point
+    char *tmp;    // varies
+    int len_rep;  // length of rep (the string to remove)
+    int len_with; // length of with (the string to replace rep with)
+    int len_front; // distance between rep and end of last rep
+    int count;    // number of replacements
+
+    // sanity checks and initialization
+    if (!orig || !rep)
+        return NULL;
+    len_rep = strlen(rep);
+    if (len_rep == 0)
+        return NULL; // empty rep causes infinite loop during count
+    if (!with)
+        with = "";
+    len_with = strlen(with);
+
+    // count the number of replacements needed
+    ins = orig;
+    for (count = 0; tmp = strstr(ins, rep); ++count) {
+        ins = tmp + len_rep;
+    }
+
+    tmp = result = malloc(strlen(orig) + (len_with - len_rep) * count + 1);
+
+    if (!result){
+		printf("failed replace, returning\n");
+        return NULL;
+	}
+
+    // first time through the loop, all the variable are set correctly
+    // from here on,
+    //    tmp points to the end of the result string
+    //    ins points to the next occurrence of rep in orig
+    //    orig points to the remainder of orig after "end of rep"
+    while (count--) {
+        ins = strstr(orig, rep);
+        len_front = ins - orig;
+        tmp = strncpy(tmp, orig, len_front) + len_front;
+        tmp = strcpy(tmp, with) + len_with;
+        orig += len_front + len_rep; // move to next "end of rep"
+    }
+    strcpy(tmp, orig);
+    return result;
+}
+
+
+
+// Function to replace a string with another 
+// string 
+char *replaceWord(const char *s, const char *oldW, 
+                                 const char *newW) 
+{ 
+    char *result; 
+    int i, cnt = 0; 
+    int newWlen = strlen(newW); 
+    int oldWlen = strlen(oldW); 
+  
+    // Counting the number of times old word 
+    // occur in the string 
+    for (i = 0; s[i] != '\0'; i++) 
+    { 
+        if (strstr(&s[i], oldW) == &s[i]) 
+        { 
+            cnt++; 
+  
+            // Jumping to index after the old word. 
+            i += oldWlen - 1; 
+        } 
+    } 
+  
+    // Making new string of enough length 
+    result = (char *)malloc(i + cnt * (newWlen - oldWlen) + 1); 
+  
+    i = 0; 
+    while (*s) 
+    { 
+        // compare the substring with the result 
+        if (strstr(s, oldW) == s) 
+        { 
+            strcpy(&result[i], newW); 
+            i += newWlen; 
+            s += oldWlen; 
+        } 
+        else
+            result[i++] = *s++; 
+    } 
+  
+    result[i] = '\0'; 
+    return result; 
+} 
+  
