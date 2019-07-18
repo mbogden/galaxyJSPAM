@@ -205,8 +205,11 @@ def movePartFiles( uID, oDir ):
 def runBasicRun( nPart, uID, data ):
 
 
+    global basicRun
+
     if basicRun[0] != '/':
         basicRun = '/' + basicRun
+        
     sysCmd = '.%s -m %d -n1 %d -n2 %d %s' % ( basicRun, uID, nPart, nPart, data )
     print('About to run - \'%s\'' % sysCmd)
     #sysCmd = './%s -m %d -n1 %d -n2 %d %s' % ( basicRun, uID, nPart, nPart, data )
