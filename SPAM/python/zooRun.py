@@ -15,6 +15,8 @@ from os import (
         system
         )
 
+import subprocess
+
 # Default Global Variables
 
 printAll = False
@@ -207,7 +209,10 @@ def runBasicRun( nPart, uID, data ):
     if printAll:
         print('Running command: ',sysCmd)
     try:
-        retVal = system(sysCmd)   # Consider implementing a way to check return val from spam code
+        #retVal = system(sysCmd)   # Consider implementing a way to check return val from spam code
+        procCmd = sysCmd.split()
+        subprocess.call(procCMd)
+
         if printAll:
             print('Command Complete')
         return True
