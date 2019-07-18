@@ -93,9 +93,11 @@ int main(int argc, char *argv[]){
 
 	if( myCreator.new_prepare() ){
 		printf("Creating Image\n");
-		myCreator.makeImage2();
-		printf("Writing Info\n");
-		myCreator.writeInfo();
+		myCreator.g1.simple_write( myCreator.img, 'f');
+		myCreator.g2.simple_write( myCreator.img, 'f');
+		myCreator.make_mask("mask.png");
+		printf("write info check\n");
+		imwrite("test.png",myCreator.img);
 		printf("write info check\n");
 	  	myCreator.delMem();
 		printf("delete memory check\n");

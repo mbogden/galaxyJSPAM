@@ -40,9 +40,12 @@ public:
 	void write(Mat &img, int gsize, float weight, float radial_constant, point *pts);
 	void write(Mat &img, const Mat &blur, int gsize, float rconst, char state);
     void write_mask( Mat &img);
+    void simple_write( Mat &img, char state, int ox, int oy);
     void simple_write( Mat &img, char state);
 	void dot_write(Mat &img,char state);
 	void calc_values();
+	void adj_points(Mat warpMat);
+	void adj_points(int height, int xsize, int ysize, float scale, float theta);
 	void adj_points(int xsize, int ysize, int gsize, point *pts);
 	void add_center(double x, double y, double z, char state);
 	void add_center_circle(Mat &img);

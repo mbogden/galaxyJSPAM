@@ -112,6 +112,8 @@ public:
 	vector<string> runFiles;
 	ifstream infoFileIn, ipartFile, fpartFile;
 	ofstream infoFileOut;
+
+	float adjVar1, adjVar2, adjVar3;
 	
 	paramStruct param;	
 	Galaxy g1, g2;
@@ -127,6 +129,7 @@ public:
 	bool new_prepare();	
 	bool readInfoFile();
 	void make_mask(string saveLocNmae);
+	void findAdj(int width, int height, float x1, float y1, float x2, float y2);
 
 
 

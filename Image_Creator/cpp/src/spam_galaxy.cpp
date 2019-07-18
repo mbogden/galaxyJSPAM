@@ -128,6 +128,28 @@ void Galaxy::write_mask(Mat &img){
 	printf("In galaxy write_mask_4\n");
 
 }
+void Galaxy::simple_write(Mat &img,char state, int ox, int oy){
+
+    point *pts;
+    bool write = false;
+    if (state == 'i'){
+        pts = ipart;
+        write = true;
+    }
+    else if (state == 'f'){
+        pts = fpart;
+        write = true;
+    }
+    else
+        cout << "State " << state << " not found.  Skipping simple write\n";
+
+    if (write){
+	    for (int i=0;i<npart;i++){
+			if (  ( pts[i].x + ox > 0.0 ) &&  ( pts[i].x +ox < img.cols ) &&  ( pts[i].y +oy > 0.0 ) && ( pts[i].y +oy< img.rows ) )
+			  img.at<float>( int(pts[i].y + oy), int( pts[i].x + ox) ) = 256;
+	    }
+    }
+}
 void Galaxy::simple_write(Mat &img,char state){
     point *pts;
     bool write = false;
@@ -144,7 +166,8 @@ void Galaxy::simple_write(Mat &img,char state){
 
     if (write){
 	    for (int i=0;i<npart;i++){
-		    img.at<float>(int(pts[i].y),int( pts[i].x))=1.0;
+			if (  ( pts[i].x > 0.0 ) &&  ( pts[i].x < img.cols ) &&  ( pts[i].y > 0.0 ) && ( pts[i].y < img.rows ) )
+			  img.at<float>(int(pts[i].y),int( pts[i].x))=256.0;
 	    }
     }
 }
@@ -243,30 +266,54 @@ void Galaxy::calc_values(){
 }
 
 //  Changes the location of the points to their corresponding pixel point on an image. 
-void Galaxy::adj_points(int xsize, int ysize, int gsize, point *pts){
-
-        int scale_factor;
-
-        xmax-=xmin;
-        ymax-=ymin;
-
-        if( (1.0*(xsize-gsize)/xmax) > (1.0*(ysize-gsize)/ymax))
-            scale_factor = 1.0*(ysize-gsize)/ymax;
-        else
-            scale_factor = 1.0*(xsize-gsize)/xmax;
-
-        fx = (fx-xmin)*scale_factor + gsize/2.0;
-        fy = ysize - ( ( fy-ymin)*scale_factor + gsize/2.0);
+void Galaxy::adj_points(int height, int xo, int yo, float scale, float theta){
+		
+		float nx, ny;
 
 		for (int i=0; i<npart; i++)
 		{
-			pts[i].x= (pts[i].x-xmin)*scale_factor + gsize/2.0;
-			pts[i].y= ysize-((pts[i].y-ymin)*scale_factor + gsize/2.0);
 
+			nx = fpart[i].x;
+			ny = fpart[i].y;
+
+			nx = fpart[i].x*cos(theta) - fpart[i].y*sin(theta);
+			ny = fpart[i].x*sin(theta) + fpart[i].y*cos(theta);
+
+			nx= scale*nx;
+			ny= scale*ny;
+
+			nx = nx + xo;
+			ny = height - (ny + yo);
+
+			fpart[i].x = nx;
+			fpart[i].y = ny;
+
+			nx = ( scale * ( fx*cos(theta) - fy*sin(theta) ) ) + xo;
+			nx = height - ( scale * ( fx*sin(theta) + fy*cos(theta) )  + yo ) ;
+			fx = nx;
+			fy = ny;
+
+
+			nx = ipart[i].x*cos(theta) - ipart[i].y*sin(theta);
+			ny = ipart[i].x*sin(theta) + ipart[i].y*cos(theta);
+
+			nx= scale*nx;
+			ny= scale*ny;
+
+			nx = nx + xo;
+			ny = height - (ny + yo);
+
+			ipart[i].x = nx;
+			ipart[i].y = ny;
+
+
+			nx = ( scale * ( ix*cos(theta) - iy*sin(theta) ) ) + xo;
+			nx = height - ( scale * ( ix*sin(theta) + iy*cos(theta) )  + yo ) ;
+			ix = nx;
+			iy = ny;
+			
 		}
 
-        xmax = (xmax-xmin)*scale_factor + gsize/2.0;
-        ymax = ysize-((ymax-ymin)*scale_factor + gsize/2.0);
 }
 
 

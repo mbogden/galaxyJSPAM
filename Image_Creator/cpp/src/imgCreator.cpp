@@ -54,16 +54,15 @@ bool ImgCreator::new_prepare(){
 	picName = param.name + "_model.png";
 
 
-
 	string ipartZipName, fpartZipName;
 
 	// find files
 	for (unsigned int i=0; i<runFiles.size();i++)
 	{
-		size_t foundi = runFiles[i].find(".101");
-		size_t foundf = runFiles[i].find(".000");
-		size_t foundiz = runFiles[i].find("101.zip");
-		size_t foundfz = runFiles[i].find("000.zip");
+		size_t foundf = runFiles[i].find(".101");
+		size_t foundi = runFiles[i].find(".000");
+		size_t foundfz = runFiles[i].find("101.zip");
+		size_t foundiz = runFiles[i].find("000.zip");
 
 		if ( foundi != string::npos ){
 			ipartFileName = runFiles[i];
@@ -131,8 +130,9 @@ bool ImgCreator::new_prepare(){
 		// find files
 		for (unsigned int i=0; i<runFiles.size();i++)
 		{
-			size_t foundi = runFiles[i].find(".101");
-			size_t foundf = runFiles[i].find(".000");
+
+			size_t foundf = runFiles[i].find(".101");
+			size_t foundi = runFiles[i].find(".000");
 
 
 			if ( foundi != string::npos ){
@@ -208,14 +208,9 @@ bool ImgCreator::new_prepare(){
 
 	//  Consider adjusting so galaxies are centered on image 
 	//  Adjust point values to fit on image
-	g1.adj_points(img.cols,img.rows,param.gaussian_size, g1.fpart);
-	g2.adj_points(img.cols,img.rows,param.gaussian_size, g2.fpart);
 
-	
-	if (makeMask){
-	  g1.adj_points(img.cols,img.rows,param.gaussian_size, g1.ipart);
-	  g2.adj_points(img.cols,img.rows,param.gaussian_size, g2.ipart);
-	}
+	findAdj( img.cols, img.rows, g1.fx, g1.fy, g2.fx, g2.fy );
+
 	
 	// Make Gaussian Blur mat.
 	blur = Mat(param.gaussian_size,param.gaussian_size,CV_32F,Scalar(0));
@@ -223,6 +218,30 @@ bool ImgCreator::new_prepare(){
 
 	return true;
 	
+}
+
+void ImgCreator::findAdj( int width, int height, float x1, float y1, float x2, float y2){
+	int cx = int(width/2);
+	int cy1 = int(height/3);
+	int cy2 = int(height*2/3);
+
+	float scale = (cy2 - cy1)/sqrt(x2*x2 + y2*y2);
+	float theta = acos( abs(y2)/ sqrt(x2*x2+y2*y2));
+	if ( y2 < 0.0 )
+	  theta = theta + 3.14159/4;
+	if ( x2 < 0.0 )
+	  theta = -theta;
+
+	printf("x1: %f y1: %f\n",x1,y1);
+	printf("x2: %f y2: %f\n",x2,y2);
+	printf("xo: %d yo: %d\n",cx,cy1);
+
+	printf("Scale %f\n",scale);
+	printf("Theta %f\n",theta);
+
+	g1.adj_points( img.rows, cx, cy1, scale, theta);
+	g2.adj_points( img.rows, cx, cy1, scale, theta);
+
 }
 
 
@@ -427,9 +446,12 @@ void ImgCreator::make_mask(string saveLocName){
 
 	printf("In make_mask\n");
 	
-	g1.write_mask(mask_1);
-	g2.write_mask(mask_1);
+	g1.simple_write(mask_1,'i');
+	g2.simple_write(mask_1,'i');
+	g2.simple_write(mask_1,'i', int(g2.fx-g2.ix), int(img.rows - (g2.fy-g2.iy)) );
+
 	printf("wrote dots\n");
+
 	mask_1.convertTo(mask_1,CV_8UC3,255.0);
 	imwrite(saveLocName,mask_1);
 
