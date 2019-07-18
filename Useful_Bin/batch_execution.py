@@ -14,6 +14,7 @@ Description:    This program is meant to do one thing since I find myself doing
 import os
 import sys
 import queue
+from random import shuffle
 import multiprocessing as mp
 
 # Global input arguments
@@ -33,6 +34,7 @@ insert_uID = False
 offset_uID = 0
 
 reverse = False
+shuffleList = False
 
 
 def main():
@@ -51,8 +53,13 @@ def main():
         sys.exit(-1)
     
     inList = list( inFile )
+
     if reverse:
         inList.reverse()
+
+    if shuffleList:
+        shuffle( inList)
+
     lenList = len( inList )
 
     jobQueue = mp.Queue()
@@ -101,7 +108,7 @@ def execute( jobQueue, lock ):
             
 
             if insert_uID:
-                cmd = cmd.replace('-uID', '-uID %d' % (mp.current_process()._identity[0] + offset))
+                cmd = cmd.replace('-uID', '-uID %d' % (mp.current_process()._identity[0] + offset_uID))
 
             print('%d about to execute \'%s\'' % ( mp.current_process()._identity[0], cmd))
 
@@ -136,22 +143,30 @@ def printArg( lenList ):
 
 
 def readArg():
-    global fileLoc, parProc, nProc, insert_uID, offset
-    global printAll, recordProg, recordLoc, reverse
+    global fileLoc, parProc, nProc, insert_uID, offset_uID
+    global printAll, recordProg, recordLoc, reverse, shuffleList
 
-    for i,arg in enumerate(sys.argv):
+    argList = sys.argv
+    print(argList)
+
+    for i,arg in enumerate(argList):
 
         # ignore arguments without specifier
         if arg[0] != '-':
             continue
 
+        elif arg == '-argFile':
+            argFileLoc = argList[i+1]
+            arg = readArgFile(argList, argFileLoc)
+        
+
         elif arg == '-i':
-            fileLoc = sys.argv[i+1]
+            fileLoc = argList[i+1]
 
         # Would you like parallel processing on this machine? 
         elif arg == '-pp':
             parProc = True
-            nProc = sys.argv[i+1]
+            nProc = argList[i+1]
 
         # Would you like to print / not print progress? 
         elif arg == '-print':
@@ -160,7 +175,7 @@ def readArg():
         # Would you like to record progress in file? 
         elif arg == '-write':
             recordProg = True
-            recordLoc = sys.argv[i+1]
+            recordLoc = argList[i+1]
 
         # Tells batch_execution to insert uID where found
         elif arg == '-uID':
@@ -168,11 +183,15 @@ def readArg():
         
         #Offset uID
         elif arg == '-offset':
-            offset = int(sys.argv[i+1])
+            offset_uID = int(argList[i+1])
 
         # reverse through list
         elif arg == '-r':
             reverse = True
+
+        # shuffle list before executing
+        elif arg == '-shuffle':
+            shuffleList = True
 
     # End looping through arguments
 
@@ -204,6 +223,29 @@ def readArg():
     return exitEarly
 
 # End read Arguments
+
+def readArgFile( argList, argFileLoc):
+    
+    if not os.path.isfile( argFileLoc):
+        print('Warning:  Could not find \'%s\'' % argFileLoc)
+        return argList
+
+    try:
+        argFile = open( argFileLoc, 'r')
+    except:
+        print('Warning:  Could not open \'%s\'' % argFileLoc)
+        return argList
+    else:
+        for l in argFile:
+            l = l.strip()
+            if l[0] == '#':
+                continue
+            lineItems = l.split()
+
+            for item in lineItems:
+                argList.append(item)
+    return argList
+#End read arg file
 
 # Execute main after functions defined
 main()

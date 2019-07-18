@@ -24,13 +24,16 @@ nPart = 100000  # 100k
 dataName = '100k'
 
 
-
 def main():
 
     endEarly = readArg()
 
     if endEarly:
         print('Exiting...')
+        sys.exit(-1)
+
+    if os.path.exists( outLoc ):
+        justTrimList()
         sys.exit(-1)
 
     if sdssTargetLoc != '' and bigRunList != '':
@@ -40,6 +43,48 @@ def main():
         makeTargetList( sdssList, bigList )
 
 # End main
+
+def justTrimList():
+
+    oFile = open( outLoc, 'r' )
+
+    oldFile = list( oFile )
+
+    oFile.close()
+
+    newFile = []
+
+    for lNum, l in enumerate(oldFile):
+
+        lineItems = l.strip().split()
+
+        outDir = ''
+
+        # find output directory in exec line
+        for i,item in enumerate(lineItems):
+            if item == '-o':
+                outDir = lineItems[i+1]
+                outDir = os.path.expanduser( outDir )
+
+        if outDir == '':
+            print("Failed to trim line %d is file \'%s\'" % ( lNum, outLoc) )
+            continue
+
+        if not os.path.exists( outDir ):
+            newFile.append(l)
+
+        if lNum == 0:
+            print('%s %s ' % ( outDir, l.strip() ), os.path.exists( outDir ))
+
+    print('Trimming %d out of %d execLines' % ( len(oldFile) - len(newFile) , len(oldFile)))
+
+    nFile = open( outLoc, 'w' )
+
+    for l in newFile:
+        nFile.write(l)
+
+    nFile.close()
+
 
 def makeTargetList( sList, bigList ):
 
@@ -99,6 +144,7 @@ def readArg():
 
         elif arg == '-bigList':
             bigRunList = sys.argv[i+1]
+
 
     # End looping through arguments
 
