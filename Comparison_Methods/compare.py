@@ -81,7 +81,6 @@ def main():
         imgInfoFile = open(imgInfoLoc, 'r')
         global sdssName, genName, runName
         sdssName, genName, runName, imgCenters = readImgInfoFile( imgInfoFile )
-        print(sdssName, genName, runName, imgCenters)
         imgInfoFile.close()
     except:
         print('Failed to open and read image info file at \'%s\'' % imgInfoLoc)
@@ -107,7 +106,7 @@ def main():
     # creat score file if not present
     if not path.isfile( scoreLoc ):
         scoreFile = open( scoreLoc, 'w')
-        scoreFile.write('sdss,generation,run,zoo_model_data,human_score,target_image,model_image,image_parameter,comparison_method,machine_score\n')
+        scoreFile.write('sdss,generation,run,zoo_model_data,human_score,target_image,model_image,image_parameter,comparison_method,machine_score,user_comment\n')
     else:
         scoreFile = open( scoreLoc, 'a')
 
@@ -147,7 +146,6 @@ def main():
 
     if diffMethod:
         score, methodName, diffImg = pixDiff.direct_difference( image, target )
-        print(score, methodName)
         writeScore(scoreFile, score, methodName)
         if writeDiffImage:
             cv2.imwrite( runDir + '%s.png' % methodName, diffImg*255)
@@ -165,7 +163,7 @@ def writeScore(scoreFile, score, methodName ):
     sLine = '%s' % sdssName
     sLine += ',%s' % genName
     sLine += ',%s' % runName
-    sLine += ',%s' % zooModel
+    sLine += ',%s' % '' #'\0' + zooModel + '\0'  I can't remeber the character 
     sLine += ',%s' % humanScore
     sLine += ',%s' % targetLoc
     sLine += ',%s' % imageLoc
@@ -173,8 +171,6 @@ def writeScore(scoreFile, score, methodName ):
     sLine += ',%s' % methodName
     sLine += ',%s' % score
     sLine += ',%s\n' % userComment
-
-    print(sLine)
 
     scoreFile.write(sLine)
 
@@ -269,7 +265,6 @@ def overLapTarget( image, iC, target, tC):
 
     # Calcuate warp matrix
     warpMat2 = cv2.getAffineTransform( np.float32(nTC), np.float32(toPoint) )
-    print(warpMat)
     newTarget = cv2.warpAffine(target, warpMat2, toShape)
 
     if printAll:
@@ -352,7 +347,6 @@ def readImgInfoFile( imgInfoFile ):
 
     for l in imgInfoFile:
         l = l.strip()
-        print(l)
 
         if 'sdss_name' in l:
             sdssName = l.split()[1]
@@ -415,24 +409,18 @@ def readArg():
     global printAll
     global runDir, imgParam, imageLoc, imgInfoLoc, scoreLoc, overWriteScore
     global targetLoc, targetInfoLoc
-    global humanScore, zooData
+    global humanScore, zooModel
     global checkGalCenter, writeDiffImage
     global diffMethod, diffSqMethod
     global toPoint
 
     argList = argv
-    if printAll:
-        print('Reading command line arguments')
 
     endEarly = False
 
     for i,arg in enumerate(argList):
     
 
-        if printAll:
-            print(arg)
-
-        # move to next argument if not identified with argument specifier
         if arg[0] != '-':
             continue
 
@@ -474,7 +462,7 @@ def readArg():
             humanScore = argList[i+1]
 
         elif arg == '-zooModel':
-            zooData = argList[i+1]
+            zooModel = argList[i+1]
 
         elif arg == '-all':
             diffMethod = True
@@ -566,5 +554,4 @@ def readArgFile(argList, argFileLoc):
     return argList
 # end read argument file
 
-print('Starting compare.py')
 main()

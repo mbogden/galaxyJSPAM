@@ -17,20 +17,21 @@ from os import \
 
 printAll = True
 
-thisSdssDir = ''
+sdssDir = ''
 sdssZooFile = ''
 
+nLines = 0
 writeLoc = ''
-
 
 def main():
 
     endEarly = readArg()
 
     if endEarly:
+        print('Exiting cmd_compare_maker.py...')
         exit(-1)
 
-    runDirList = listdir( thisSdssDir )
+    runDirList = listdir( sdssDir )
 
     zooFile = open( sdssZooFile, 'r')
 
@@ -39,7 +40,10 @@ def main():
     oFile = open( writeLoc, 'w' )
     for i,runDir in enumerate(runDirList):
 
-        if not path.exists( thisSdssDir + runDir ):
+        if not path.exists( sdssDir + runDir ):
+            continue
+
+        if 'run' not in runDir:
             continue
 
         l = zooFile.readline().strip()
@@ -49,24 +53,28 @@ def main():
         zooModelName, humanScore, temp, temp = temp1.split(',')
 
         cmd = 'python3'
-        cmd += ' Comparison_Methods/pixel_comparison/python/pixel_comparison.py'
-        cmd += ' -runDir %s' % thisSdssDir + runDir + '/'
-        cmd += ' -argFile Input_Data/comparison_methods/pixel_comp_arg.txt'
+        cmd += ' Comparison_Methods/compare.py'
+        cmd += ' -runDir %s' % sdssDir + runDir + '/'
+        cmd += ' -argFile Input_Data/comparison_methods/arg_compare.txt'
         cmd += ' -humanScore %s' % humanScore
-        cmd += ' -zooModelData %s' % ( '%s:%s' % ( zooModelName, zooModelStr ) )
+        cmd += ' -zooModel %s' % ( '%s:%s' % ( zooModelName, zooModelStr ) )
 
         cmd += '\n'
 
         oFile.write(cmd)
 
-        if i < 5:
+        if i < 2:
             print(cmd)
+
+        if not nLines == 0 and i > nLines:
+            break
 
 # End main
 
 def readArg():
 
-    global printAll, thisSdssDir, writeLoc, sdssZooFile
+    global printAll, sdssDir, writeLoc, sdssZooFile, nLines
+    endEarly = False
 
     argList = argv
 
@@ -82,8 +90,8 @@ def readArg():
         elif arg == '-noprint':
             printAll = False
 
-        elif arg == '-thisSdssDir':
-            thisSdssDir = argList[i+1]
+        elif arg == '-sdssDir':
+            sdssDir = argList[i+1]
 
         elif arg == '-writeLoc':
             writeLoc = argList[i+1]
@@ -91,16 +99,23 @@ def readArg():
         elif arg == '-zooFile':
             sdssZooFile = argList[i+1]
 
+        elif arg == '-n':
+            nLines = int( argList[i+1] )
+
 
 
     # Check if input arguments were valid
-    endEarly = False
 
     if writeLoc == '':
         print('Please specify file you would like to store executable lines')
         endEarly = True
 
+    if not path.exists(sdssDir):
+        print('sdss directory %s not found' % sdssDir)
+        endEarly = True
 
+
+    return endEarly
 
 # End reading command line arguments
 
