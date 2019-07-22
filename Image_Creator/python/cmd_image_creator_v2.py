@@ -48,6 +48,7 @@ def main():
         cmd = 'python3'
         cmd += ' Image_Creator/python/image_creator_v2.py'
         cmd += ' -runDir %s' % sdssDir + runDir + '/'
+        cmd += ' -paramLoc Input_Data/image_parameters/test_param.txt'
         cmd += ' -argFile Input_Data/image_creator/arg_v2_test.txt'
 
         cmd += '\n'
