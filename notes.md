@@ -9,29 +9,18 @@ Summer
 - Make simulation data for everything
   - 100,000  ( in-prog on babbage )
 	- Catostrophic failure on babbage.  Use particle created so far and continue
+	- Forgot I had things running on 
 
-- Get Image-Creation going
-  - Making main image creator more versitile
-  - 
+- Spam Data
+  - updates to zooRun.py
+	- add zoo model data to notes.txt in run directories
+	- add humanscore to into.txt
 
 - Comparison methods
-  - Reorgize
-	- Create Makefile
   - Create Versitile Direct pixel comparison
-	- Inital python created
 	- Use inital particle file to create a 'mask' of pixels to ignore
 	- Use distance from center of galaxy as a weight of importance.
   
-- Score add
-  - resultion
-  - date
-  - experiment #
-  - Experiment Comments
-
-- Consider adding a bin folder
-  - Batch run code.  This code simply reads a file and executes that line as a command
-  - cluster master/worker.  This code simple reads a file and executes one line at a time.
-
 - Get a base working version of everything and write brief instructions and summary in README.md. 
   - Installation w/ instructions on README.md ( Completed. )
   - jspamcli.py and basic_run ( In progress.  Partially complete )
@@ -45,27 +34,12 @@ Summer
 
 ## Maintenance Items
 
-- There are is a set of imgCreator files and imgClass files in img_creator and difference_code.  Are they outdated versions of the same class files? 
-
-- Convert C++ image creation script to Makefile
-
-- jspamacli.py will soon be obsolete
-  - Occasional error about -bm in jspamcli.py reading as a float instead of integer for cores.
-  - Change jspmacli.py to just point to batch_run_files/batch_file.txt instead of typing full name. 
-
 - Add standard daily Instructions to follow in README.md for everything.
-  - jspamcli.py
   - basic_run
   - image creator
   - difference code
   - parameter finder
 
-- JSPAMCLI.py
-  - jpsamcli -i download input file broken 
-  - *****batch file ALL is broken for everything except -bm*****
-  - Update/combine scripts for different arguments
-  - Why is 'q  10000 some# some#' being printed out?!
-  - only -bm working when not using 'ALL'
 
 - Not all target info files are there
   - Manually get from site?
@@ -73,12 +47,22 @@ Summer
   - program way to get from website?
   - Do they need to be 'calibrated' like the others?
 
+
 - Folder Restructure
-  - Direct Difference Code has been moved to new folder
+  - Should I add a generation folder between sdss and run directories?  I think i should
 
-- pip3 install imageio?
-- If you start at run '0' in batchfile, it will make a run '-001'? 
+- SPAM
+  - zooRun.py
+	- Need to also read zoo files and write in model information and humanscore to info.txt
 
+- Score file should include
+  - date
+  - experiment #
+  - Experiment Comments
+
+- Useful_Bin
+  - batch_execution.py
+	- Noticed a core will see an empty queue and stop even though queue isn't empty. 
 
 ## Pete
 
@@ -115,17 +99,14 @@ Summer
   - wndchrm 
 
 - Rework run folder organization  ( in-prog )
-  - How essential is it to keep sdss# and run# in particle file name?
   - add 'pts.txt' to end instead of '.txt'
-  - change '.' to 'underscore' for clarity in jspamcli.py
-  - info file assumed #particles is set once created
-  - consider adding paramFile name next to image name in info file instead of relying on image name.
 
-- Consider using native c/c++ binary floating point data maybe
+- SPAM
+  - Consider using native c/c++ binary floating point data maybe
 
-- Consider making a file listing directories the other programs can read to know where output directories, source files, exe files, etc are ( in-prog )
+- Consider making a file listing directories the other programs can read to know where output directories, source files, exe files, etc are..?  ( Not likely )
 
-- Modify to run on cluster.
+- Modify to run on cluster. ( Might have accomplished this with master/worker.py
   - jspam  ( done )
   - image creation ( in-prog )
   - difference code
@@ -135,13 +116,11 @@ Summer
   - Requires working image creator and comparison code.
   
 - Standard image format?
-  - dedicated galaxy centers and resolution in image.
+  - dedicated galaxy centers and resolution in image. ( Done in comparison )
   - Analyze Histogram and Adjust as new image parameter?
 
 - New Comparison methods
-
-  - Use all comparison methods and weight their results. 
-
+  - Use all comparison methods and weight their results via machine learning!
   - Consider greater weights for pixel difference based on distance from galaxy center
   - Use inital points to create a weighted image for final image comparison
   - Feature Extraction via OpenCV
