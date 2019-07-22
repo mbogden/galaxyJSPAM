@@ -9,8 +9,19 @@ from sys import \
         exit, \
         argv
 
-
+# Global input variables
 printAll = True
+makeMask = False
+overwriteImage = True
+imageLoc = ''
+
+partFileLoc1 = ''
+partFileLoc2 = ''
+
+infoFile = ''
+paramFileLoc = ''
+paramName = ''
+runDir = ''
 
 
 def main():
@@ -24,11 +35,12 @@ def main():
 
 def readArg():
 
-    global printAll
+    global printAll, maekMask, imageLoc, overwrite
+    global infoFileLoc, paramFileLoc, partFileLoc1, partFileLoc2
 
     argList = argv
 
-    for i,arg in argList:
+    for i,arg in enumerate(argList):
 
         if arg[0] != '-':
             continue
@@ -39,6 +51,23 @@ def readArg():
 
         elif arg == '-noprint':
             printAll = False
+
+        elif arg == '-mask':
+            makeMask = True
+
+        elif arg == '-overwrite':
+            overwrite = True
+
+        elif arg == '-imageLoc':
+            imageLoc = argList[i+1]
+
+        elif arg == '-partFile1':
+            partFileLoc1 = argList[i+1]
+
+        elif arg == '-partFile2':
+            partFileLoc2 = argList[i+1]
+            
+
 
     # Check if input arguments were valid
     endEarly = False

@@ -1,0 +1,7 @@
+-target Input_Data/target_images/587722984435351614/587722984435351614.calibrated.png 
+-targetInfo Input_Data/target_images/587722984435351614/587722984435351614.info.txt
+-overwriteScore
+-writeDiffImage
+-all
+-noprint
+-imgParam param0202

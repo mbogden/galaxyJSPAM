@@ -1,0 +1,5 @@
+# Default arguments for pixel comparison
+-overwriteScore
+-all
+-writeDiffImage
+
