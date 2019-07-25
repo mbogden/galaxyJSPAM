@@ -29,6 +29,8 @@ partLoc1 = ''
 partLoc2 = ''
 
 infoFile = ''
+imgHeaderFound = ''
+
 paramLoc = ''
 paramInfo = ''
 paramName = ''
@@ -73,13 +75,48 @@ def main():
     #simpleWriteImg( runDir + 'simple.png', g1fPart, g2fPart, nRows, nCols )
 
     dotImg = createDotImg( g1fPart, g2fPart, nRows, nCols, g1iPart[:,3], g2iPart[:,3], rConst )
-    cv2.imwrite( runDir + 'dot.png', dotImg )
+    #cv2.imwrite( runDir + 'dot.png', dotImg )
 
     blurImg = cv2.GaussianBlur( dotImg, (gSize, gSize), gWeight )
-
     cv2.imwrite( imageLoc, blurImg )
 
+    writeParamInfo( infoLoc, pName, fCenters )
+
+
 # End main
+
+def writeParamInfo( infoLoc, pName, centers ):
+
+
+
+    # Check if info
+    if not path.isfile( infoLoc ):
+        return
+    
+    else:
+        infoFile = open( infoLoc, 'r' )
+        infoList = list( infoFile )
+        infoFile.close()
+
+    foundHeader = False
+
+    for line in infoList:
+        l = line.strip()
+
+        if 'Image Creator Information' in l:
+            foundHeader = True
+
+    infoFile = open( infoLoc, 'a' )
+    if not foundHeader:
+        infoFile.write('Image Creator Information\n')
+
+    infoFile.write( '%s %d %d %d %d\n' % \
+        ( pName, centers[0,0], centers[0,1], centers[1,0], centers[1,1] ))
+    infoFile.close()
+
+# End write to info file
+
+
 
 
 
@@ -106,7 +143,7 @@ def createDotImg( g1P, g2P, nRows, nCols, g1r, g2r, rConst ):
         if px > 0 and px < nCols and py > 0 and py < nRows:
             img[nRows-py,px] += np.exp( -rConst * g2r[i] / g2rMax )  
 
-    return np.uint(img*255)
+    return np.uint8(img*255)
 
 # End create dot image
 
@@ -227,6 +264,7 @@ def readParamFile( paramLoc ):
 
         elif 'image_cols' in l:
             nCols = int(l.split()[1])
+
 
     endEarly = False
     if printAll:

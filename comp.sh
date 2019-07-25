@@ -3,7 +3,6 @@
 #python3 Useful_Bin/batch_execution.py -i temp.txt -pp 1
 #python3 Useful_Bin/batch_execution.py -i Input_Data/comparison_methods/exec_laptop.txt -pp 3
 
-#python3 Score_Analysis/python/score_analysis.py -plotDir temp_plot_dir -sdssDir ~/testData/587722984435351614/ -basicPlots
 
 # Try 2
 # Testing if compare works for 1
@@ -21,3 +20,5 @@ python3 Comparison_Methods/cmd_compare_maker.py \
 
 # Test executable commands
 python3 Useful_Bin/batch_execution.py -i all_cmd.txt -pp 3
+
+python3 Score_Analysis/python/score_analysis.py -plotDir temp_plot_dir -sdssDir ~/testData/587722984435351614/ -basicPlots

@@ -55,6 +55,10 @@ Summer
   - zooRun.py
 	- Need to also read zoo files and write in model information and humanscore to info.txt
 
+- Image Creator
+  - Image_creator currently normalizes images.  This changes how "bright" a particle is from run to run depending on how many clump in one location.
+	- Would like to change
+
 - Score file should include
   - date
   - experiment #

@@ -23,7 +23,8 @@ import cv2
 import numpy as np
 
 
-import methods.pixel_difference as pixDiff
+import methods.pixel_difference as pixMod
+import methods.cv_features as featMod
 
 # Global input arguments
 printAll = True
@@ -52,6 +53,7 @@ writeDiffImage = False
 
 diffMethod = False
 diffSqMethod = False
+featMethods = False
 
 toShape = ( 1024, 1024 )
 
@@ -131,13 +133,6 @@ def main():
     image, target = overLapTarget( image, imgCenters, target, targetCenters) 
 
 
-    # Make sure images are in floating point data type
-    if image.dtype != 'float32':
-        image = convertDtype( image )
-
-    if target.dtype != 'float32':
-        target = convertDtype( target )
-    
     # Final check to see if images are the same size
     if image.size != target.size:
         print('image and target have different shapes')
@@ -145,10 +140,31 @@ def main():
         exit(-1)
 
     if diffMethod:
-        score, methodName, diffImg = pixDiff.direct_difference( image, target )
+        score, methodName, diffImg = pixMod.pixel_difference( image, target )
         writeScore(scoreFile, score, methodName)
+        if printAll:
+            print('Score: %f  Method: %s' % ( score, methodName ))
+            print('Max: %f Min: %f' % ( np.amax( diffImg ), np.amin( diffImg) ) )
         if writeDiffImage:
-            cv2.imwrite( runDir + '%s.png' % methodName, diffImg*255)
+            cv2.imwrite( runDir + '%s.png' % methodName, diffImg)
+    
+    if diffSqMethod:
+        score, methodName, diffImg = pixMod.pixel_difference_squared( image, target )
+        writeScore(scoreFile, score, methodName)
+        if printAll:
+            print('Score: %f  Method: %s' % ( score, methodName ))
+            print('Max: %f Min: %f' % ( np.amax( diffImg ), np.amin( diffImg) ) )
+        if writeDiffImage:
+            cv2.imwrite( runDir + '%s.png' % methodName, diffImg)
+
+    if featMethods:
+        score, methodName, diffImg = featMod.harris_corner_compare( image, target )
+        writeScore(scoreFile, score, methodName)
+        if printAll:
+            print('Score: %f  Method: %s' % ( score, methodName ))
+            print('Max: %f Min: %f' % ( np.amax( diffImg ), np.amin( diffImg) ) )
+        if writeDiffImage:
+            cv2.imwrite( runDir + '%s.png' % methodName, diffImg)
     
     scoreFile.close()
 
@@ -176,24 +192,6 @@ def writeScore(scoreFile, score, methodName ):
 
 
 # End write score to scoreFile
-
-
-def convertDtype( img ):
-
-    if img.dtype == 'uint8':
-        img = np.float32(img/255)
-
-    elif img.dype != 'uint8':
-        print('Discovered image data type %s.  Please add how to convert into code')
-        exit(-1)
-
-    if img.dtype != 'float32':
-        print('Error converting image data type')
-        exit(-1)
-
-    return img
-
-# End convert image data type
 
 
 def readRunDir( runDir ):
@@ -383,8 +381,6 @@ def readImgInfoFile( imgInfoFile ):
         exit(-1)
 
     else:
-        if printAll:
-            print(sdssName, genName, runName, imgCenters)
         return sdssName, genName, runName, imgCenters
 # end read img info file
 
@@ -411,7 +407,7 @@ def readArg():
     global targetLoc, targetInfoLoc
     global humanScore, zooModel
     global checkGalCenter, writeDiffImage
-    global diffMethod, diffSqMethod
+    global diffMethod, diffSqMethod, featMethods
     global toPoint
 
     argList = argv
@@ -467,6 +463,7 @@ def readArg():
         elif arg == '-all':
             diffMethod = True
             diffSqMethod = True
+            featMethods = True
 
         elif arg == '-diff':
             diffMethod = True

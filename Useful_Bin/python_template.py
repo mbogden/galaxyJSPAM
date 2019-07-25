@@ -27,8 +27,9 @@ def readArg():
     global printAll
 
     argList = argv
+    endEarly = False
 
-    for i,arg in argList:
+    for i,arg in enumerate(argList):
 
         if arg[0] != '-':
             continue
@@ -41,7 +42,8 @@ def readArg():
             printAll = False
 
     # Check if input arguments were valid
-    endEarly = False
+
+    return endEarly
 
 # End reading command line arguments
 
@@ -69,6 +71,7 @@ def readArgFile(argList, argFileLoc):
             for item in lineItems:
                 argList.append(item)
         # End going through file
+    return argList
 # end read argument file
 
 # Run main after declaring functions

@@ -83,9 +83,12 @@ def main():
         processes.append( p )
         p.start()
 
+
     # Wait until all processes are complete
     for p in processes:
         p.join()
+
+    print('')
 
 
 # End main
@@ -110,14 +113,16 @@ def execute( jobQueue, lock ):
             if insert_uID:
                 cmd = cmd.replace('-uID', '-uID %d' % (mp.current_process()._identity[0] + offset_uID))
 
-            print('%d about to execute \'%s\'' % ( mp.current_process()._identity[0], cmd))
+            #print('%d about to execute \'%s\'' % ( mp.current_process()._identity[0], cmd))
 
             os.system(cmd)
             printStr = '%s completed %d / %d - \'%s\'' % \
                         ( mp.current_process().name, i, n, cmd ) 
 
+            printStr = 'completed %d / %d\r' % ( i, n )
+
             if printAll:
-                print(printStr)
+                sys.stdout.write(printStr)
 
             if recordProg:
                 lock.acquire()
