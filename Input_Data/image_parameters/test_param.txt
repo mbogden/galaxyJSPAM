@@ -1,0 +1,7 @@
+parameter_name test_param000
+gaussian_size 25
+gaussian_weight 5
+radial_constant 4
+norm_value 7
+image_rows 400
+image_cols 600
