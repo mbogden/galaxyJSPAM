@@ -102,7 +102,7 @@ int main( int argc, char *argv[] ){
 	  char oldID[50] = "-uID";
 	  char newID[50];
 
-	  sprintf( newID,"-uID %d",myRank);
+	  sprintf( newID,"-uID %d",myRank+200);
 	  printf("replace %s\n",newID);
 	  
 	  char * cmd;
