@@ -26,13 +26,17 @@ def main():
 
     endEarly = readArg()
 
+    if printAll:
+        print('sdssDir: %s' % sdssDir)
+        print('Write Loc: %s' % writeLoc)
+        print('Print %d lines' % nLines)
+
     if endEarly:
         print('Exiting cmd_compare_maker.py...')
         exit(-1)
 
     runDirList = listdir( sdssDir )
-
-    #print(runDirList)
+    runDirList.sort()
 
     oFile = open( writeLoc, 'w' )
 
@@ -43,7 +47,6 @@ def main():
 
         if 'run' not in runDir:
             continue
-
 
         cmd = 'python3'
         cmd += ' Image_Creator/python/image_creator_v2.py'

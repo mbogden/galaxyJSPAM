@@ -55,7 +55,7 @@ diffMethod = False
 diffSqMethod = False
 featMethods = False
 
-toShape = ( 1024, 1024 )
+toShape = ( 900, 600 )
 
 
 def main():
@@ -157,7 +157,7 @@ def main():
         if writeDiffImage:
             cv2.imwrite( runDir + '%s.png' % methodName, diffImg)
 
-    if featMethods:
+    if False and featMethods:
         score, methodName, diffImg = featMod.harris_corner_compare( image, target )
         writeScore(scoreFile, score, methodName)
         if printAll:
@@ -168,8 +168,6 @@ def main():
     
     scoreFile.close()
 
-    #sdssName, genName, runNum, imgCenters = readImgInfoFile( imgInfoFile )
- 
 # End main
 
 def writeScore(scoreFile, score, methodName ):
@@ -234,13 +232,14 @@ def overLapTarget( image, iC, target, tC):
 
     # Calculate points to move galaxies
     toPoint = np.zeros((3,2))
-    toPoint[0,:] = [ toShape[0]/2 , toShape[1]/3 ]
-    toPoint[1,:] = [ toShape[0]/2 , toShape[1]*2/3 ]
+    toPoint[0,:] = [ toShape[0]/3 , toShape[1]/2 ]
+    toPoint[1,:] = [ toShape[0]*2/3 , toShape[1]/2 ]
     toPoint[2,0] = int( toPoint[0,0] + ( toPoint[0,1] - toPoint[1,1] ) )
     toPoint[2,1] = int( toPoint[0,1] + ( toPoint[1,0] - toPoint[0,0] ) )
 
 
     # Create third point for image
+    print(iC)
     nIC = np.zeros((3,2))
     ix = int( iC[0,0] + ( iC[0,1] - iC[1,1] ) )
     iy = int( iC[0,1] + ( iC[1,0] - iC[0,0] ) )
@@ -362,10 +361,7 @@ def readImgInfoFile( imgInfoFile ):
                 for i in range(4):
                     imgCenters[i] = int( pLine[i+1] ) 
 
-                imgCenters = imgCenters.reshape((2,2))
                 foundCenters = True
-                #print(imgCenters)
-
             except:
 
                 print('Parameter line \'%s\' not correct format' % l )
@@ -373,6 +369,10 @@ def readImgInfoFile( imgInfoFile ):
                 print('Exiting...\n')
                 exit(-1)
 
+    imgCenters = imgCenters.reshape((2,2))
+    if True or printAll:
+        print('Found: %s %s %s'% ( sdssName, runName, genName) )
+        print(imgCenters)
 
     # Check if all values were found
     if sdssName == '' or runName == '' or genName == '' or not foundCenters:

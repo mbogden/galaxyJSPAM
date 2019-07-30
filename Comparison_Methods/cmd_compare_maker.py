@@ -32,6 +32,7 @@ def main():
         exit(-1)
 
     runDirList = listdir( sdssDir )
+    runDirList.sort()
 
     zooFile = open( sdssZooFile, 'r')
 
@@ -55,7 +56,7 @@ def main():
         cmd = 'python3'
         cmd += ' Comparison_Methods/compare.py'
         cmd += ' -runDir %s' % sdssDir + runDir + '/'
-        cmd += ' -argFile Input_Data/comparison_methods/arg_compare.txt'
+        cmd += ' -argFile Input_Data/comparison_methods/arg_compare_test.txt'
         cmd += ' -humanScore %s' % humanScore
         cmd += ' -zooModel %s' % ( '%s:%s' % ( zooModelName, zooModelStr ) )
 

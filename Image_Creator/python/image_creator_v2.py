@@ -64,6 +64,7 @@ def main():
     g1iPart, g2iPart, iCenters = readPartFile( partLoc1 )
     g1fPart, g2fPart, fCenters = readPartFile( partLoc2 )
 
+
     if imageLoc == '':
         imageLoc = runDir + '%s_model.png' % pName
 
@@ -86,8 +87,6 @@ def main():
 # End main
 
 def writeParamInfo( infoLoc, pName, centers ):
-
-
 
     # Check if info
     if not path.isfile( infoLoc ):
@@ -180,7 +179,7 @@ def shiftPoints( g1P, g2P, gC, nRows, nCols ):
 
 
     # Calculate amount needed to rotate points to land galaxy centers horizontal
-    theta = - np.arctan( ( gC[1,1] - gC[0,1] ) / ( gC[1,0] - gC[0,0] ) )
+    theta = - np.arctan( ( gC[1,1] - gC[0,1] ) / ( gC[1,0] - gC[0,0] ) ) + np.pi
 
     # Calculate scale to change galaxy center distance to pixel center distance
     scale = np.abs( toC[1,0] - toC[0,0] ) / np.sqrt( gC[1,0]**2 + gC[1,1]**2 )
@@ -203,6 +202,7 @@ def shiftPoints( g1P, g2P, gC, nRows, nCols ):
     g2P[:,0:3] = scale*g2P[:,0:3]
 
     # Shift centers up to desired point
+    gC[:,0] = gC[:,0] + toC[0,0]
     gC[:,1] = gC[:,1] + toC[0,1]
     g1P[:,0] = g1P[:,0] + toC[0,0]
     g1P[:,1] = g1P[:,1] + toC[0,1]
@@ -304,7 +304,7 @@ def readPartFile( pLoc ):
 
     # Read points
     for i in range(3):
-        pCenters[1,i] = float(cVals[i])
+        pCenters[1,i] = float(cVals[i])  # Error.  
 
     for i in range( nPart ):
 
@@ -337,6 +337,7 @@ def readArg():
 
     global printAll, maekMask, imageLoc, overwrite, runDir
     global infoLoc, paramLoc, partLoc1, partLoc2, paramInfo
+    global keepZip
 
     argList = argv
 
@@ -423,12 +424,15 @@ def readRunDir( runDir ):
             elif '101.zip' in f:
                 zipFile2 = fPath
         
-        '''
         if partLoc1 == '' and zipFile1 != '':
             unzip = 'unzip -d %s -o %s' % (runDir, zipFile1)
             system(unzip)
+
+        if partLoc2 == '' and zipFile2 != '':
             unzip = 'unzip -d %s -o %s' % (runDir, zipFile2)
             system(unzip)
+
+        '''
 
             lDir = listdir(runDir)
             sDir = ''

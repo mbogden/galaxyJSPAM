@@ -47,6 +47,7 @@ allZooRuns = False  # All zoo runs in file
 
 useModelData = False
 modelData = ''
+modelName = ''
 
 
 
@@ -126,6 +127,8 @@ def createInfoFile( oDir ):
     infoFile.write('sdss_name %s\n' % sdssName )
     infoFile.write('generation %d\n' % genNum )
     infoFile.write('run_number %d\n' % runNum )
+    infoFile.write('model_name %s\n' % modelName )
+    infoFile.write('model_data %s\n' % modelData )
     infoFile.write('g1_num_particles %d\n' % nPart)
     infoFile.write('g2_num_particles %d\n' % nPart)
     infoFile.write('\n')
@@ -213,12 +216,14 @@ def runBasicRun( nPart, uID, data ):
     sysCmd = '.%s -m %d -n1 %d -n2 %d %s' % ( basicRun, uID, nPart, nPart, data )
     print('About to run - \'%s\'' % sysCmd)
     #sysCmd = './%s -m %d -n1 %d -n2 %d %s' % ( basicRun, uID, nPart, nPart, data )
+
     if printAll:
         print('Running command: ',sysCmd)
+
     try:
-        #retVal = system(sysCmd)   # Consider implementing a way to check return val from spam code
-        procCmd = sysCmd.split()
-        subprocess.call(procCMd)
+        retVal = system(sysCmd)   # Consider implementing a way to check return val from spam code
+        #procCmd = sysCmd.split()
+        #subprocess.call(procCMd)
 
         if printAll:
             print('Command Complete')
@@ -276,7 +281,7 @@ def readCommandLine():
     global basicRun, nPart, outputDir, makeRunDir
     global sdssName, runNum, genNum, uniqID, compressFiles, pName
     global useZooFile, zooDir, zooFile, allZooRuns, nZooRuns
-    global useModelData, modelData, printAll, overWrite
+    global useModelData, modelData, modelName, printAll, overWrite
 
     for i,arg in enumerate(argv):
 
@@ -360,9 +365,14 @@ def readCommandLine():
                 exit(-1)
 
         # Just one model with data via command line
-        elif arg == '-m':
+        elif arg == '-modelData':
             useModelData = True
             modelData = argv[i+1]
+
+        # Just one model with data via command line
+        elif arg == '-modelName':
+            useModelData = True
+            modelName = argv[i+1]
 
 
         # Define Zoo Model File

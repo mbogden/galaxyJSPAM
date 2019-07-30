@@ -1,7 +1,6 @@
 # Notes for galaxyJSPAM
+These are notes meant for my own (Matthew Ogden) purposes during creation and organizing code.  May be good for others to view.
 
-
-These are notes meant for myself, Matthew Ogden, to keep and maintain but may be good for others to view. test.
 
 ## Matt's Immediate To-Do
 Summer
@@ -15,6 +14,9 @@ Summer
   - updates to zooRun.py
 	- add zoo model data to notes.txt in run directories
 	- add humanscore to into.txt
+
+- Image Creator v2
+  - add option to delete unziped file
 
 - Comparison methods
   - Create Versitile Direct pixel comparison

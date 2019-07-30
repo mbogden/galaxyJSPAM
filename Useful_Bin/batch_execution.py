@@ -113,9 +113,20 @@ def execute( jobQueue, lock ):
             if insert_uID:
                 cmd = cmd.replace('-uID', '-uID %d' % (mp.current_process()._identity[0] + offset_uID))
 
-            #print('%d about to execute \'%s\'' % ( mp.current_process()._identity[0], cmd))
+            if printAll:
+                print('%d about to execute \'%s\'' % ( mp.current_process()._identity[0], cmd))
 
-            os.system(cmd)
+            if True:
+                print('\n\n')
+                oFile = open('temp.sh','w')
+                oFile.write(cmd)
+                oFile.close()
+
+            try:
+                retVal = os.system(cmd)
+            except:
+                print(retVal)
+
             printStr = '%s completed %d / %d - \'%s\'' % \
                         ( mp.current_process().name, i, n, cmd ) 
 
