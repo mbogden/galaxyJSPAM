@@ -47,27 +47,21 @@ int main( int argc, char *argv[] ){
 	fp = fopen( fileLoc, "r");
 
 	int toRank;
-	int waitFlag;
 	int collect;
 
 	MPI_Status status;
 
 	while (( read = getline( &line, &len, fp)) != -1) {
 
-	  // Wait until master finds a worker ready to work
-	  waitFlag = 0;
-
 	  // Wait until a worker says they're ready
 	  MPI_Recv( &toRank, 1, MPI_INT, MPI_ANY_SOURCE, statusTag, MPI_COMM_WORLD, &status);
 
 	  // Send job to worker
-	  printf("0 sending to %d\n",toRank);
 	  MPI_Send( line, strlen( line)+1, MPI_CHAR, toRank, strTag, MPI_COMM_WORLD);
 
 	}
 
 	fclose(fp);
-
 
 	line = "end";
 	for ( int i=1; i<nProcs; i++){
@@ -112,9 +106,11 @@ int main( int argc, char *argv[] ){
 	  printf("replace %s\n",newID);
 	  
 	  char * cmd;
-	  cmd = replaceWord( destStr, oldID, newID);
+	  //cmd = replaceWord( destStr, oldID, newID);
+	  cmd = str_replace( destStr, oldID, newID);
 	  
 	  printf("%d executing %s\n",*cmd);
+	  //system(*cmd);
 
 	}
 
@@ -122,14 +118,6 @@ int main( int argc, char *argv[] ){
 
   }
 
-	
-
-
-  // Create string of python command.  with comm size and rank
-  //sprintf(totStr,"python ~/cluster/pyCluster.py -cr %d -cs %d",myId,nProcs);
-
-  // Run command
-  //system(totStr);
 
   MPI_Barrier(MPI_COMM_WORLD);
 
