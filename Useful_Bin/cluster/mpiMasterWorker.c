@@ -107,7 +107,7 @@ int main( int argc, char *argv[] ){
 	  
 	  char * cmd;
 	  //cmd = replaceWord( destStr, oldID, newID);
-	  cmd = str_replace( destStr, oldID, newID);
+	  cmd = str_replace( destStr, *oldID, *newID);
 	  
 	  printf("%d executing %s\n",*cmd);
 	  //system(*cmd);
