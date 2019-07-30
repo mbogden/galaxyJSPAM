@@ -96,23 +96,14 @@ int main( int argc, char *argv[] ){
 	  }
 
 	  // add uID to line
-	  printf("%d before %s\n",myRank,destStr);
-	  
-
 	  char oldID[50] = "-uID";
 	  char newID[50];
-
 	  sprintf( newID,"-uID %d",myRank+200);
-	  printf("replace %s\n",newID);
 	  
 	  char * cmd;
 	  cmd = replaceWord( destStr, oldID, newID);
-	  //cmd = str_replace( destStr, oldID, newID);
 
-	  //strcpy(tmp, orig);
-
-	  printf("%d exec\n",myRank);
-	  printf("%d executing %s\n",myRank,cmd);
+	  printf("%d Executing:\n\t%s\n",myRank,cmd);
 
 	  const char * cmd1 = cmd;
 	  system(cmd1);

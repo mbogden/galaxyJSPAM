@@ -23,8 +23,9 @@ zooModelsLoc = ''
 bigRunList = ''
 nLines = 0
 
-nPart = 100000  # 100k
-dataName = '100k'
+nPart = 100000              # 100k
+partFileName = 'pts'        # name given to particle files
+dataDirName = '~/spam_data' 
 
 printAll = True
 
@@ -37,7 +38,7 @@ def main():
         print('points per gal: %d' % nPart)
         print('Using zoo model file %s'% zooModelLoc)
         print('Printing %d lines' % nLines)
-
+        print('To data directory %s' % dataDirName)
 
     if endEarly:
         print('Exiting...')
@@ -46,9 +47,10 @@ def main():
     if True:
 
         modelList = readFile(zooModelLoc)
+        createCmdFileCluster(modelList, outLoc)
 
-        createCmdFile(modelList, outLoc)
 
+    # Ignore the following
     if False and os.path.exists( outLoc ):
         justTrimList()
         sys.exit(-1)
@@ -61,7 +63,7 @@ def main():
 
 # End main
 
-def createCmdFile( mList, oLoc ):
+def createCmdFileCluster( mList, oLoc ):
 
     oFile = open(oLoc, 'w')
 
@@ -70,20 +72,25 @@ def createCmdFile( mList, oLoc ):
         l = l.strip()
         sName, gName, rName, hScore, mName, mData = l.split()
 
-        cmd = 'python3 SPAM/python/zooRun.py'
-        cmd += ' -spam SPAM/bin/basic_run'
+        cmd = 'python galaxyJSPAM/SPAM/python/zooRun.py'
+        cmd += ' -spam galaxyJSPAM/SPAM/bin/basic_run'
+        #cmd += ' -print'
         cmd += ' -compress'
-        cmd += ' -overwrite'
-        cmd += ' -name tSpam'
+        #cmd += ' -overwrite'
+        cmd += ' -sdss %s' % sName
+        cmd += ' -gen %s' % gName
+        cmd += ' -run %s' % rName
+        cmd += ' -name %s' % partFileName
         cmd += ' -n %d' % nPart
-        cmd += ' -o %s' % ( '~/tSpamDir/%s/run_%s_%s/' % ( sName,gName,rName)  )
+        cmd += ' -o %s' % ( '%s/%s/run_%s_%s/' % (dataDirName,sName,gName,rName)  )
         cmd += ' -noDir'
         cmd += ' -modelName %s' % mName
         cmd += ' -modelData %s' % mData
         cmd += ' -uID'
         cmd += '\n'
 
-        print(cmd)
+        if i < 3:
+            print(cmd)
         oFile.write(cmd)
 
         if nLines != 0 and i >= nLines:
@@ -184,7 +191,8 @@ def readFile(inFileLoc):
 
 def readArg():
 
-    global sdssTargetLoc, outLoc, bigRunList, zooModelLoc, nLines, nPart
+    global sdssTargetLoc, outLoc, bigRunList, zooModelLoc
+    global nLines, nPart, dataDirName, partFileName
 
     for i, arg in enumerate( sys.argv ):
 
@@ -213,6 +221,13 @@ def readArg():
         elif arg == '-nPart':
             nPart = int( sys.argv[i+1] )
 
+        elif arg == '-dataDirName':
+            dataDirName = sys.argv[i+1]
+
+        elif arg == '-partFileName':
+            partFileName = sys.argv[i+1]
+
+
     # End looping through arguments
 
 
@@ -232,6 +247,9 @@ def readArg():
     if ( bigRunList != '' ) and ( not os.path.isfile( bigRunList ) ):
         print('Big run list \'%s\' not found' % bigRunList )
         endEarly = True
+
+    if dataDirName[-1] == '/':
+        dataDirName = dataDirName[:-1]
 
 
     return endEarly

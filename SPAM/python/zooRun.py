@@ -53,7 +53,12 @@ modelName = ''
 
 def main():
 
-    readCommandLine()
+    endEarly = readArg()
+
+    # Exit program with error
+    if endEarly:
+        print('Exiting...\n')
+        exit(-1)
 
     # Print info being used
 
@@ -162,7 +167,8 @@ def movePartFiles( uID, oDir ):
     # Zip files if requested
     if compressFiles:
         try:
-            print('Zipping files')
+            if printAll:
+                print('Zipping files')
 
             zipCmd1 = 'zip a_%d_000.zip a_%d.000' % (uID, uID)
             zipCmd2 = 'zip a_%d_101.zip a_%d.101' % (uID, uID)
@@ -170,7 +176,9 @@ def movePartFiles( uID, oDir ):
             system(zipCmd1)
             system(zipCmd2)
 
-            print('Moving files')
+            if printAll:
+                print('Moving files to %s' % oDir)
+
             if pName == '':
                 mvCmd = 'mv a_%d_*.zip %s' % (uID, oDir)
                 system(mvCmd)
@@ -214,16 +222,12 @@ def runBasicRun( nPart, uID, data ):
         basicRun = '/' + basicRun
         
     sysCmd = '.%s -m %d -n1 %d -n2 %d %s' % ( basicRun, uID, nPart, nPart, data )
-    print('About to run - \'%s\'' % sysCmd)
-    #sysCmd = './%s -m %d -n1 %d -n2 %d %s' % ( basicRun, uID, nPart, nPart, data )
 
     if printAll:
         print('Running command: ',sysCmd)
 
     try:
         retVal = system(sysCmd)   # Consider implementing a way to check return val from spam code
-        #procCmd = sysCmd.split()
-        #subprocess.call(procCMd)
 
         if printAll:
             print('Command Complete')
@@ -276,14 +280,16 @@ def readZooFile( zooFile, nZooRuns):
 # End readZooFile()
 
 
-def readCommandLine():
+def readArg():
 
     global basicRun, nPart, outputDir, makeRunDir
     global sdssName, runNum, genNum, uniqID, compressFiles, pName
     global useZooFile, zooDir, zooFile, allZooRuns, nZooRuns
     global useModelData, modelData, modelName, printAll, overWrite
 
-    for i,arg in enumerate(argv):
+    argList = argv
+
+    for i,arg in enumerate(argList):
 
         if arg == '-0':
             print('You found Zero')
@@ -294,14 +300,14 @@ def readCommandLine():
 
         # Define spam executable location
         elif arg == '-spam':
-            basicRun = argv[i+1]
+            basicRun = argList[i+1]
 
         # Define spam executable location
         elif arg == '-uID':
             try:
-                uniqID = int(argv[i+1])
+                uniqID = int(argList[i+1])
             except:
-                print('\'%s\' is an invalid number spam basic run unique id' %  argv[i+1] )
+                print('\'%s\' is an invalid number spam basic run unique id' %  argList[i+1] )
                 print('Exiting...\n')
                 exit(-1)
         # end '-n'
@@ -310,16 +316,16 @@ def readCommandLine():
         # Specify the number of particles in each galaxy
         elif arg == '-n':
             try:
-                nPart = int(argv[i+1])
+                nPart = int(argList[i+1])
             except:
-                print('\'%s\' is an invalid number for the number of particles' %  argv[i+1] )
+                print('\'%s\' is an invalid number for the number of particles' %  argList[i+1] )
                 print('Exiting...\n')
                 exit(-1)
         # end '-n'
  
         # Output Directory
         elif arg == '-o':
-            outputDir = argv[i+1]
+            outputDir = argList[i+1]
             if outputDir[-1] != '/':
                 outputDir = outputDir + '/'
        
@@ -341,51 +347,51 @@ def readCommandLine():
 
         # Specify name for particle file
         elif arg == '-name':
-            pName = argv[i+1]
+            pName = argList[i+1]
 
         # Specify SDSS Name
         elif arg == '-sdss':
-            sdssName = argv[i+1]
+            sdssName = argList[i+1]
 
         # Specify run numer
         elif arg == '-run':
             try:
-                runNum = int(argv[i+1])
+                runNum = int(argList[i+1])
             except:
-                print('\'%s\' is invalid for run number' %  argv[i+1] )
+                print('\'%s\' is invalid for run number' %  argList[i+1] )
                 print('Exiting...\n')
                 exit(-1)
 
         elif arg == '-gen':
             try:
-                genNum = int(argv[i+1])
+                genNum = int(argList[i+1])
             except:
-                print('\'%s\' is invalid generation number' %  argv[i+1] )
+                print('\'%s\' is invalid generation number' %  argList[i+1] )
                 print('Exiting...\n')
                 exit(-1)
 
         # Just one model with data via command line
         elif arg == '-modelData':
             useModelData = True
-            modelData = argv[i+1]
+            modelData = argList[i+1]
 
         # Just one model with data via command line
         elif arg == '-modelName':
             useModelData = True
-            modelName = argv[i+1]
+            modelName = argList[i+1]
 
 
         # Define Zoo Model File
         elif arg == '-zoofile':
-            zooFile = argv[i+1]
+            zooFile = argList[i+1]
             useZooFile = True
 
         # Do N number of runs in zoo model file
         elif arg == '-zn':
             try:
-                nZooRuns = int(argv[i+1])
+                nZooRuns = int(argList[i+1])
             except:
-                print('\'%s\' is an invalid number for the number zoo models' %  argv[i+1] )
+                print('\'%s\' is an invalid number for the number zoo models' %  argList[i+1] )
                 exit(-1)
 
         # Do all Zoo models (All in competition, not all in file)
@@ -448,12 +454,9 @@ def readCommandLine():
             print( 'Expected format is 34 floating point numbers seperated by commas, no spaces')
             exitProgram = True
 
-    # Exit program with error
-    if exitProgram:
-        print('Exiting...\n')
-        exit(-1)
+    return exitProgram
 
-# End readCommandLine()
+# End read argumnets()
 
 
 # Execute everything after declaring functions
