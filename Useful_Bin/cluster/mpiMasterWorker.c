@@ -113,7 +113,9 @@ int main( int argc, char *argv[] ){
 
 	  printf("%d exec\n",myRank);
 	  printf("%d executing %s\n",myRank,cmd);
-	  system(*cmd);
+
+	  const char * cmd1 = cmd
+	  system(cmd1);
 
 	}
 
