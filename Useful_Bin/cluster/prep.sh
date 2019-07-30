@@ -2,4 +2,4 @@
 cd galaxyJSPAM && git pull
 cd ~
 mpicc -o mpi_test galaxyJSPAM/Useful_Bin/cluster/mpiMasterWorker.c -lm
-qsub galaxyJSPAM/Useful_Bin/cluster/qc_test.qsub
+qsub galaxyJSPAM/Useful_Bin/cluster/qSPAM.qsub
