@@ -89,10 +89,12 @@ int main( int argc, char *argv[] ){
 	  // Send message to master indicating worker ready to work
 	  MPI_Isend( &myRank, 1, MPI_INT, 0, statusTag, MPI_COMM_WORLD, &request );
 
+	  printf("%d Sent master ready message\n",myRank);
+
 	  // Wait until message is received containing line executable
 	  MPI_Recv( &destStr, strLen, MPI_CHAR, 0, strTag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-
+	  //
 	  // Check if worker is done
 	  if ( strcmp( "end", destStr) == 0 ){
 		keepWorking = 0;
@@ -100,8 +102,6 @@ int main( int argc, char *argv[] ){
 	  }
 
 	  // add uID to line
-	  // execute
-	  //
 	  printf("%d before %s\n",myRank,destStr);
 	  
 
