@@ -5,4 +5,4 @@
 #$ -pe mpi 4
 #$ -q all.q
 
-mpirun -np $NSLOTS $HOME/mpi_test c_test/testList.txt 
+mpirun -np $NSLOTS $HOME/mpi_test galaxyJSPAM/Input_Data/spam_input/tCmd_spam_cluster.txt 
