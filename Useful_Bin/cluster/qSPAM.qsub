@@ -2,7 +2,7 @@
 
 ##
 #$ -N spam_data
-#$ -pe mpi 4
+#$ -pe mpi 250
 #$ -q all.q
 
-mpirun -np $NSLOTS $HOME/mpi_test galaxyJSPAM/Input_Data/spam_input/tcmd_spam_cluster.txt 
+mpirun -np $NSLOTS $HOME/mpi_test galaxyJSPAM/Input_Data/spam_input/cmd_spam_cluster_all.txt 
