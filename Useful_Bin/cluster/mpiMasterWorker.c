@@ -109,8 +109,10 @@ int main( int argc, char *argv[] ){
 	  cmd = replaceWord( destStr, oldID, newID);
 	  //cmd = str_replace( destStr, oldID, newID);
 
+	  //strcpy(tmp, orig);
+
 	  printf("%d exec\n",myRank);
-	  printf("%d executing %s\n",cmd);
+	  printf("%d executing %s\n",myRank,cmd);
 	  //system(*cmd);
 
 	}
