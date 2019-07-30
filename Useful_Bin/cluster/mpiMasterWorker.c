@@ -113,7 +113,7 @@ int main( int argc, char *argv[] ){
 
 	  printf("%d exec\n",myRank);
 	  printf("%d executing %s\n",myRank,cmd);
-	  //system(*cmd);
+	  system(*cmd);
 
 	}
 
