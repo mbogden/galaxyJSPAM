@@ -1,0 +1,9 @@
+#!/bin/bash
+
+##
+#$ -N pFinderTest
+#$ -pe make 4
+#$ -l hostname=compute-0-16
+## #$ - all.q
+
+python sync_folder/Param_Finder/test.py -pp 4 -noprint
