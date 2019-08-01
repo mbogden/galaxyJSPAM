@@ -1,0 +1,8 @@
+#!/bin/bash
+
+##
+#$ -N mbo_MPI_python_test4
+#$ -pe mpi 4
+#$ -q all.q
+
+mpirun -np $NSLOTS $HOME/spam_mpi_test
