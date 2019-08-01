@@ -1,8 +1,0 @@
-#!/bin/bash
-
-##
-#$ -N mbo_spam_testing3
-#$ -pe mpi 100
-#$ -q all.q
-
-mpirun -np $NSLOTS $HOME/spam_mpi_test
