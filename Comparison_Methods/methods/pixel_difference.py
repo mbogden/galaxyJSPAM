@@ -25,6 +25,7 @@ def pixel_difference( img1, img2 ):
     return score, methodName, diffImg*255
 # End pixel difference
 
+
 def pixel_difference_squared( img1, img2 ):
 
     methodName = 'pixel_difference_squared_v0_%dx%d' % ( img1.shape[0], img1.shape[1] )
@@ -38,3 +39,25 @@ def pixel_difference_squared( img1, img2 ):
     score = 1 - avgDiff
 
     return score, methodName, diffImg*255
+
+
+
+def diffSquaredNonZero( img1, img2 ):
+
+    methodName = 'pixel_difference_squared_non_zero_v_%dx%d' % ( img1.shape[0], img1.shape[1] )
+
+    img1 = img1/255
+    img2 = img2/255
+
+    diffImg = np.absolute( img1 - img2 ) 
+    diffImg = diffImg*diffImg
+    sumDiff = np.sum( diffImg )
+    
+    nNonZeros = (diffImg != 0.0).sum()
+
+    avgDiff = sumDiff/nNonZeros
+    score = 1 - avgDiff
+
+    return score, methodName, diffImg*255
+
+

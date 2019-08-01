@@ -42,6 +42,7 @@ imageLoc = ''
 imgInfoLoc = ''
 scoreLoc = ''
 imgParam = ''
+printScore = False
 
 writeScore = True
 overWriteScore = False
@@ -56,6 +57,7 @@ writeDiffImage = False
 
 diffMethod = False
 diffSqMethod = False
+diffSqNonZeroMethod = False
 featMethods = False
 
 toShape = ( 900, 600 )
@@ -66,7 +68,7 @@ def main():
     endEarly = readArg()
 
     if printAll:
-        print('Run directory: %s' % runDir)
+        print('\nRun directory: %s' % runDir)
         print('Image Loc: %s' % imageLoc)
         print('Info Loc: %s' % imgInfoLoc)
         print('Target Loc: %s' % targetLoc)
@@ -75,6 +77,7 @@ def main():
             print('Using method: pixel_difference')
         if diffSqMethod:
             print('Using method: pixel_difference_squared')
+        print('')
 
 
     if endEarly:
@@ -99,22 +102,6 @@ def main():
     except:
         print('Failed to open and read target info file at \'%s\'' % targetInfoLoc)
         exit(-1)
-
-
-    # prepare score file
-    if writeScore:
-        # Delete score file if overwriting
-        if overWriteScore:
-            if printAll:
-                print('Overwriting score file %s' % scoreLoc)
-            system('rm %s' % scoreLoc)
-
-        # creat score file if not present
-        if not path.isfile( scoreLoc ):
-            scoreFile = open( scoreLoc, 'w')
-            scoreFile.write('sdss,generation,run,zoo_model_data,human_score,target_image,model_image,image_parameter,comparison_method,machine_score,user_comment\n')
-        else:
-            scoreFile = open( scoreLoc, 'a')
 
 
     # Check if images exist
@@ -142,44 +129,55 @@ def main():
         print('Exiting...\n')
         exit(-1)
 
-    if False and diffMethod:
-        score, methodName, diffImg = pixMod.pixel_difference( image, target )
-        if writeScore:
-            writeScoreFile(scoreFile, score, methodName)
-        if printAll:
-            print('Score: %f  Method: %s' % ( score, methodName ))
-            print('Max: %f Min: %f' % ( np.amax( diffImg ), np.amin( diffImg) ) )
-        if writeDiffImage:
-            cv2.imwrite( runDir + '%s.png' % methodName, diffImg)
-    
-    if diffSqMethod:
-        score, methodName, diffImg = pixMod.pixel_difference_squared( image, target )
 
-        if writeScore:
-            writeScoreFile(scoreFile, score, methodName)
-        if printAll:
-            print('Score: %f  Method: %s' % ( score, methodName ))
-            print('Max: %f Min: %f' % ( np.amax( diffImg ), np.amin( diffImg) ) )
-        if writeDiffImage:
-            cv2.imwrite( runDir + '%s.png' % methodName, diffImg)
+    if diffMethod:
+        methodFunc = pixMod.pixel_difference
+    elif diffSqMethod:
+        methodFunc = pixMod.pixel_difference_squared
+    elif diffSqNonZeroMethod:
+        methodFunc = pixMod.diffSquaredNonZero
 
-    if False and featMethods:
-        score, methodName, diffImg = featMod.harris_corner_compare( image, target )
-        if writeScore:
-            writeScoreFile(scoreFile, score, methodName)
-        if printAll:
-            print('Score: %f  Method: %s' % ( score, methodName ))
-            print('Max: %f Min: %f' % ( np.amax( diffImg ), np.amin( diffImg) ) )
-        if writeDiffImage:
-            cv2.imwrite( runDir + '%s.png' % methodName, diffImg)
-    
-    scoreFile.close()
+
+    score, methodName, diffImg = methodFunc( image, target )
+
+    if printAll:
+        print('Score: %f  Method: %s' % ( score, methodName ))
+        print('Max: %f Min: %f' % ( np.amax( diffImg ), np.amin( diffImg) ) )
+
+    if writeDiffImage:
+        cv2.imwrite( runDir + '%s.png' % methodName, diffImg)
+
+    if printScore:
+        print(score)
+
+    # prepare score file
+    if writeScore:
+        writeScoreFile(scoreLoc, score, methodName)
+
 
 # End main
 
-def writeScoreFile(scoreFile, score, methodName ):
+def writeScoreFile(scoreLoc, score, methodName ):
 
     #scoreFile.write('sdss,generation,run,zoo_model_data,human_score,target_image,model_image,image_parameter,comparison_method,machine_score\n')
+
+    # Delete score file if overwriting
+    if overWriteScore:
+        if printAll:
+            print('Overwriting score file %s' % scoreLoc)
+        system('rm %s' % scoreLoc)
+
+    # create score file if not present
+    if not path.isfile( scoreLoc ):
+        scoreFile = open( scoreLoc, 'w')
+
+        # Write Header
+        scoreFile.write('sdss,generation,run,zoo_model_data,human_score,target_image,model_image,image_parameter,comparison_method,machine_score,user_comment\n')
+
+    else:
+        # Else append
+        scoreFile = open( scoreLoc, 'a')
+
 
     sLine = '%s' % sdssName
     sLine += ',%s' % genName
@@ -194,6 +192,8 @@ def writeScoreFile(scoreFile, score, methodName ):
     sLine += ',%s\n' % userComment
 
     scoreFile.write(sLine)
+
+    scoreFile.close()
 
 
 # End write score to scoreFile
@@ -246,7 +246,7 @@ def overLapTarget( image, iC, target, tC):
 
 
     # Create third point for image
-    print(iC)
+    #print(iC)
     nIC = np.zeros((3,2))
     ix = int( iC[0,0] + ( iC[0,1] - iC[1,1] ) )
     iy = int( iC[0,1] + ( iC[1,0] - iC[0,0] ) )
@@ -377,7 +377,7 @@ def readImgInfoFile( imgInfoFile ):
                 exit(-1)
 
     imgCenters = imgCenters.reshape((2,2))
-    if True or printAll:
+    if printAll:
         print('Found: %s %s %s'% ( sdssName, runName, genName) )
         print(imgCenters)
 
@@ -414,9 +414,9 @@ def readArg():
     global targetLoc, targetInfoLoc
     global humanScore, zooModel
     global checkGalCenter, writeDiffImage
-    global diffMethod, diffSqMethod, featMethods
+    global diffMethod, diffSqMethod, featMethods, diffSqNonZeroMethod
     global toPoint
-    global retScore
+    global printScore, writeScore
 
     argList = argv
 
@@ -479,6 +479,9 @@ def readArg():
         elif arg == '-diffSq':
             diffSqMethod = True
 
+        elif arg == '-diffSqNonZero':
+            diffSqNonZeroMethod = True
+
         elif arg == '-toShape':
             endEarly = readShape(argList[i+1])
 
@@ -488,16 +491,20 @@ def readArg():
         elif arg == '-writeDiffImage':
             writeDiffImage = True
 
-        elif arg == '-returnScore':
-            retVal = True
+        elif arg == '-printScore':
+            printScore = True
+
+        elif arg == '-noScore':
+            writeScore = False
 
     # Check if arguments are valid
 
     if printAll:
-        print('Check validity of arguments')
+        print('\nChecking validity of arguments')
+
     # Check if image exists
     if not path.isfile(imageLoc):
-        print( 'image at \'%s\' not found' % imageLoc )
+        print( 'Model image at \'%s\' not found' % imageLoc )
         endEarly = True
 
     # Chech if information passed for image exists
@@ -527,7 +534,7 @@ def readArg():
         endEarly = True
 
     # Check if any comparison method was chosen
-    if not diffMethod and not diffSqMethod:
+    if not diffMethod and not diffSqMethod and not diffSqNonZeroMethod:
         print('No comparison methods selected')
         endEarly = True
 

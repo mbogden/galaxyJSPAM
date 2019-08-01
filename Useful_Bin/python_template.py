@@ -75,16 +75,23 @@ def readArgFile(argList, argFileLoc):
 # end read argument file
 
 def readFile( fileLoc ):
+
+    if not path.isfile( fileLoc ):
+        print("File does not exist: %s" % fileLoc)
+        return False, []
     
     try:
         inFile = open( fileLoc, 'r' )
+
     except:
         print('Failed to open/read file at \'%s\'' % fileLoc)
         return False, []
+
     else:
         inList = list(inFile)
         inFile.close()
         return True, inList
+
 # End simple read file
 
 # Run main after declaring functions
