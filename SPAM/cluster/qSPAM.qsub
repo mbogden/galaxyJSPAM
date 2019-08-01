@@ -1,0 +1,8 @@
+#!/bin/bash
+
+##
+#$ -N spam_data
+#$ -pe mpi 250
+#$ -q all.q
+
+mpirun -np $NSLOTS $HOME/mpi_test galaxyJSPAM/Input_Data/spam_input/cmd_spam_cluster_all.txt 

@@ -1,2 +1,1 @@
-rsync -r . babbage.mtsu.edu:cluster/
-ssh babbage.mtsu.edu './cluster/prep.sh'
+ssh babbage.mtsu.edu './galaxyJSPAM/Useful_Bin/cluster/prep.sh'

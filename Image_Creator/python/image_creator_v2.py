@@ -36,6 +36,8 @@ paramInfo = ''
 paramName = ''
 
 
+
+
 def main():
 
     print('In image_creator_v2')
@@ -54,7 +56,7 @@ def main():
         exit(-1)
 
     if paramLoc != '':
-        pName, gSize, gWeight, rConst, normVal,nRows, nCols = readParamFile( paramLoc ) 
+        pName, gSize, gWeight, rConst, normVal, nRows, nCols = readParamFile( paramLoc ) 
     elif paramInfo != '':
         pName, gSize, gWeight, rConst, normVal,nRows, nCols = paramInfo.split() 
     
@@ -177,7 +179,6 @@ def shiftPoints( g1P, g2P, gC, nRows, nCols ):
     toC[0,:] = [ nCols/3, nRows/2 ]
     toC[1,:] = [ 2*nCols/3, nRows/2 ]
 
-
     # Calculate amount needed to rotate points to land galaxy centers horizontal
     theta = - np.arctan( ( gC[1,1] - gC[0,1] ) / ( gC[1,0] - gC[0,0] ) ) + np.pi
 
@@ -237,7 +238,7 @@ def readParamFile( paramLoc ):
 
     for l in pList:
         l = l.strip()
-        print(l)
+        #print(l)
 
         if len(l) == 0:
             continue
@@ -245,24 +246,38 @@ def readParamFile( paramLoc ):
             continue
 
         if 'parameter_name' in l:
+            if printAll:
+                print('Found %s'%l)
             pName = l.split()[1]
         
         elif 'gaussian_size' in l:
+            if printAll:
+                print('Found %s'%l)
             gSize = int(l.split()[1])
 
         elif 'gaussian_weight' in l:
+            if printAll:
+                print('Found %s'%l)
             gWeight = float(l.split()[1])
 
         elif 'radial_constant' in l:
+            if printAll:
+                print('Found %s'%l)
             rConst = float(l.split()[1])
 
         elif 'norm_value' in l:
+            if printAll:
+                print('Found %s'%l)
             normVal = float(l.split()[1])
 
         elif 'image_rows' in l:
+            if printAll:
+                print('Found %s'%l)
             nRows = int(l.split()[1])
 
         elif 'image_cols' in l:
+            if printAll:
+                print('Found %s'%l)
             nCols = int(l.split()[1])
 
 
@@ -367,6 +382,9 @@ def readArg():
 
         elif arg == '-paramLoc':
             paramLoc = argList[i+1]
+
+        elif arg == '-imageLoc':
+            imageLoc = argList[i+1]
 
 
     # Check if input arguments were valid

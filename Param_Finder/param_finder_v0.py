@@ -32,7 +32,8 @@ makeDir = False
 saveParamDir = 'Input_Data/image_parameters/'
 paramName = 'tparam_v0_0000.txt'
 
-imgCreatorLoc = 'Image_Creator/python/image_creator_v2'
+imgCreatorLoc = 'Image_Creator/python/image_creator_v2.py'
+imgCompareLoc = 'Comparison_Methods/compare_v1.py'
 
 
 def main():
@@ -63,7 +64,11 @@ def main():
     notDone = True
     while( notDone ):
 
-        createImg_v2(p)
+        imgLoc = paramDir + 't_img.png'
+
+        createImg_v2(p,imgLoc)
+
+        score = scoreImg_v0(p, imgLoc)
 
         notDone = False
     
@@ -71,11 +76,47 @@ def main():
 
 # End main
 
+def scoreImg_v0(p, imgLoc):
+    if printAll:
+        print('In score image')
 
-def createImg_v2(p):
+    infoLoc = paramDir + 'info.txt'
+    imgParam = p.name
+
+    cmd = "python3 %s" %  imgCompareLoc
+
+    retVal = system(cmd)
+    print('\nreturned  Value: %s' % retVal)
+
+# End score image
+
+# This uses image_creator_v2.py
+def createImg_v2(p, imgLoc):
     if printAll:
         print('In create Image function')
 
+    pLoc = paramDir + "t1.txt"
+    p.writeParam(pLoc)
+    
+    imgCmd = "python3 %s" % imgCreatorLoc
+    imgCmd += " -runDir %s" % paramDir
+    imgCmd += " -paramLoc %s" % pLoc
+    imgCmd += " -overwrite"
+    imgCmd += " -noprint"
+    imgCmd += " -imageLoc %s" % imgLoc
+
+    if printAll:
+        print('About to execute: \'%s\'' % imgCmd)
+
+    system(imgCmd)
+
+
+# End creat Img_v2
+'''python3 Image_Creator/python/image_creator_v2.py 
+    -runDir /nfshome/mbo2d/tSpamDir/hst_Arp_273/run_0_0/ 
+    -paramLoc Input_Data/image_parameters/test_param.txt 
+    -argFile Input_Data/image_creator/arg_v2_test.txt
+'''
 
 
 def makeParamDir( paramDir, runDir ):
@@ -101,6 +142,7 @@ def testPrint(arg1, arg2):
     print('Began - %s' % ( myRank))
 
 # End testPrint
+
 
 
 
@@ -211,7 +253,7 @@ def readArgFile(argList, argFileLoc):
 class imageParameterClass:
 
     def __init__(self):
-        self.name    = 'blank'
+        self.name    = 'tparam_v0'
         self.gSize   = int(25)     # gaussian size
         self.gWeight = 5         # gaussian size
         self.rConst  = 5         # radial constant
@@ -249,13 +291,13 @@ class imageParameterClass:
         except:
             print('Failed to create: %s' % saveLoc)
         else:
-            pFile.write('parameter_self.name %s\n' % self.name)
+            pFile.write('parameter_name %s\n' % self.name)
             pFile.write('comment: %s\n\n' % self.comment)
             pFile.write('gaussian_size %d\n' % self.gSize)
             pFile.write('gaussian_weight: %f\n' % self.gWeight)
             pFile.write('radial_constant: %f\n' % self.rConst)
             pFile.write('brightness_constant: %f\n' % self.bConst)
-            pFile.write('norm_constant: %f\n' % self.nVal)
+            pFile.write('norm_value: %f\n' % self.nVal)
             pFile.write('image_rows: %d\n' % self.nRow)
             pFile.write('image_cols: %d\n' % self.nCol)
             pFile.write('galaxy1_center: %f %f\n' % ( self.gCenter[0,0], self.gCenter[0,1] ))

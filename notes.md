@@ -17,11 +17,19 @@ Summer
 
 - Image Creator v2
   - add option to delete unziped file
+  - currently views galaxy points as [[x1,y1],[x2,y2]]
+	- needs to be transposed
 
 - Comparison methods
+  - make difference between main and main function so paramfinder can import directly
   - Create Versitile Direct pixel comparison
+	- Only score pixels with non-zero values
+	- Make the average brightness the same before comparing images
 	- Use inital particle file to create a 'mask' of pixels to ignore
 	- Use distance from center of galaxy as a weight of importance.
+  - currently views galaxy points as [[x1,y1],[x2,y2]]
+	- needs to be transposed
+
   
 - Get a base working version of everything and write brief instructions and summary in README.md. 
   - Installation w/ instructions on README.md ( Completed. )

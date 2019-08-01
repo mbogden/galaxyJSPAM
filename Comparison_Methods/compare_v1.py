@@ -29,6 +29,7 @@ import methods.cv_features as featMod
 # Global input arguments
 printAll = True
 
+
 runDir = ''
 sdssName = ''
 genName = ''
@@ -42,7 +43,9 @@ imgInfoLoc = ''
 scoreLoc = ''
 imgParam = ''
 
+writeScore = True
 overWriteScore = False
+retScore = False
 
 targetLoc = ''
 targetInfoLoc = ''
@@ -76,7 +79,7 @@ def main():
 
     if endEarly:
         print('\nExiting pixel_comparison...\n')
-        exit(-1)
+        exit(1)
 
    # Open and read image Info file
     try:
@@ -99,18 +102,19 @@ def main():
 
 
     # prepare score file
-    # Delete score file if overwriting
-    if overWriteScore:
-        if printAll:
-            print('Overwriting score file %s' % scoreLoc)
-        system('rm %s' % scoreLoc)
+    if writeScore:
+        # Delete score file if overwriting
+        if overWriteScore:
+            if printAll:
+                print('Overwriting score file %s' % scoreLoc)
+            system('rm %s' % scoreLoc)
 
-    # creat score file if not present
-    if not path.isfile( scoreLoc ):
-        scoreFile = open( scoreLoc, 'w')
-        scoreFile.write('sdss,generation,run,zoo_model_data,human_score,target_image,model_image,image_parameter,comparison_method,machine_score,user_comment\n')
-    else:
-        scoreFile = open( scoreLoc, 'a')
+        # creat score file if not present
+        if not path.isfile( scoreLoc ):
+            scoreFile = open( scoreLoc, 'w')
+            scoreFile.write('sdss,generation,run,zoo_model_data,human_score,target_image,model_image,image_parameter,comparison_method,machine_score,user_comment\n')
+        else:
+            scoreFile = open( scoreLoc, 'a')
 
 
     # Check if images exist
@@ -132,16 +136,16 @@ def main():
     # Rotate and translate images to overlap
     image, target = overLapTarget( image, imgCenters, target, targetCenters) 
 
-
     # Final check to see if images are the same size
     if image.size != target.size:
         print('image and target have different shapes')
         print('Exiting...\n')
         exit(-1)
 
-    if diffMethod:
+    if False and diffMethod:
         score, methodName, diffImg = pixMod.pixel_difference( image, target )
-        writeScore(scoreFile, score, methodName)
+        if writeScore:
+            writeScoreFile(scoreFile, score, methodName)
         if printAll:
             print('Score: %f  Method: %s' % ( score, methodName ))
             print('Max: %f Min: %f' % ( np.amax( diffImg ), np.amin( diffImg) ) )
@@ -150,7 +154,9 @@ def main():
     
     if diffSqMethod:
         score, methodName, diffImg = pixMod.pixel_difference_squared( image, target )
-        writeScore(scoreFile, score, methodName)
+
+        if writeScore:
+            writeScoreFile(scoreFile, score, methodName)
         if printAll:
             print('Score: %f  Method: %s' % ( score, methodName ))
             print('Max: %f Min: %f' % ( np.amax( diffImg ), np.amin( diffImg) ) )
@@ -159,7 +165,8 @@ def main():
 
     if False and featMethods:
         score, methodName, diffImg = featMod.harris_corner_compare( image, target )
-        writeScore(scoreFile, score, methodName)
+        if writeScore:
+            writeScoreFile(scoreFile, score, methodName)
         if printAll:
             print('Score: %f  Method: %s' % ( score, methodName ))
             print('Max: %f Min: %f' % ( np.amax( diffImg ), np.amin( diffImg) ) )
@@ -170,7 +177,7 @@ def main():
 
 # End main
 
-def writeScore(scoreFile, score, methodName ):
+def writeScoreFile(scoreFile, score, methodName ):
 
     #scoreFile.write('sdss,generation,run,zoo_model_data,human_score,target_image,model_image,image_parameter,comparison_method,machine_score\n')
 
@@ -409,6 +416,7 @@ def readArg():
     global checkGalCenter, writeDiffImage
     global diffMethod, diffSqMethod, featMethods
     global toPoint
+    global retScore
 
     argList = argv
 
@@ -479,6 +487,9 @@ def readArg():
 
         elif arg == '-writeDiffImage':
             writeDiffImage = True
+
+        elif arg == '-returnScore':
+            retVal = True
 
     # Check if arguments are valid
 
