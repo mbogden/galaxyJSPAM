@@ -74,5 +74,18 @@ def readArgFile(argList, argFileLoc):
     return argList
 # end read argument file
 
+def readFile( fileLoc ):
+    
+    try:
+        inFile = open( fileLoc, 'r' )
+    except:
+        print('Failed to open/read file at \'%s\'' % fileLoc)
+        return False, []
+    else:
+        inList = list(inFile)
+        inFile.close()
+        return True, inList
+# End simple read file
+
 # Run main after declaring functions
 main()
