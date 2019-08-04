@@ -40,7 +40,6 @@ paramName = ''
 
 def main():
 
-    print('In image_creator_v2')
     global imageLoc
 
     endEarly = readArg()

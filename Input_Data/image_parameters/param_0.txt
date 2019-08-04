@@ -1,0 +1,12 @@
+parameter_name param_0
+comment: Ideal parameter using param_finder_0.py using image_creator_v2.py and diffSqNonZero comparison on 588-1614.
+
+gaussian_size 27
+gaussian_weight: 4.900000
+radial_constant: 3.700000
+brightness_constant: 5.000000
+norm_value: 5.000000
+image_rows: 400
+image_cols: 600
+galaxy1_center: 200.000000 400.000000
+galaxy2_center: 200.000000 200.000000

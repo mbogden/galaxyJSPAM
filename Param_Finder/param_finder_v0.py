@@ -1,7 +1,7 @@
 '''
     Author:     Matthew Ogden
     Created:    31 July 2019
-    Altered:    
+    Altered:    02 Aug 2019
 Description:    This code tries to find the optimal image parameters for creating an image
                     out of SPAM data and a comparison method.
 '''
@@ -29,11 +29,16 @@ runDir = ''
 paramDir = ''
 makeDir = False
 
+startParamLoc = ''
+endParamLoc = ''
 saveParamDir = 'Input_Data/image_parameters/'
 paramName = 'tparam_v0_0000.txt'
 
 imgCreatorLoc = 'Image_Creator/python/image_creator_v2.py'
 imgCompareLoc = 'Comparison_Methods/compare_v1.py'
+
+methodName = ''
+
 
 
 def main():
@@ -56,44 +61,179 @@ def main():
         makeParamDir(paramDir,runDir)
 
     # Create initial parameter
-    p = imageParameterClass()
+    if startParamLoc != '':
+        pWorking = imageParameterClass(startParamLoc)
+    else:
+        pWorking = imageParameterClass()
+
+    initScore = scoreParam(pWorking)
+
     if printAll:
-        print("Starting image values")
-        p.printVal()
+        print("Starting image parameter values")
+        pWorking.printVal()
+        print("InitScore: %f" % initScore)
 
-    notDone = True
-    while( notDone ):
+    pName = ['gSize', 'gWeight', 'rConst', 'nVal' ]
+    stepSize = [2, 0.1, 0.1, 5 ]
 
-        imgLoc = paramDir + 't_img.png'
 
-        createImg_v2(p,imgLoc)
+    # Loop x times
+    for i in range( 10 ):
 
-        score = scoreImg_v0(p, imgLoc)
+        # Find best for this parameter
+        for j,name in enumerate(pName):
 
-        notDone = False
-    
+            step = stepSize[j]
+            pWorking = improveParam( pWorking, name, step )
+
+    # Exit loop through range (1)
+
+    finalScore = scoreParam(pWorking)
+
+    if printAll:
+        print('Final Param values')
+        pWorking.printVal()
+
+        print("Init Score: %f" % initScore)
+        print("Final Score: %f" % finalScore)
+
+    if endParamLoc != '':
+        pWorking.writeParam(endParamLoc)
+    else:
+        pWorking.writeParam(paramDir + 'tparam_1.txt')
+
     #p.writeParam(saveParamDir + paramName)
 
 # End main
 
-def scoreImg_v0(p, imgLoc):
+def scoreParam(p):
+    imgLoc = paramDir + 't_img.png'
+
+    createImg_v2(p, imgLoc)
+    score = scoreImg_v1(p, imgLoc)
+
+    return score
+# End score
+
+
+# My first simple implementation for improving a parameter
+def improveParam( p, name, step ):
+
+    # Get score for current val
+    pVal1 = getattr( p, name ) 
+    s1 = scoreParam(p)
+
+
+    # Get score for increase in value
+    pVal2 = pVal1 + step
+    setattr( p, name, pVal2 )
+    s2 = scoreParam( p )
+
+    # Do I need to increase value?
+    if s2 > s1:
+        print('Increasing %s' % name)
+        inc = True
+        nVal = pVal2
+        nScore = s2
+        cScore = s1
+
+    # Do I need to decrease value? 
+    elif s1 > s2:
+        print('Decreasing %s' % name)
+        inc = False
+        nVal = pVal1
+        nScore = s1
+        cScore = s2
+
+    else:
+        print("No change in score for: %s" % name)
+        setattr( p, name, pVal1 )
+        return p
+
+    c = 0
+    # While new value is greater than current Score
+    while( nScore > cScore ):
+
+        cVal = nVal
+        cScore = nScore
+
+        if inc:
+            nVal = cVal + step
+        else:
+            nVal = cVal - step
+
+        if nVal < 0:
+            print("Param %s at minimum before 0: %f" % (name,cVal)) 
+            break
+        
+        # Get new score
+        setattr( p, name, nVal )
+        nScore = scoreParam(p)
+
+        c += 1
+
+    # End while loop
+
+    # reset p value back to previous 
+    setattr( p, name, cVal )
+
     if printAll:
-        print('In score image')
+        print('Found %s max after %d steps: %f' % ( name, int(c), cVal) )
+
+    return p
+
+# End improveParam
+
+
+def scoreImg_v1(p, imgLoc):
+    if printAll:
+        #print('In score image')
+        pass
+
 
     infoLoc = paramDir + 'info.txt'
     imgParam = p.name
+    scoreLoc = paramDir + 'tscore.txt'
 
     cmd = "python3 %s" %  imgCompareLoc
+    cmd += " -runDir %s" % paramDir
+    cmd += " -printScore"
+    cmd += " -argFile Input_Data/comparison_methods/arg_compare_paramFinder.txt"
+    cmd += " -image %s" % imgLoc
+    cmd += " -imgParam %s" % p.name
+    cmd += " -noprint"
+    cmd += " -overWriteScore"
+    cmd += " -noscore"
+    
+    cmd += " -%s" % methodName
 
-    retVal = system(cmd)
-    print('\nreturned  Value: %s' % retVal)
+    cmd += " > %s" % scoreLoc
+    
+    # remove previous score file if present
+    if path.isfile(scoreLoc):
+        system("rm %s"%scoreLoc)
+
+    # Execute command
+    system(cmd)
+
+    fList, good = readFile(scoreLoc)
+
+    try:
+        score = float(fList[0])
+    except:
+        print("Failed to grab float from: %s" % fList[0] )
+        exit(-1)
+    else:
+        return score
 
 # End score image
 
 # This uses image_creator_v2.py
 def createImg_v2(p, imgLoc):
+
     if printAll:
-        print('In create Image function')
+        #print('In create Image function')
+        pass
 
     pLoc = paramDir + "t1.txt"
     p.writeParam(pLoc)
@@ -106,7 +246,8 @@ def createImg_v2(p, imgLoc):
     imgCmd += " -imageLoc %s" % imgLoc
 
     if printAll:
-        print('About to execute: \'%s\'' % imgCmd)
+        #print('About to execute: \'%s\'' % imgCmd)
+        pass
 
     system(imgCmd)
 
@@ -145,11 +286,11 @@ def testPrint(arg1, arg2):
 
 
 
-
 def readArg():
 
     global printAll, nProc, parProc
-    global runDir, makeDir, paramDir
+    global runDir, makeDir, paramDir, methodName
+    global startParamLoc, endParamLoc
 
     argList = argv
     endEarly = False
@@ -181,6 +322,15 @@ def readArg():
  
         elif arg == '-pp':
             nProc = argList[i+1]
+
+        elif arg == '-methodName':
+            methodName = argList[i+1]
+
+        elif arg == '-startParam':
+            startParamLoc = argList[i+1]
+
+        elif arg == '-endParam':
+            endParamLoc = argList[i+1]
 
 
     # End looping through command line arguments
@@ -252,6 +402,32 @@ def readArgFile(argList, argFileLoc):
 # Define image parameter class
 class imageParameterClass:
 
+    def __init__(self, pInLoc):
+
+        pFile = readFile( pInLoc)
+        print("In param create from file")
+
+        self.name    = 'tparam_v0'
+        self.gSize   = int(25)     # gaussian size
+        self.gWeight = 5         # gaussian size
+        self.rConst  = 5         # radial constant
+        self.bConst  = 5         # birghtness constant
+        self.nVal    = 5         # normalization constant
+        self.nRow    = int(400)   # number of rows
+        self.nCol    = int(600)   # number of col
+        self.gCenter = np.array( [[ 200, 400 ],      # [[ x1, x2 ] 
+                             [ 200, 200 ]])     #  [ y1, y2 ]]
+        self.comment = 'blank comment'
+
+        # Step size for numerical derivative
+        self.h_gSize = 1
+        self.h_gWeight = 0.05
+        self.h_rConst = 0.05
+        self.h_bConst = 0.05
+        self.h_nVal = 0.05
+    # end init
+
+
     def __init__(self):
         self.name    = 'tparam_v0'
         self.gSize   = int(25)     # gaussian size
@@ -303,7 +479,29 @@ class imageParameterClass:
             pFile.write('galaxy1_center: %f %f\n' % ( self.gCenter[0,0], self.gCenter[0,1] ))
             pFile.write('galaxy2_center: %f %f\n' % ( self.gCenter[1,0], self.gCenter[1,1] ))
             pFile.close()
+
+
 # End parameter class
+
+def readFile( fileLoc ):
+
+    if not path.isfile( fileLoc ):
+        print('File does not exist: %s' % fileLoc)
+        return [], False
+
+    try:
+        inFile = open(fileLoc,'r')
+
+    except:
+        print('Failed to open/read: %s' % fileLoc)
+        return [], False
+
+    else:
+        inList = list(inFile)
+        inFile.close()
+        return inList, True
+
+# End simple file read
 
 main()
 
