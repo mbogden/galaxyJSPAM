@@ -9,6 +9,9 @@ May be good for others to view.
 
   - Visualize Photos.
 
+	- Beginning:
+	  - Create web page that displays all images found in a directory.
+
 	- GUI that is able to grab images/thumbnails of model images within subdirectories and display them in a scrollable.
 	  - Building it as a webpage may be useful and good experience.
 	  - Able to view multiple images and continously scroll through.
@@ -38,6 +41,17 @@ May be good for others to view.
 	  - Target Information. 
 
 	- Creates 
+	  - Primary Directory
+		- galaxy pair (sdss #): From file in zoo_models
+		  - generation (gen_00): all gen_0
+			- run_00000: Line in file
+			  - info.txt:
+				- "Model Data"
+				- sdss Name
+				- generation
+				- run number
+				- model data
+
 	  - Run directory in correct organization
 	  - Sub directories for particle files, model images, difference images, etc
 	  - Info.txt in directory containing.
