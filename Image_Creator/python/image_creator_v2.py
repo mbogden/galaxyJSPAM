@@ -1,7 +1,7 @@
 '''
     Author:     Matthew Ogden
     Created:    19 July 2019
-    Altered:    
+    Altered:    20 Aug 2019
 Description:    This is my python version 2 for creating images from spam particle files.
 '''
 
@@ -14,6 +14,9 @@ from os import \
         listdir, \
         system
 
+from time import sleep
+from subprocess import call
+
 import numpy as np
 import cv2
 
@@ -24,6 +27,7 @@ overwriteImage = True
 
 runDir = ''
 imageLoc = ''
+writeDotImg = False
 
 partLoc1 = ''
 partLoc2 = ''
@@ -36,13 +40,11 @@ paramInfo = ''
 paramName = ''
 
 
-
-
-def main():
+def runImageCreator_v2( inArg ):
 
     global imageLoc
 
-    endEarly = readArg()
+    endEarly = readArg( inArg )
 
     if printAll:
         print('runDir: %s' % runDir)
@@ -54,11 +56,13 @@ def main():
     if endEarly:
         exit(-1)
 
+    # Get image parameter info from param file
     if paramLoc != '':
         pName, gSize, gWeight, rConst, normVal, nRows, nCols = readParamFile( paramLoc ) 
+    # Get image parameter info from command line
     elif paramInfo != '':
-        pName, gSize, gWeight, rConst, normVal,nRows, nCols = paramInfo.split() 
-    
+        pName, gSize, gWeight, rConst, normVal, nRows, nCols = paramInfo.split() 
+    # Or image paramter info isn't present
     else:
         print('You shouldn\'t be seeing this')
 
@@ -74,18 +78,44 @@ def main():
 
     g1fPart, g2fPart, fCenters = shiftPoints( g1fPart, g2fPart, fCenters, nRows, nCols )
 
-    #simpleWriteImg( runDir + 'simple.png', g1fPart, g2fPart, nRows, nCols )
+    if True:
+        simpleWriteImg( runDir + 'simple.png', g1fPart, g2fPart, nRows, nCols )
 
-    dotImg = createDotImg( g1fPart, g2fPart, nRows, nCols, g1iPart[:,3], g2iPart[:,3], rConst )
-    #cv2.imwrite( runDir + 'dot.png', dotImg )
+    # Add particles to image
+    dotImg = addParticles( g1fPart, g2fPart, nRows, nCols, g1iPart[:,3], g2iPart[:,3], rConst )
 
+    if writeDotImg:
+        dotNormImg = normImg_v0( dotImg, normVal )
+        #dotNormImg = cv2.normalize( dotImg, np.zeros( dotImg.shape ), 0, 255, cv2.NORM_MINMAX)
+        cv2.imwrite( runDir + '%s_dot.png' % pName, dotNormImg )
+
+    # Perform gaussian blur
     blurImg = cv2.GaussianBlur( dotImg, (gSize, gSize), gWeight )
-    cv2.imwrite( imageLoc, blurImg )
+    #blurImg = cv2.bilateralFilter( dotImg, int(gWeight), gSize, gSize )
 
+    # Normalize brightness to image format
+    if False:
+        normImg = cv2.normalize( blurImg, np.zeros( blurImg.shape ), 0, 255, cv2.NORM_MINMAX)
+    else:
+        normImg = normImg_v0( blurImg, normVal )
+
+    # Write image
+    cv2.imwrite( imageLoc, normImg )
     writeParamInfo( infoLoc, pName, fCenters )
 
 
 # End main
+
+
+def normImg_v0( img, nVal ):
+
+    maxVal = np.max( img )
+
+    normImg = (img/maxVal)**(1/nVal)
+
+    return normImg*255
+# End normImg
+
 
 def writeParamInfo( infoLoc, pName, centers ):
 
@@ -118,12 +148,9 @@ def writeParamInfo( infoLoc, pName, centers ):
 
 
 
+def addParticles( g1P, g2P, nRows, nCols, g1r, g2r, rConst ):
 
-
-# create dots on img 
-def createDotImg( g1P, g2P, nRows, nCols, g1r, g2r, rConst ):
-
-    img = np.zeros(( nRows, nCols ))
+    rawDotImg = np.zeros(( nRows, nCols ))
 
     g1rMax = np.amax( g1r )
     g2rMax = np.amax( g2r )
@@ -133,7 +160,7 @@ def createDotImg( g1P, g2P, nRows, nCols, g1r, g2r, rConst ):
         px = int(x)
         py = int(y)
         if px > 0 and px < nCols and py > 0 and py < nRows:
-            img[nRows-py,px] += np.exp( -rConst * g1r[i] / g1rMax )  
+            rawDotImg[nRows-py,px] += np.exp( -rConst * g1r[i] / g1rMax )  
 
 
     for i,point in enumerate(g2P):
@@ -141,27 +168,32 @@ def createDotImg( g1P, g2P, nRows, nCols, g1r, g2r, rConst ):
         px = int(x)
         py = int(y)
         if px > 0 and px < nCols and py > 0 and py < nRows:
-            img[nRows-py,px] += np.exp( -rConst * g2r[i] / g2rMax )  
+            rawDotImg[nRows-py,px] += np.exp( -rConst * g2r[i] / g2rMax )  
 
-    return np.uint8(img*255)
+    return np.float32(rawDotImg)
 
-# End create dot image
+# End adding points to image
+
+
 
 def simpleWriteImg( iLoc, g1P, g2P, nRows, nCols ):
 
     img = np.uint8( np.zeros(( nRows, nCols )))
 
+    c = 0
     for x,y,z,r in g1P:
         px = int(x)
         py = int(y)
-        if px > 0 and px < nCols and py > 0 and py < nRows:
+        if c%10 == 0 and px > 0 and px < nCols and py > 0 and py < nRows:
             img[nRows-py,px] = 255
+        c += 1
 
     for x,y,z,r in g2P:
         px = int(x)
         py = int(y)
-        if px > 0 and px < nCols and py > 0 and py < nRows:
+        if c%10 == 0 and px > 0 and px < nCols and py > 0 and py < nRows:
             img[nRows-py,px] = 255
+        c += 1
 
     cv2.imwrite( iLoc, img )
 
@@ -347,13 +379,19 @@ def readPartFile( pLoc ):
 
 
 
-def readArg():
+def readArg( inArg ):
 
-    global printAll, maekMask, imageLoc, overwrite, runDir
+    global printAll, makeMask, imageLoc, overwrite, runDir
     global infoLoc, paramLoc, partLoc1, partLoc2, paramInfo
-    global keepZip
+    global keepZip, writeDotImg
 
-    argList = argv
+    # If input arguments is empty, read from command line as main
+    if len( inArg ) == 0:
+        argList = argv
+
+    # For importing image_creator_v2 as a python module
+    else:
+        argList = inArg
 
     for i,arg in enumerate(argList):
 
@@ -384,6 +422,9 @@ def readArg():
 
         elif arg == '-imageLoc':
             imageLoc = argList[i+1]
+
+        elif arg == '-dotImg':
+            writeDotImg = True
 
 
     # Check if input arguments were valid
@@ -440,40 +481,34 @@ def readRunDir( runDir ):
 
             elif '101.zip' in f:
                 zipFile2 = fPath
+
+        # End loop through run files
         
         if partLoc1 == '' and zipFile1 != '':
             unzip = 'unzip -d %s -o %s' % (runDir, zipFile1)
             system(unzip)
 
+            dirList = listdir( runDir)
+            # Find particle file
+            for f in dirList:
+                print(f)
+                if '.000' in f:
+                    fPath = runDir + f
+                    partLoc1 = fPath
+
+
+
         if partLoc2 == '' and zipFile2 != '':
             unzip = 'unzip -d %s -o %s' % (runDir, zipFile2)
             system(unzip)
 
-        '''
+            dirList = listdir( runDir)
+            for f in dirList:
+                if '.101' in f:
+                    fPath = runDir + f
+                    partLoc2 = fPath
 
-            lDir = listdir(runDir)
-            sDir = ''
-            for f in lDir:
-                if '588' in f:
-                    sDir = runDir + f
-
-            rDir = sDir + '/' + listdir(sDir)[0]
-            lDir = listdir(rDir)
-
-            p1Loc = ''
-            p2Loc = ''
-            for f in lDir:
-                if '.i.' in f:
-                    p1Loc = rDir + '/' + f
-                if '.f.' in f:
-                    p2Loc = rDir + '/' + f
-
-            mvCmd1 = 'mv %s %sa.000' % (p1Loc, runDir)
-            mvCmd2 = 'mv %s %sa.101' % (p2Loc, runDir)
-
-            system(mvCmd1)
-            system(mvCmd2)
-        '''
+# End read run dir
 
 
 def readArgFile(argList, argFileLoc):
@@ -502,4 +537,5 @@ def readArgFile(argList, argFileLoc):
 # end read argument file
 
 # Run main after declaring functions
-main()
+if __name__ == "__main__":
+    runImageCreator_v2( [] )

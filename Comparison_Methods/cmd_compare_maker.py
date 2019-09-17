@@ -15,7 +15,11 @@ from os import \
         listdir
 
 
+# For this program
 printAll = True
+
+# For cmds
+cmdPrint = False
 
 sdssDir = ''
 sdssZooFile = ''
@@ -23,9 +27,14 @@ sdssZooFile = ''
 nLines = 0
 writeLoc = ''
 
+methodName = ''
+
 def main():
 
     endEarly = readArg()
+
+    if printAll:
+        print('sdssDir: %s' % sdssDir)
 
     if endEarly:
         print('Exiting cmd_compare_maker.py...')
@@ -34,31 +43,28 @@ def main():
     runDirList = listdir( sdssDir )
     runDirList.sort()
 
-    zooFile = open( sdssZooFile, 'r')
-
     #print(runDirList)
 
     oFile = open( writeLoc, 'w' )
     for i,runDir in enumerate(runDirList):
 
+        # Check if directory exists
         if not path.exists( sdssDir + runDir ):
             continue
 
+        # check if its a run directory
         if 'run' not in runDir:
             continue
 
-        l = zooFile.readline().strip()
-
-        temp1, zooModelStr = l.split('\t')
-
-        zooModelName, humanScore, temp, temp = temp1.split(',')
 
         cmd = 'python3'
-        cmd += ' Comparison_Methods/compare.py'
+        cmd += ' Comparison_Methods/compare_v1.py'
         cmd += ' -runDir %s' % sdssDir + runDir + '/'
         cmd += ' -argFile Input_Data/comparison_methods/arg_compare_test.txt'
-        cmd += ' -humanScore %s' % humanScore
-        cmd += ' -zooModel %s' % ( '%s:%s' % ( zooModelName, zooModelStr ) )
+        cmd += ' -methodName %s' % methodName
+
+        if not cmdPrint:
+            cmd += ' -noprint'
 
         cmd += '\n'
 
@@ -67,14 +73,14 @@ def main():
         if i < 2:
             print(cmd)
 
-        if not nLines == 0 and i > nLines:
+        if not nLines == 0 and i >= nLines:
             break
 
 # End main
 
 def readArg():
 
-    global printAll, sdssDir, writeLoc, sdssZooFile, nLines
+    global printAll, sdssDir, writeLoc, sdssZooFile, nLines, cmdPrint
     endEarly = False
 
     argList = argv
@@ -91,6 +97,9 @@ def readArg():
         elif arg == '-noprint':
             printAll = False
 
+        elif arg == '-cmdPrint':
+            cmdPrint = True
+
         elif arg == '-sdssDir':
             sdssDir = argList[i+1]
 
@@ -102,6 +111,9 @@ def readArg():
 
         elif arg == '-n':
             nLines = int( argList[i+1] )
+
+        elif arg == '-methodName':
+            methodName = argList[i+1]
 
 
 

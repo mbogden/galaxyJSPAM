@@ -18,9 +18,10 @@ from sys import \
         argv
         
 from re import findall
-
+from datetime import datetime
 import cv2
 import numpy as np
+
 
 
 import methods.pixel_difference as pixMod
@@ -36,12 +37,13 @@ genName = ''
 runName = ''
 zooModel = ''
 humanScore = ''
-userComment = 'Inital creation and testing of comparison code'
+userComment = 'In preperation of Qual Exam'
 
 imageLoc = ''
 imgInfoLoc = ''
 scoreLoc = ''
 imgParam = ''
+imgCenters = np.zeros((4,2))
 printScore = False
 
 writeScore = True
@@ -55,12 +57,14 @@ checkGalCenter = False
 
 writeDiffImage = False
 
+methodName = ''
 diffMethod = False
 diffSqMethod = False
 diffSqNonZeroMethod = False
+diffNonZeroMethod = False
 featMethods = False
 
-toShape = ( 900, 600 )
+toShape = ( 1200, 800 )
 
 
 def main():
@@ -87,8 +91,7 @@ def main():
    # Open and read image Info file
     try:
         imgInfoFile = open(imgInfoLoc, 'r')
-        global sdssName, genName, runName
-        sdssName, genName, runName, imgCenters = readImgInfoFile( imgInfoFile )
+        readImgInfoFile( imgInfoFile )
         imgInfoFile.close()
     except:
         print('Failed to open and read image info file at \'%s\'' % imgInfoLoc)
@@ -130,34 +133,38 @@ def main():
         exit(-1)
 
 
-    if diffMethod:
+    if methodName == 'diffSqNonZero':
+        methodFunc = pixMod.diffSquaredNonZero
+    elif diffMethod:
         methodFunc = pixMod.pixel_difference
     elif diffSqMethod:
         methodFunc = pixMod.pixel_difference_squared
     elif diffSqNonZeroMethod:
         methodFunc = pixMod.diffSquaredNonZero
+    elif diffNonZeroMethod:
+        methodFunc = pixMod.diffNonZero
 
 
-    score, methodName, diffImg = methodFunc( image, target )
+    score, methodFullName, diffImg = methodFunc( image, target )
 
     if printAll:
-        print('Score: %f  Method: %s' % ( score, methodName ))
+        print('Score: %f  Method: %s' % ( score, methodFullName ))
         print('Max: %f Min: %f' % ( np.amax( diffImg ), np.amin( diffImg) ) )
 
-    if writeDiffImage:
-        cv2.imwrite( runDir + '%s.png' % methodName, diffImg)
+    if True or writeDiffImage:
+        cv2.imwrite( runDir + '%s.png' % methodFullName, diffImg)
 
     if printScore:
         print(score)
 
     # prepare score file
     if writeScore:
-        writeScoreFile(scoreLoc, score, methodName)
+        writeScoreFile(scoreLoc, score, methodFullName)
 
 
 # End main
 
-def writeScoreFile(scoreLoc, score, methodName ):
+def writeScoreFile(scoreLoc, score, methodFullName ):
 
     #scoreFile.write('sdss,generation,run,zoo_model_data,human_score,target_image,model_image,image_parameter,comparison_method,machine_score\n')
 
@@ -165,14 +172,16 @@ def writeScoreFile(scoreLoc, score, methodName ):
     if overWriteScore:
         if printAll:
             print('Overwriting score file %s' % scoreLoc)
-        system('rm %s' % scoreLoc)
+
+        if path.isfile( scoreLoc):
+            system('rm %s' % scoreLoc)
 
     # create score file if not present
     if not path.isfile( scoreLoc ):
         scoreFile = open( scoreLoc, 'w')
 
         # Write Header
-        scoreFile.write('sdss,generation,run,zoo_model_data,human_score,target_image,model_image,image_parameter,comparison_method,machine_score,user_comment\n')
+        scoreFile.write('sdss,generation,run,zoo_model_name,zoo_model_data,human_score,target_image,model_image,image_parameter,comparison_method,machine_score,user_comment,date_time\n')
 
     else:
         # Else append
@@ -182,14 +191,18 @@ def writeScoreFile(scoreLoc, score, methodName ):
     sLine = '%s' % sdssName
     sLine += ',%s' % genName
     sLine += ',%s' % runName
-    sLine += ',%s' % '' #'\0' + zooModel + '\0'  I can't remeber the character 
+    sLine += ',%s' % modelName
+    sLine += ',"%s"' % modelData
     sLine += ',%s' % humanScore
     sLine += ',%s' % targetLoc
     sLine += ',%s' % imageLoc
     sLine += ',%s' % imgParam
-    sLine += ',%s' % methodName
+    sLine += ',%s' % methodFullName
     sLine += ',%s' % score
-    sLine += ',%s\n' % userComment
+    sLine += ',%s' % userComment
+    sLine += ',%s' % datetime.now()
+    
+    sLine += '\n' 
 
     scoreFile.write(sLine)
 
@@ -339,13 +352,11 @@ def readTargetInfoFile(targetInfoFile):
 
 def readImgInfoFile( imgInfoFile ):
 
+    global sdssName, genName, runName, modelName, modelData, humanScore, imgCenters
+
     if printAll:
         print('Reading info file %s' % imgInfoLoc)
 
-    sdssName = ''
-    genName = ''
-    runName = ''
-    
     foundCenters = False
     imgCenters = np.zeros(4)
 
@@ -360,6 +371,15 @@ def readImgInfoFile( imgInfoFile ):
 
         elif 'run_number' in l:
             runName = l.split()[1]
+
+        elif 'model_name' in l:
+            modelName = l.split()[1]
+
+        elif 'model_data' in l:
+            modelData = l.split()[1]
+
+        elif 'human_score' in l:
+            humanScore = l.split()[1]
 
         elif imgParam in l:
             pLine = l.split()
@@ -381,14 +401,13 @@ def readImgInfoFile( imgInfoFile ):
         print('Found: %s %s %s'% ( sdssName, runName, genName) )
         print(imgCenters)
 
+
     # Check if all values were found
     if sdssName == '' or runName == '' or genName == '' or not foundCenters:
         print('Failed to get all information from info file')
         print('Exiting...\n')
         exit(-1)
 
-    else:
-        return sdssName, genName, runName, imgCenters
 # end read img info file
 
 def readShape( shapeIn ):
@@ -414,9 +433,9 @@ def readArg():
     global targetLoc, targetInfoLoc
     global humanScore, zooModel
     global checkGalCenter, writeDiffImage
-    global diffMethod, diffSqMethod, featMethods, diffSqNonZeroMethod
+    global diffMethod, diffSqMethod, featMethods, diffSqNonZeroMethod, diffNonZeroMethod
     global toPoint
-    global printScore, writeScore
+    global printScore, writeScore, methodName
 
     argList = argv
 
@@ -482,6 +501,9 @@ def readArg():
         elif arg == '-diffSqNonZero':
             diffSqNonZeroMethod = True
 
+        elif arg == '-diffNonZero':
+            diffNonZeroMethod = True
+
         elif arg == '-toShape':
             endEarly = readShape(argList[i+1])
 
@@ -496,6 +518,9 @@ def readArg():
 
         elif arg == '-noScore':
             writeScore = False
+
+        elif arg == '-methodName':
+            methodName = argList[i+1]
 
     # Check if arguments are valid
 
@@ -534,9 +559,10 @@ def readArg():
         endEarly = True
 
     # Check if any comparison method was chosen
-    if not diffMethod and not diffSqMethod and not diffSqNonZeroMethod:
+    if methodName == '' and not diffMethod and not diffSqMethod and not diffSqNonZeroMethod and not diffNonZeroMethod:
         print('No comparison methods selected')
         endEarly = True
+
 
     return endEarly
 

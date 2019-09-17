@@ -16,11 +16,13 @@ from os import \
 
 
 printAll = True
+noPrint = False
 
 sdssDir = ''
 
 nLines = 0
 writeLoc = ''
+paramLoc = ''
 
 def main():
 
@@ -51,8 +53,12 @@ def main():
         cmd = 'python3'
         cmd += ' Image_Creator/python/image_creator_v2.py'
         cmd += ' -runDir %s' % sdssDir + runDir + '/'
-        cmd += ' -paramLoc Input_Data/image_parameters/test_param.txt'
-        cmd += ' -argFile Input_Data/image_creator/arg_v2_test.txt'
+        cmd += ' -paramLoc %s' % paramLoc
+        cmd += ' -overwrite'
+        cmd += ' -dotImg'
+
+        if noPrint:
+            cmd += ' -noprint'
 
         cmd += '\n'
 
@@ -61,14 +67,14 @@ def main():
         if i < 2:
             print(cmd)
 
-        if not nLines == 0 and i > nLines:
+        if not nLines == 0 and i >= nLines:
             break
 
 # End main
 
 def readArg():
 
-    global printAll, sdssDir, writeLoc, sdssZooFile, nLines
+    global printAll, sdssDir, writeLoc, sdssZooFile, nLines, paramLoc, noPrint
     endEarly = False
 
     argList = argv
@@ -91,8 +97,14 @@ def readArg():
         elif arg == '-writeLoc':
             writeLoc = argList[i+1]
 
+        elif arg == '-paramLoc':
+            paramLoc = argList[i+1]
+
         elif arg == '-n':
             nLines = int( argList[i+1] )
+
+        elif arg == '-noprint':
+            noPrint = True
 
 
     # Check if input arguments were valid

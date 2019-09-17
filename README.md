@@ -16,6 +16,8 @@
 This is the development branch of a fork of
 [Wallincode](https://github.com/JSPAM-Manga/WallinCode).
 
+This README.md is also incomplete and in-progress
+
 The recent developments in this fork of JSPAM-Manga focus on creating a machine
 scoring mechanism for comparing
 rendered galaxy merger models to the morphology of their real counterparts.
@@ -29,85 +31,35 @@ thereby removing the need for a human-in-the-loop altogether.
 
 ## Getting Started<a id="gettingstarted">
 
-**MAKE SURE TO DO ALL WORK INSIDE OF THE VIRTUALENVIRONMENT**
-
 ### Installing
 
 Currently, active work is being done in a student's repository on GitHub and can be downloaded via git command.  Move into the directory and run the Makefile to install. 
 ```
 git clone https://github.com/mbogden/galaxyJSPAM.git
 cd galaxyJSPAM
+git checkout Working
 make
 ```
 
-In order to resolve an issue with local development, `virtualenv` is included
-in this repository as `virtualenv-15.2.0`, and can be found at
-[https://pypi.python.org/pypi/virtualenv/15.2.0](https://pypi.python.org/pypi/virtualenv/15.2.0).
-To setup the virtual environment issue the following
-commands from the root directory:
-```
-python3 virtualenv-15.2.0/virtualenv.py -p python3 ./env
-source env/bin/activate
-pip install -r requirements.txt
-```
+## *Add test and daily instructions for...*
+- Simulation
+- Image Creation
+- Machine Comparison
+- Score Analysis
 
-Alternatively, if you have virtualenv already installed, use
-```
-virtualenv env /path/to/python3 ./env
-source env/bin/activate
-pip install -r requirements.txt
-```
-
-* To check if jspamcli.py and basic_run are working (primary code to make particle files), feel free to run a quick batch.  The particle files will show up in the output folder. 
-
-```
-python3 jspamcli.py -bm 3 working_sample.txt
-```
-
-* To check if image creation code is working run the following after running the above.
-```
-./img.sh
-```
-There should now be an image in output -> 588.... -> run0000.
-
-
-## Daily Instructions
 
 ### Particle Files
-As of now, the best current method for batch creation of particle files is to use the jspamcli.py code to run basic_run.  In order to run jspamcli.py, you need to enter the virtual environment created during installation.
 
-```
-source env/bin/activate
-python3 jspamcli.py -bm 3 working_sample.txt
-```
 
-### WARNING
-*As of right now, only -bm is certain to work with batch file.*
-
-## Specifications<a id="specifications">
-### jspamcli.py<a id="jspamcli.py">
-This fork of WallinCode contains `jspamcli.py`, a python3 script that runs
-specific runs or specific ranges of runs from the overlapping galaxy pairs
-table at
 [https://data.galaxyzoo.org/mergers.html](https://data.galaxyzoo.org/mergers.html).
 All target input files have been provided in the `input` directory.
+
 
 **NOTE:** The input files in the `input` directory contain only the run
 information for runs that recieved a human score in the Galaxy Zoo: Mergers
 project. There are 66,395 total runs in all of the input files combined.
 
-```
-jspamcli accepts the following command line options:
 
-    -i  : run interactively
-    -bi : batch process (interactively...)
-    -b  : batch process
-    -bm : batch process on multiple cores
-    -g  : GIF Creation Tool
-
-```
-
-**WORKING ON ADDING USAGE INFORMATION...**
 
 ### Targets Directory<a id="targets">
 Real images (both uncalibrated and calibrated from SDSS DR7) and disk
@@ -125,7 +77,6 @@ data from SDSS DR14.
 ### data_tools<a id="data_tools">
 This is a package that will contain any data tools that can be written as a
 general purpose tool. Right now, it contains
-- `structure.py`: This is a general_purpose directory structure creator.
 - `get_target_data.py`: This is a module that scrapes the mergers.html page
 for links to the zipped target data files. This may not belong in the package,
 but as of right now that is its home.

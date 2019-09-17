@@ -1,7 +1,7 @@
 '''
     Author:     Matthew Ogden
     Created:    31 July 2019
-    Altered:    02 Aug 2019
+    Altered:    8 Aug 2019
 Description:    This code tries to find the optimal image parameters for creating an image
                     out of SPAM data and a comparison method.
 '''
@@ -15,8 +15,11 @@ from os import \
         path, \
         system
 
+from importlib import import_module
+
 import numpy as np
 import multiprocessing as mp
+
 
 
 # Global constants
@@ -39,6 +42,11 @@ imgCompareLoc = 'Comparison_Methods/compare_v1.py'
 
 methodName = ''
 
+useImgMod = False
+imgModule = ''
+
+useCompMod = False
+compModule = ''
 
 
 def main():
@@ -46,9 +54,8 @@ def main():
     endEarly = readArg()
 
     if printAll:
+        print('Beginning Image Parameter Finder\n')
         print('Param directory: %s' % paramDir)
-        print('runDir: %s' % runDir)
-        print('Beginning Image Parameter Finder')
         print('Requesting cores: %d' % nProc)
         print('Number of cores available: %s' % mp.cpu_count())
 
@@ -61,10 +68,11 @@ def main():
         makeParamDir(paramDir,runDir)
 
     # Create initial parameter
+    pWorking = imageParameterClass()
+
     if startParamLoc != '':
-        pWorking = imageParameterClass(startParamLoc)
-    else:
-        pWorking = imageParameterClass()
+        pWorking.readParamFile(startParamLoc)
+
 
     initScore = scoreParam(pWorking)
 
@@ -73,18 +81,18 @@ def main():
         pWorking.printVal()
         print("InitScore: %f" % initScore)
 
-    pName = ['gSize', 'gWeight', 'rConst', 'nVal' ]
-    stepSize = [2, 0.1, 0.1, 5 ]
+    pName = [ 'gWeight','rConst', 'nVal' ]
+    stepSize = [5, 0.25, 0.25 ]
 
 
     # Loop x times
-    for i in range( 10 ):
+    for i in range( 3 ):
 
         # Find best for this parameter
         for j,name in enumerate(pName):
 
             step = stepSize[j]
-            pWorking = improveParam( pWorking, name, step )
+            pWorking = improveParam_v1( pWorking, name, step )
 
     # Exit loop through range (1)
 
@@ -116,8 +124,48 @@ def scoreParam(p):
 # End score
 
 
+def scoreParam_v2(p):
+
+    imgLoc = paramDir + 't_img.png'
+    mod_createImg_v2(p, imgLoc)
+    score = scoreImg_v1(p, imgLoc)
+
+    return score
+# End score
+
+# This uses image_creator_v2.py
+def mod_createImg_v2(p, imgLoc):
+
+    if printAll:
+        #print('In create Image function')
+        pass
+
+    pLoc = paramDir + "t1.txt"
+    p.writeParam(pLoc)
+
+    imgArgList = []
+
+    imgArgList.append('-runDir')
+    imgArgList.append(paramDir)
+    imgArgList.append('-paramLoc')
+    imgArgList.append(pLoc)
+    imgArgList.append('-overwrite')
+    imgArgList.append('-noprint')
+    imgArgList.append('-imageLoc')
+    imgArgList.append(imgLoc)
+
+    if printAll:
+        print('About to call img module: \'%s\'' % imgCreatorLoc)
+        pass
+
+    #system(imgCmd)
+    imgModule.runImageCreator_v2( imgArgList )
+
+# End creat Img_v2
+
+
 # My first simple implementation for improving a parameter
-def improveParam( p, name, step ):
+def improveParam_v1( p, name, step ):
 
     # Get score for current val
     pVal1 = getattr( p, name ) 
@@ -171,6 +219,7 @@ def improveParam( p, name, step ):
         nScore = scoreParam(p)
 
         c += 1
+        print(c,nScore)
 
     # End while loop
 
@@ -243,6 +292,7 @@ def createImg_v2(p, imgLoc):
     imgCmd += " -paramLoc %s" % pLoc
     imgCmd += " -overwrite"
     imgCmd += " -noprint"
+    imgCmd += " -dotImg"
     imgCmd += " -imageLoc %s" % imgLoc
 
     if printAll:
@@ -251,8 +301,8 @@ def createImg_v2(p, imgLoc):
 
     system(imgCmd)
 
-
 # End creat Img_v2
+
 '''python3 Image_Creator/python/image_creator_v2.py 
     -runDir /nfshome/mbo2d/tSpamDir/hst_Arp_273/run_0_0/ 
     -paramLoc Input_Data/image_parameters/test_param.txt 
@@ -290,7 +340,9 @@ def readArg():
 
     global printAll, nProc, parProc
     global runDir, makeDir, paramDir, methodName
-    global startParamLoc, endParamLoc
+    global startParamLoc, endParamLoc, imgModule
+    global useImgMod, imgModule
+    global useCompMod, compModule
 
     argList = argv
     endEarly = False
@@ -329,8 +381,14 @@ def readArg():
         elif arg == '-startParam':
             startParamLoc = argList[i+1]
 
-        elif arg == '-endParam':
+        elif arg == '-saveParamLoc':
             endParamLoc = argList[i+1]
+
+        elif arg == '-imgMod':
+            useImgMod = True
+
+        elif arg == '-compMod':
+            useCompMod = True
 
 
     # End looping through command line arguments
@@ -364,6 +422,22 @@ def readArg():
     if makeDir and runDir == '':
         print('Please specify inital runDir if making a new param finding directory')
         endEarly = True
+
+    # import imageCreatorLoc as module
+    if imgCreatorLoc == '':
+        print('Please specify location of image creator')
+        endEarly = True
+
+    elif not path.isfile( imgCreatorLoc ):
+        print('Image Creator not found at: %s' % imgCreatorLoc)
+        endEarly = True
+
+    elif useImgMod:
+        try:
+            imgModule = import_module( imgCreatorLoc )
+        except:
+            print("Failed to import image creator as python module: %s" % imageCreatorLoc)
+            endEarly = True
 
     return endEarly
 
@@ -402,32 +476,6 @@ def readArgFile(argList, argFileLoc):
 # Define image parameter class
 class imageParameterClass:
 
-    def __init__(self, pInLoc):
-
-        pFile = readFile( pInLoc)
-        print("In param create from file")
-
-        self.name    = 'tparam_v0'
-        self.gSize   = int(25)     # gaussian size
-        self.gWeight = 5         # gaussian size
-        self.rConst  = 5         # radial constant
-        self.bConst  = 5         # birghtness constant
-        self.nVal    = 5         # normalization constant
-        self.nRow    = int(400)   # number of rows
-        self.nCol    = int(600)   # number of col
-        self.gCenter = np.array( [[ 200, 400 ],      # [[ x1, x2 ] 
-                             [ 200, 200 ]])     #  [ y1, y2 ]]
-        self.comment = 'blank comment'
-
-        # Step size for numerical derivative
-        self.h_gSize = 1
-        self.h_gWeight = 0.05
-        self.h_rConst = 0.05
-        self.h_bConst = 0.05
-        self.h_nVal = 0.05
-    # end init
-
-
     def __init__(self):
         self.name    = 'tparam_v0'
         self.gSize   = int(25)     # gaussian size
@@ -435,10 +483,10 @@ class imageParameterClass:
         self.rConst  = 5         # radial constant
         self.bConst  = 5         # birghtness constant
         self.nVal    = 5         # normalization constant
-        self.nRow    = int(400)   # number of rows
-        self.nCol    = int(600)   # number of col
-        self.gCenter = np.array( [[ 200, 400 ],      # [[ x1, x2 ] 
-                             [ 200, 200 ]])     #  [ y1, y2 ]]
+        self.nRow    = int(800)   # number of rows
+        self.nCol    = int(1200)   # number of col
+        self.gCenter = np.array( [[ 400, 800 ],      # [[ x1, x2 ] 
+                             [ 400, 400 ]])     #  [ y1, y2 ]]
         self.comment = 'blank comment'
 
         # Step size for numerical derivative
@@ -448,6 +496,49 @@ class imageParameterClass:
         self.h_bConst = 0.05
         self.h_nVal = 0.05
     # end init
+
+    def readParamFile(self, pInLoc):
+
+        pFile, fileGood = readFile(pInLoc)
+
+        for line in pFile:
+            l = line.strip()
+            if len(l) == 0:
+                continue
+            
+            pL = l.split()
+
+            if pL[0] == 'gaussian_size':
+                self.gSize = int(pL[1])   
+
+            if pL[0] == 'gaussian_weight':
+                self.gWeight = float(pL[1])   
+
+            if pL[0] == 'radial_constant':
+                self.rConst = float(pL[1])   
+
+            if pL[0] == 'brightness_constant':
+                self.bConst = float(pL[1]) 
+
+            if pL[0] == 'norm_value':
+                self.nVal = float(pL[1]) 
+
+            if pL[0] == 'image_rows':
+                self.nRow = float(pL[1]) 
+
+            if pL[0] == 'image_cols':
+                self.nCol = int(pL[1]) 
+
+            if pL[0] == 'galaxy1_center':
+                self.gCenter[0,0] = int(pL[1])
+                self.gCenter[1,0] = int(pL[2])
+
+            if pL[0] == 'galaxy2_center':
+                self.gCenter[0,1] = int(pL[1])
+                self.gCenter[1,1] = int(pL[2])
+
+    # end read param file
+
 
     def printVal(self):
         print(' Name: %s' % self.name)
@@ -459,6 +550,8 @@ class imageParameterClass:
         print(' Normalization constant: %f' % self.nVal)
         print(' Number of rows: %d' % self.nRow)
         print(' Number of columns: %d' % self.nCol)
+        print('galaxy 1 center %d %d' % ( int(self.gCenter[0,0]), int(self.gCenter[0,1]) ))
+        print('galaxy 2 center %d %d' % ( int(self.gCenter[1,0]), int(self.gCenter[1,1]) ))
     # end print
 
     def writeParam(self, saveLoc):
@@ -468,16 +561,16 @@ class imageParameterClass:
             print('Failed to create: %s' % saveLoc)
         else:
             pFile.write('parameter_name %s\n' % self.name)
-            pFile.write('comment: %s\n\n' % self.comment)
+            pFile.write('comment %s\n\n' % self.comment)
             pFile.write('gaussian_size %d\n' % self.gSize)
-            pFile.write('gaussian_weight: %f\n' % self.gWeight)
-            pFile.write('radial_constant: %f\n' % self.rConst)
-            pFile.write('brightness_constant: %f\n' % self.bConst)
-            pFile.write('norm_value: %f\n' % self.nVal)
-            pFile.write('image_rows: %d\n' % self.nRow)
-            pFile.write('image_cols: %d\n' % self.nCol)
-            pFile.write('galaxy1_center: %f %f\n' % ( self.gCenter[0,0], self.gCenter[0,1] ))
-            pFile.write('galaxy2_center: %f %f\n' % ( self.gCenter[1,0], self.gCenter[1,1] ))
+            pFile.write('gaussian_weight %f\n' % self.gWeight)
+            pFile.write('radial_constant %f\n' % self.rConst)
+            pFile.write('brightness_constant %f\n' % self.bConst)
+            pFile.write('norm_value %f\n' % self.nVal)
+            pFile.write('image_rows %d\n' % self.nRow)
+            pFile.write('image_cols %d\n' % self.nCol)
+            pFile.write('galaxy_1_center %d %d\n' % ( int(self.gCenter[0,0]), int(self.gCenter[0,1]) ))
+            pFile.write('galaxy_2_center %d %d\n' % ( int(self.gCenter[1,0]), int(self.gCenter[1,1]) ))
             pFile.close()
 
 

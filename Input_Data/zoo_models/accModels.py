@@ -12,11 +12,13 @@ genNum = 0 # Because we're reading from zoo model files
 
 
 rawModelLoc = 'from_site/'
-new_loc = 'allModels.txt'
+new_loc = 'qual_example.txt'
 
 sdssModelList = os.listdir(rawModelLoc)
 
-bigFile = open('allModels.txt','w')
+bigFile = open(new_loc,'w')
+
+total = 0
     
 for docLoc in sdssModelList:
 
@@ -47,7 +49,9 @@ for docLoc in sdssModelList:
         n += 1
     # End for i,line in enumerate(inFile):
 
-    print( '%d  -  %s' %(n,sdssName))
+    print( '%s \t- %5.5d' %(sdssName, n))
+
+    total += n
 
     inFile.close()
 
@@ -55,7 +59,7 @@ for docLoc in sdssModelList:
 
 bigFile.close()
 
-print(len(sdssModelList))
+print(' sdss: %d - models: %d ' % ( len( sdssModelList), total ) )
 
 
 

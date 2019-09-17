@@ -18,7 +18,6 @@ from os import \
 import cv2
 import numpy as np
 import pandas as pd
-import imutils
 import matplotlib.pyplot as plt
 
 
@@ -26,7 +25,7 @@ printAll = True
 
 basicPlots = False
 samplePlots = False
-sampleRuns = [ 1,2,5, 10,20,50, 100, 200, 500 ]
+sampleRuns = [ 0,2,5, 10,20,50, 100, 200, 500 ]
 sampleImgLoc = []
 scorePlots = False
 
@@ -49,8 +48,6 @@ def main():
     nAll = len( allFrame.index )
     print(allFrame.columns)
 
-    if samplePlots:
-        createSamplePlots()
 
     # Go through compairons methods
     methodList = allFrame.comparison_method.unique()
@@ -67,49 +64,98 @@ def main():
         if scorePlots:
             createMethodPlot( method, methodFrame )
 
+    # End going through comparison methods
+
+
+    if samplePlots:
+        createSamplePlots()
+
 # End main
 
 def createSamplePlots():
 
-    if printAll:
-        print( 'In create Sample Plots. %d' % len(sampleImgLoc))
 
-    images = []
-    
-    for i,imgLoc in enumerate(sampleImgLoc):
-        print(i)
-        if not path.isfile( imgLoc ):
-            print( '%s not found' % imgLoc)
-            continue
-        image = cv2.imread( imgLoc )
-        cv2.imwrite( plotDir + '%d.png' % i, image )
-    
+    for run in sampleRuns:
 
+        runDir = sdssDir + "run_0_%d/" % int(run)
 
+        try:
+            runFiles = listdir( runDir )
+        except:
+            print("Failed to find run dir: %s" % runDir )
+        else:
+
+            for f in runFiles:
+                if 'model.png' in f:
+                    imgLoc = runDir + f
+                    system("cp %s %s" % ( imgLoc, plotDir + "%d_%s" % (int( run), f) ) )
+
+                if 'diff' in f:
+                    diffLoc = runDir + f
+                    system("cp %s %s" % ( diffLoc, plotDir + "%d_diff.png" % int( run) ) )
 
 
 
 
 def createMethodPlot(method, mFrame ):
 
+    global sampleRuns
+
+    # Sort by Machine Score
+    mFrame = mFrame.sort_values( by='machine_score', ascending=False)
+
     hScore = mFrame.human_score.values 
     mScore = mFrame.machine_score.values
+    iScore = mFrame.index.values
 
-    # Try to identify top 10 machine scores
-    mFrame = mFrame.sort_values( by='machine_score')
+    # Get Trend Line
+    tLine = np.polyfit( hScore, mScore, 1 )
+    trendLine = np.poly1d( tLine )
 
-    topIndex = mFrame[0:5].index
-    print(topIndex[0:5])
+    # Try to identify top x machine scores
+    x = 5
+    topIndex = mFrame[0:x].index
+    runName = mFrame[0:x].run
+    print(topIndex[0:x])
 
+    # Create Plot
     plotLoc = plotDir + '%s.png' % method
 
+    # Add points and trendline to plot
     plt.scatter( hScore, mScore )
-    plt.ylim( np.amin( mScore) , np.amax( mScore) )
+    plt.plot( hScore, trendLine(hScore), 'r--')
+
+
+    # Add top x machine score labels
+    for run, index in zip( runName,topIndex ):
+
+        row = mFrame[ mFrame['run'] == run ]
+        x = row['human_score'].values
+        y = row['machine_score'].values
+
+        plt.annotate( run, (x, y) )
+
+        # Add run numbers and neighbors to sampleRuns
+        sampleRuns.append(int(run)-1)
+        sampleRuns.append(int(run))
+        sampleRuns.append(int(run)+1)
+
+    # End adding lables for top x
+
+
+    # Setup plot
+    print( mFrame.comparison_method.values[0])
+    plt.title( 'Human Score vs Machine Score\n%s' % mFrame.comparison_method.values[0])
+    plt.xlabel( 'Human Score' )
+    plt.ylabel( 'Machine Score' )
+    #plt.ylim( np.amin( mScore) , np.amax( mScore) )
+    plt.tight_layout()
 
     if printAll:
         print('Saving plot %s' % plotLoc)
     plt.savefig( plotLoc )
     plt.clf()
+
 
 
 def readAllScoreFiles( sdssDir ):
@@ -178,6 +224,7 @@ def readAllScoreFiles( sdssDir ):
             #pass
             stdout.write('Score files read: %d / %d\r' % ( i, len( runDirList ) ) )
         
+        '''
         # Check to add for sample plots
         if samplePlots and scoreFrame.run[0] in sampleRuns: 
 
@@ -187,6 +234,7 @@ def readAllScoreFiles( sdssDir ):
                 if 'model.png' in f:
                     imageLoc = sdssDir + runDir +'/'+ f
             sampleImgLoc.append(imageLoc)
+        '''
 
     if printAll:
         print('\nLoaded all dataframes')

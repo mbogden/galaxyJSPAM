@@ -1,7 +1,12 @@
-parameter_name test_param000
-gaussian_size 25
-gaussian_weight 5
-radial_constant 4
-norm_value 7
-image_rows 400
-image_cols 600
+parameter_name tparam_v0
+comment blank comment
+
+gaussian_size 13
+gaussian_weight 15.000000
+radial_constant 3.300000
+brightness_constant 5.000000
+norm_value 5.000000
+image_rows 800
+image_cols 1200
+galaxy_1_center 400 800
+galaxy_2_center 400 400

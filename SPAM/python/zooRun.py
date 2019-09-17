@@ -48,6 +48,7 @@ allZooRuns = False  # All zoo runs in file
 useModelData = False
 modelData = ''
 modelName = ''
+humanScore = ''
 
 
 
@@ -134,6 +135,7 @@ def createInfoFile( oDir ):
     infoFile.write('run_number %d\n' % runNum )
     infoFile.write('model_name %s\n' % modelName )
     infoFile.write('model_data %s\n' % modelData )
+    infoFile.write('human_score %s\n' % humanScore )
     infoFile.write('g1_num_particles %d\n' % nPart)
     infoFile.write('g2_num_particles %d\n' % nPart)
     infoFile.write('\n')
@@ -285,7 +287,7 @@ def readArg():
     global basicRun, nPart, outputDir, makeRunDir
     global sdssName, runNum, genNum, uniqID, compressFiles, pName
     global useZooFile, zooDir, zooFile, allZooRuns, nZooRuns
-    global useModelData, modelData, modelName, printAll, overWrite
+    global useModelData, modelData, modelName, humanScore, printAll, overWrite
 
     argList = argv
 
@@ -379,6 +381,10 @@ def readArg():
         elif arg == '-modelName':
             useModelData = True
             modelName = argList[i+1]
+
+        # Just one model with data via command line
+        elif arg == '-humanScore':
+            humanScore = argList[i+1]
 
 
         # Define Zoo Model File
