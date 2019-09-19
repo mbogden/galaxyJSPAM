@@ -1,7 +1,7 @@
 '''
     Author:     Matthew Ogden
     Created:    20 July 2019
-    Altered:    
+    Altered:    19 Sep 2019
 Description:    This program is for goign through run directories, reading score files, and analyzing the data.
 '''
 
@@ -45,6 +45,7 @@ def main():
         exit(-1)
 
     allFrame = readAllScoreFiles( sdssDir )
+
     nAll = len( allFrame.index )
     print(allFrame.columns)
 
@@ -175,7 +176,6 @@ def readAllScoreFiles( sdssDir ):
         print('Failed to open "%s"' % scoreLoc)
         exit(-1)
 
-    
     if len( initFrame.sdss.unique() ) != 1:
         print('Found more than 1 sdss name in score files')
         exit(-1)
