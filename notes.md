@@ -2,29 +2,32 @@
 These are written by Matthew Ogden for Matthew Ogden while creating and organizing code.  
 May be good for others to view.
 
+IRB course? 
+- Do not preserve any information that can identify the user.
 
 ## Software Engineering Tasks (More of suggestions really.)
 
 - Priority 1:  Build Classifiction filters
 
   - Visualize Photos.
-
 	- Beginning:
-	  - Create web page that displays all images found in a directory.
+	  1. Create PHP file.  
+	  2. Displays all images found in a directory.
+		- 
+	  3. Format page to scroll through images.
+	  4. Display images found in subdirectories.
+	  5. Display select info from info.txt files in subdirectories with image
+		- sdss_name, gen#, run#, human_score
 
-	- GUI that is able to grab images/thumbnails of model images within subdirectories and display them in a scrollable.
-	  - Building it as a webpage may be useful and good experience.
-	  - Able to view multiple images and continously scroll through.
-
-	- Purpose 1: Scientists quick view of models
+	- Purpose 1: Scientist's quick view of models
 	  - Select range of runs of interest
 	  - Select if viewing all images or view only a sample of images ( Ex. 1 out of 10 runs) 
+	  - Display image run # and humanscore
 	
-	- Purpose 2: Classify Images
+	- Purpose 2: To classify Images
 	  - Add Check boxes/buttons that allow user to classify image
 	  - Ex.  No tidal distortions, Jumbled Mess, goood bridge/tail, etc
-	  - Saves responce from user and stores classification somewhere
-
+	  - Save response from user and store classification in info.txt
 
   - Train classification filters
 	- Neural network.  
@@ -33,28 +36,31 @@ May be good for others to view.
 		- Ex. No tidal distortion, jumbled mess, etc  
 	  - Trained based on model images with classification via GUI from above.
 	
+
 - Priority 2:  Streamline Model to Machine score process
 
   - Write new code to initaliaze a model directory
-	- Reads
-	  - Galaxy Zoo model files.
-	  - Target Information. 
 
-	- Creates 
-	  - Primary Directory
-		- galaxy pair (sdss #): From file in zoo_models
-		  - generation (gen_00): all gen_0
-			- run_00000: Line in file
-			  - info.txt:
-				- "Model Data"
-				- sdss Name
-				- generation
-				- run number
-				- model data
+	- Part 1
 
-	  - Run directory in correct organization
-	  - Sub directories for particle files, model images, difference images, etc
-	  - Info.txt in directory containing.
+	  - Reads
+		- Galaxy Zoo model files. (Found in Input_Data/zoo_models/from_site/)
+
+	  - Creates 
+		- Directory Structure
+		  - mainDir (input) -> sdssDir (#) -> genDir (0) -> runDir (line # in file)
+		- info.txt:
+		  - "Model Data" (Literaly Write 'Model Info')
+		  - sdss Name
+		  - generation
+		  - run number
+		  - model data
+
+	- Part 2 ( Don't do yet )
+	  - Append to info.txt
+		- Location of desired Target Image (User defined.  May create default file for all sdss later)
+		- Location of desired Target Info for Image
+
 
 - Richa 
   - Build a general purpose filter for tidal distortions.  
@@ -83,8 +89,7 @@ May be good for others to view.
 
 ## Matt's To-Do
 
-- Meeting Q's
-  - What should I give Pete vs the students
+- Write program to add human_score to info.txt in all 66,000 models
 
 - Preperation
   - Create a program that prepares the directory with all needed information in the info.txt file
