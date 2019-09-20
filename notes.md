@@ -28,44 +28,57 @@ IRB course?
 	- Ex.  No tidal distortions, Jumbled Mess, goood bridge/tail, etc
 	- Save response from user and store classification in info.txt
 
+
 - Train classification filters
-  - Neural network.  
-	- Input 2 images ( or 1 image of their differences ) 
+  - Tidal Distortion filter  
+
+	- Input 
+	  1. model image 
+	  2. inital image
+
 	- Output classification
-	  - Ex. No tidal distortion, jumbled mess, etc  
-	- Trained based on model images with classification via GUI from above.
-  
+	  - "good" or "bad" tidal distortion
+
+	- Training process
+	  - First training set can be found at '/nsfhome/mbo2d/Public/training_image_set_1.zip'.  Upzip
+		- Will create more and better training sets later.
+	  - Two directories.
+		- goodDir: Contains image pairs for "good" tidal distortions
+		- badDir: Contains image pairs for "bad" tidal distortions
+	  - Image pair format: images with same sdss name and run number are a pair
+		- model image: sdssName_runNumber_model.png
+		- init image : sdssName_runNumber_init.png
+
+  - Jumpled Mess Filter
+	- Very similar to above
+	- Read in two images and identify if they are "too jumbled"
+
 
 - Streamline Model to Machine score process
 
   - Write new code to initaliaze a model directory
 
-	  - Reads and processes
-		- Zoo models @ Input_Data/zoo_models/from_site/*SDSS*.txt
-		- target images and select files @ Input_Data/target_images/*SDSS*/
-		- Image parameter file @ Input_Data/image_parameters/
+	- Reads and processes
+	  - Zoo models @ Input_Data/zoo_models/from_site/*SDSS*.txt
+	  - target images and select files @ Input_Data/target_images/*SDSS*/
+	  - Image parameter file @ Input_Data/image_parameters/
+	- Creates
+	  - Directory Structure
+		- mainDir (input var) -> sdssDir (#) -> genDir (0) -> runDir (line # in file)
+	  - Extra Folders in runDir
+		- particle_files
+		- model_images
+		- misc_images
+	  - info.txt
+		- you can find contents for this file in info_template.txt
 
-	  - Creates
-		- Directory Structure
-		  - mainDir (input) -> sdssDir (#) -> genDir (0) -> runDir (line # in file)
+	- Modify simulator_v2.py ( Talk with me, Matthew, before doing )
+	  - Point at a run directory as command line argument
+	  - read info.txt to get all needed info from info.txt
+	  - Change working directory to particle_file directory before calling SPAM code
+	  - Rename particles as numParticles_pts.000 or numParticles_pts.101 ( Ex. 1000_pts.000 )
+	  - zip them as numParticles_000.zip (Ex. 10000_000.zip, 200_101.zip )
 
-		- info.txt
-		  - you can find contents for this file in info_template.txt
-
-	- Modify Simulator_v2.py to only point at runDir
-
-
-- Richa 
-  - Build a general purpose filter for tidal distortions.  
-	- Inputs
-	  - 1st image is the final set of particles
-	  - 2nd image are the initial particles shifted to the final locations.
-	- Output 
-	  - classify whether the model images have "good" or "bad" tidal distortions.
-	- Training
-	  - I (Matthew) can provide training sets of inital and final images with labels indicating whether they have been tidally distroted or not.  
-	
-	  
 ## Pete
 - Statistics and graphs!
   - Read through directories gathering score files
@@ -80,31 +93,9 @@ IRB course?
 
 ## Matt's To-Do
 
-- Write program to add human_score to info.txt in all 66,000 models
-
-- Preperation
-  - Create a program that prepares the directory with all needed information in the info.txt file
-  - Reads Galaxy Zoo files...
-	- Models w/ scores
-	- Target information
-  - Creates
-	- Directory with proper name/parents
-	- Info.txt
-	  - Sdss #
-	  - run #
-	  - generation ?
-	  - target image location? 
-	  - model_data
-	  - unique_name ? 
-	- Get Target Image info
-	  - Location
-	  - center pixel loations
-	  - brightness differences
-	  - galaxy brightnesses
-	- Get Image Vis Info? 
+- Write program to add human_score to info.txt in all 66,000 models on babbage
 
 - SPAM
-  - Add humanScore to info.txt for all files
   - remove # of particles from info.txt
   - add # particles in particle file name
 

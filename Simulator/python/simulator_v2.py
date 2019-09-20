@@ -1,8 +1,8 @@
 '''
 Author:     Matthew Ogden
 Created:    10 May 2019
-Altered:    18 July 2019
-Purpose:    This program is meant to perform a runs of the SPAM software based on Zoo model files
+Purpose:    This program is the main function that prepares galaxy models, 
+                runs them through the JSPAM software, and creates particle files
 '''
 
 from sys import (
@@ -15,13 +15,11 @@ from os import (
         system
         )
 
-import subprocess
-
 # Default Global Variables
 
 printAll = False
 
-basicRun = 'SPAM/bin/basic_run'
+basicRun = 'Simulator/bin/basic_run'
 uniqID = 0
 
 outputDir = ''
@@ -29,9 +27,8 @@ makeRunDir = True   #Create run directory to save particle files in
 compressFiles = False
 overWrite = False
 
-
-maxN = 10000000     # Arbitrary limit, can be changed if needed
-nPart = 10000       # default 10k
+maxN = 1e6      # Arbitrary limit, can be changed if needed
+nPart = 10000   # default 10k
 
 pName = ''
 sdssName = '00'
