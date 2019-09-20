@@ -23,7 +23,6 @@ import cv2
 import numpy as np
 
 
-
 import methods.pixel_difference as pixMod
 import methods.cv_features as featMod
 
@@ -37,7 +36,7 @@ genName = ''
 runName = ''
 zooModel = ''
 humanScore = ''
-userComment = 'In preperation of Qual Exam'
+userComment = 'Sample Data for Score Analysis. Sep. 18, 2019'
 
 imageLoc = ''
 imgInfoLoc = ''
@@ -54,7 +53,6 @@ targetLoc = ''
 targetInfoLoc = ''
 
 checkGalCenter = False
-
 writeDiffImage = False
 
 methodName = ''
@@ -144,7 +142,6 @@ def main():
     elif diffNonZeroMethod:
         methodFunc = pixMod.diffNonZero
 
-
     score, methodFullName, diffImg = methodFunc( image, target )
 
     if printAll:
@@ -160,6 +157,7 @@ def main():
     # prepare score file
     if writeScore:
         writeScoreFile(scoreLoc, score, methodFullName)
+
 
 
 # End main
@@ -187,8 +185,7 @@ def writeScoreFile(scoreLoc, score, methodFullName ):
         # Else append
         scoreFile = open( scoreLoc, 'a')
 
-
-    sLine = '%s' % sdssName
+    sLine  =  '%s' % sdssName
     sLine += ',%s' % genName
     sLine += ',%s' % runName
     sLine += ',%s' % modelName
@@ -199,15 +196,13 @@ def writeScoreFile(scoreLoc, score, methodFullName ):
     sLine += ',%s' % imgParam
     sLine += ',%s' % methodFullName
     sLine += ',%s' % score
-    sLine += ',%s' % userComment
+    sLine += ',"%s"' % userComment
     sLine += ',%s' % datetime.now()
     
     sLine += '\n' 
 
     scoreFile.write(sLine)
-
     scoreFile.close()
-
 
 # End write score to scoreFile
 
@@ -238,11 +233,7 @@ def readRunDir( runDir ):
         if scoreLoc == '':
             scoreLoc = runDir + 'scores.csv'
 
-def direct_subtract( img1, img2 ):
 
-    return 0
-# end direct_subtract
-    
 def overLapTarget( image, iC, target, tC):
 
     if printAll:

@@ -41,7 +41,6 @@ def pixel_difference_squared( img1, img2 ):
     return score, methodName, diffImg*255
 
 
-
 def diffSquaredNonZero( img1, img2 ):
 
     methodName = 'pixel_difference_squared_non_zero_v1_%dx%d' % ( img1.shape[0], img1.shape[1] )

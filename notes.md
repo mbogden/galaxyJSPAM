@@ -5,7 +5,30 @@ May be good for others to view.
 IRB course? 
 - Do not preserve any information that can identify the user.
 
+
 ## Software Engineering Tasks (More of suggestions really.)
+
+
+- Streamline Model to Machine score process
+  - Write new code to initaliaze a model directory
+	- Reads and processes
+	  - Zoo models @ Input_Data/zoo_models/from_site/*SDSS*.txt
+	  - target images and select files @ Input_Data/target_images/*SDSS*/
+	  - Image parameter file @ Input_Data/image_parameters/
+	- Creates
+	  - Directory Structure
+		- mainDir (input var) -> sdssDir (#) -> genDir (0) -> runDir (line # in file)
+	  - Extra Folders in runDir
+		- particle_files
+		- model_images
+		- misc_images
+	  - info.txt
+		- you can find contents for this file in info_template.txt
+		- If any info is missing, just have a blank spot for that location in info.txt
+
+  - Modify simulator_v2.py.
+	- I have seperate notes on this later.
+
 
 - Visualize Photos.
   - Beginning:
@@ -52,33 +75,6 @@ IRB course?
   - Jumpled Mess Filter
 	- Very similar to above
 	- Read in two images and identify if they are "too jumbled"
-
-
-- Streamline Model to Machine score process
-
-  - Write new code to initaliaze a model directory
-
-	- Reads and processes
-	  - Zoo models @ Input_Data/zoo_models/from_site/*SDSS*.txt
-	  - target images and select files @ Input_Data/target_images/*SDSS*/
-	  - Image parameter file @ Input_Data/image_parameters/
-	- Creates
-	  - Directory Structure
-		- mainDir (input var) -> sdssDir (#) -> genDir (0) -> runDir (line # in file)
-	  - Extra Folders in runDir
-		- particle_files
-		- model_images
-		- misc_images
-	  - info.txt
-		- you can find contents for this file in info_template.txt
-
-	- Modify simulator_v2.py ( Talk with me, Matthew, before doing )
-	  - Point at a run directory as command line argument
-	  - read info.txt to get all needed info from info.txt
-	  - Change working directory to particle_file directory before calling SPAM code
-	  - Rename particles as numParticles_pts.000 or numParticles_pts.101 ( Ex. 1000_pts.000 )
-	  - zip them as numParticles_000.zip (Ex. 10000_000.zip, 200_101.zip )
-
 ## Pete
 - Statistics and graphs!
   - Read through directories gathering score files
@@ -95,9 +91,16 @@ IRB course?
 
 - Write program to add human_score to info.txt in all 66,000 models on babbage
 
-- SPAM
-  - remove # of particles from info.txt
-  - add # particles in particle file name
+- Modify simulator_v2.py
+  - Primary Cmd Line Arguments
+	- Run directory
+	- # of particles for each galaxy
+  - reads info.txt to get all needed info from info.txt
+  - Change working directory to particle_file directory before calling SPAM code
+  - Rename particles as numParticles_pts.000 or numParticles_pts.101 ( Ex. 1000_pts.000 )
+  - zip them as numParticles_000.zip (Ex. 10000_000.zip, 200_101.zip )
+
+ - add # particles in particle file name
 
 - Image Creator v2
   - Add version control to iamge creator and param visualization
