@@ -7,59 +7,52 @@ IRB course?
 
 ## Software Engineering Tasks (More of suggestions really.)
 
-- Priority 1:  Build Classifiction filters
+- Visualize Photos.
+  - Beginning:
+	- Create PHP file.  
+	- Displays all images found in a directory.
+	  - Add button to specificy directory of interest? 
+	- Format page to scroll through images.
+	- Point to sdss directory and display model images found in subdirectories.
+	  - directory structure
+	- Display select info from info.txt files in subdirectories with image
+	  - sdss_name, gen#, run#, human_score
 
-  - Visualize Photos.
-	- Beginning:
-	  1. Create PHP file.  
-	  2. Displays all images found in a directory.
-		- 
-	  3. Format page to scroll through images.
-	  4. Display images found in subdirectories.
-	  5. Display select info from info.txt files in subdirectories with image
-		- sdss_name, gen#, run#, human_score
+  - Purpose 1: Scientist's quick view of models
+	- Select range of runs of interest
+	- Select if viewing all images or view only a sample of images ( Ex. 1 out of 10 runs) 
+	- Display image run # and humanscore
+  
+  - Purpose 2: To classify Images
+	- Add Check boxes/buttons that allow user to classify image
+	- Ex.  No tidal distortions, Jumbled Mess, goood bridge/tail, etc
+	- Save response from user and store classification in info.txt
 
-	- Purpose 1: Scientist's quick view of models
-	  - Select range of runs of interest
-	  - Select if viewing all images or view only a sample of images ( Ex. 1 out of 10 runs) 
-	  - Display image run # and humanscore
-	
-	- Purpose 2: To classify Images
-	  - Add Check boxes/buttons that allow user to classify image
-	  - Ex.  No tidal distortions, Jumbled Mess, goood bridge/tail, etc
-	  - Save response from user and store classification in info.txt
+- Train classification filters
+  - Neural network.  
+	- Input 2 images ( or 1 image of their differences ) 
+	- Output classification
+	  - Ex. No tidal distortion, jumbled mess, etc  
+	- Trained based on model images with classification via GUI from above.
+  
 
-  - Train classification filters
-	- Neural network.  
-	  - Input 2 images ( or 1 image of their differences ) 
-	  - Output classification
-		- Ex. No tidal distortion, jumbled mess, etc  
-	  - Trained based on model images with classification via GUI from above.
-	
-
-- Priority 2:  Streamline Model to Machine score process
+- Streamline Model to Machine score process
 
   - Write new code to initaliaze a model directory
 
-	- Part 1
+	  - Reads and processes
+		- Zoo models @ Input_Data/zoo_models/from_site/*SDSS*.txt
+		- target images and select files @ Input_Data/target_images/*SDSS*/
+		- Image parameter file @ Input_Data/image_parameters/
 
-	  - Reads
-		- Galaxy Zoo model files. (Found in Input_Data/zoo_models/from_site/)
-
-	  - Creates 
+	  - Creates
 		- Directory Structure
 		  - mainDir (input) -> sdssDir (#) -> genDir (0) -> runDir (line # in file)
-		- info.txt:
-		  - "Model Data" (Literaly Write 'Model Info')
-		  - sdss Name
-		  - generation
-		  - run number
-		  - model data
 
-	- Part 2 ( Don't do yet )
-	  - Append to info.txt
-		- Location of desired Target Image (User defined.  May create default file for all sdss later)
-		- Location of desired Target Info for Image
+		- info.txt
+		  - you can find contents for this file in info_template.txt
+
+	- Modify Simulator_v2.py to only point at runDir
 
 
 - Richa 
@@ -68,10 +61,9 @@ IRB course?
 	  - 1st image is the final set of particles
 	  - 2nd image are the initial particles shifted to the final locations.
 	- Output 
-	  - classify whether the final particles have any sort of tidal distortion
+	  - classify whether the model images have "good" or "bad" tidal distortions.
 	- Training
-	  - I (Matthew) can provide several thousands of inital and final images with labels indicating whether they have been tidally distroted or not.  
-	  - Let me know what format you want these images in order to train the magic black box. 
+	  - I (Matthew) can provide training sets of inital and final images with labels indicating whether they have been tidally distroted or not.  
 	
 	  
 ## Pete
@@ -82,7 +74,6 @@ IRB course?
   - New graphs
 	- Comparing different galaxy pairs
 	- comparing different comparison methods
-	- Come up with hard split classification
 	- Come up with correlation statistics
   - Gather images with same human score and different tiered machine scores
 
@@ -104,14 +95,12 @@ IRB course?
 	  - generation ?
 	  - target image location? 
 	  - model_data
-	  - human_score and wins/total
-	  - galaxy brightnesses
 	  - unique_name ? 
 	- Get Target Image info
 	  - Location
 	  - center pixel loations
 	  - brightness differences
-	
+	  - galaxy brightnesses
 	- Get Image Vis Info? 
 
 - SPAM
@@ -126,6 +115,9 @@ IRB course?
   - Discuss with Dr. Wallin how to check brightness ratios between one galaxy and the other.
 
 - Comparison methods
+  - ALL comparison methods only return a machine score!
+	- Seperate function will return difference images!
+	- Will they all only take 2 images though?  No.... 
   - Start by filtering out those that don't change much
   - Make 1 method name variable instead of boolean for each method
   - Needs general improvement
@@ -215,16 +207,8 @@ IRB course?
 
 ## Pete
 
-  - galaxyJSPAM
-    - install and begin creating some particle files.
-    - Learn how to do a basic run of JSPAM.
-    - Use jspamcli.py to do batch basic runs. 
-
   - Knowledge
     - Review papers. (Thesis, Toomre & Toomre, JSPAM, Galaxy Zoo )
-    - Get an understanding what main programs do.
-    - Ask Wallin what are good things to know.
-    - learn what Graham is doing and how it'll relate.
 
   - Possible scripts you can write at some point. 
     - Get all target images and info files?
