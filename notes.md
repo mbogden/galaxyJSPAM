@@ -11,75 +11,6 @@ IRB course?
 
 
 
-<<<<<<< HEAD
-=======
-- Streamline Model to Machine score process
-  - Write new code to initaliaze a model directory
-	- Reads and processes
-	  - Zoo models @ Input_Data/zoo_models/from_site/*SDSS*.txt
-	  - target images and select files @ Input_Data/target_images/*SDSS*/
-	  - Image parameter file @ Input_Data/image_parameters/
-	- Creates
-	  - Directory Structure
-		- mainDir (input var) -> sdssDir (#) -> genDir (0) -> runDir (line # in file)
-	  - Extra Folders in runDir
-		- particle_files
-		- model_images
-		- misc_images
-	  - info.txt
-		- you can find contents for this file in info_template.txt
-		- If any info is missing, just have a blank spot for that location in info.txt
-
-  - Modify simulator_v2.py.
-	- I have seperate notes on this later.
-
-
-- Visualize Photos.
-  - Beginning:
-	- Create PHP file.  
-	- Displays all images found in a directory.
-	  - Add button to specificy directory of interest? 
-	- Format page to scroll through images.
-	- Point to sdss directory and display model images found in subdirectories.
-	  - directory structure
-	- Display select info from info.txt files in subdirectories with image
-	  - sdss_name, gen#, run#, human_score
-
-  - Purpose 1: Scientist's quick view of models
-	- Select range of runs of interest
-	- Select if viewing all images or view only a sample of images ( Ex. 1 out of 10 runs) 
-	- Display image run # and humanscore
-  
-  - Purpose 2: To classify Images
-	- Add Check boxes/buttons that allow user to classify image
-	- Ex.  No tidal distortions, Jumbled Mess, goood bridge/tail, etc
-	- Save response from user and store classification in info.txt
-
-
-- Train classification filters
-  - Tidal Distortion filter  
-
-	- Input 
-	  1. model image 
-	  2. inital image
-
-	- Output classification
-	  - "good" or "bad" tidal distortion
-
-	- Training process
-	  - First training set can be found at '/nsfhome/mbo2d/Public/training_image_set_1.zip'.  Upzip
-		- Will create more and better training sets later.
-	  - Two directories.
-		- goodDir: Contains image pairs for "good" tidal distortions
-		- badDir: Contains image pairs for "bad" tidal distortions
-	  - Image pair format: images with same sdss name and run number are a pair
-		- model image: sdssName_runNumber_model.png
-		- init image : sdssName_runNumber_init.png
-
-  - Jumpled Mess Filter
-	- Very similar to above
-	- Read in two images and identify if they are "too jumbled"
->>>>>>> cc42b0a4d9c1f6f8ce6c1c1ba57fc112a7106478
 ## Pete
 - Statistics and graphs!
   - Read through directories gathering score files
@@ -96,25 +27,6 @@ IRB course?
 
 - Write program to add human_score to info.txt in all 66,000 models on babbage
 
-<<<<<<< HEAD
-- Put target images, info files, and .pair files in target folders
-
-- SPAM
-  - remove # of particles from info.txt
-  - add # particles in particle file name
-=======
-- Modify simulator_v2.py
-  - Primary Cmd Line Arguments
-	- Run directory
-	- # of particles for each galaxy
-  - reads info.txt to get all needed info from info.txt
-  - Change working directory to particle_file directory before calling SPAM code
-  - Rename particles as numParticles_pts.000 or numParticles_pts.101 ( Ex. 1000_pts.000 )
-  - zip them as numParticles_000.zip (Ex. 10000_000.zip, 200_101.zip )
-
- - add # particles in particle file name
->>>>>>> cc42b0a4d9c1f6f8ce6c1c1ba57fc112a7106478
-
 - Image Creator v2
   - Add version control to image creator and param visualization
   - Alter brightness of galaxies seperately once luminosity is added to info.txt 
@@ -123,6 +35,7 @@ IRB course?
   - (DONE) Delete unzipped file
 
 - Comparison methods
+  - Check that new target info files are actual target centers
   - ALL comparison methods only return a machine score!
 	- Seperate function will return difference images!
 	- Will they all only take 2 images though?  No.... 

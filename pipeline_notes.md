@@ -33,8 +33,8 @@ wins/total 23/32 		( zoo Model file )
 
 ###  Target Image Data  ###					( All info should be found within "Input_Data/targets/SDSS#/" with same sdss name)
 /Input_Data/targets/*SDSS*/**.png 			( Use calibrated target image if available )
-primary_center_1 508.57234 510.290384 		( "pxc" and "pyc" from info file )
-secondary_center_2 288.57234 340.290384 	( "sxc" and "syc" from info file )
+primary_center_1 508.57234 510.290384 		( "px" and "py" from meta file )
+secondary_center_2 288.57234 340.290384 	( "sx" and "sy" from meta file )
 primary_luminosity 5.306E10 				( "primaryLuminosity" from .pair file )
 secondary_luminosity 5.856E11 				( "secondaryLuminosity" from  .pair file )
 
