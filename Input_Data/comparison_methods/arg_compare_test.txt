@@ -2,5 +2,5 @@
 -targetInfo Input_Data/target_images/587722984435351614/587722984435351614.info.txt
 -overWriteScore
 -writeDiffImage
--imgParam param_1
--methodName diffSqNonZero
+-imgParam param_2
+-methodName diff
