@@ -1,6 +1,7 @@
 '''
 Author:     Matthew Ogden
 Created:    10 May 2019
+Altered:    24 Sep 2019
 Purpose:    This program is the main function that prepares galaxy models, 
                 runs them through the JSPAM software, and creates particle files
 '''
@@ -15,41 +16,61 @@ from os import (
         system
         )
 
-# Default Global Variables
+# Global/Input Variables
 
-printAll = False
+printAll = True
 
 basicRun = 'Simulator/bin/basic_run'
 uniqID = 0
 
-outputDir = ''
-makeRunDir = True   #Create run directory to save particle files in
-compressFiles = False
+runDir = ''
+nPart = 0
+maxN = 1e6      # Arbitrary limit in case of typo, can be changed if needed
+
+compressFiles = True
 overWrite = False
 
-maxN = 1e6      # Arbitrary limit, can be changed if needed
-nPart = 10000   # default 10k
 
-pName = ''
-sdssName = '00'
-runNum = 0000
-genNum = 00
+# SE_TODO: Work with this function for main
+def new_main():
 
-useZooFile = False
-zooFile = ''
-zooDir = 'Input_Data/zoo_models'
+    endEarly = new_readArg()
 
-nZooRuns = 0
-allZooRuns = False  # All zoo runs in file
+    # SE: These should all have a value
+    if printAll:
+        print("Run Dir : %s" % runDir)
+        print("Num Part: %d" % nPart)
 
-useModelData = False
-modelData = ''
-modelName = ''
-humanScore = ''
+    # Exit program with error
+    if endEarly:
+        print('Exiting...\n')
+        exit(-1)
+
+    # SE_TODO: Create function to read info.txt located in runDir
+    '''
+    1. Check if info file exists. exit with print statement if not
+    2. Open file, get info for model_data (after space), and return as string 
+    '''
+
+    # SE_TODO: Create 'particle_files' folder in runDir if it does not exist
+
+    # SE_TODO: Check 'particle_files' folder if particles of nPart size have already been made 
+    # Ignore if overWrite is true
+
+    # SE_TODO: Move active directory into 'particle_files'. 
+
+    # SE_TODO: Call JSPAM! 
+    # runBasicRun( nPart, mData )
+
+    # SE_TODO: Check if particle files were created.  Should end with .000 and .101
+    # SE_TODO: Rename both files as nPart_pts.000 and nPart_pts.101 (Ex. 1000_pts.000)
+    # SE_TODO: Zip both files up in 1 zip file named nPart_pts.zip
+    # SE_TODO: Delete .000 and .101 if they remain
 
 
 
-def main():
+
+def old_main():
 
     endEarly = readArg()
 
@@ -77,68 +98,10 @@ def main():
                 print('Using all major models from Galaxy Zoo file')
                 nZooRuns = float("inf")     # set number of run to infinite to do all
 
-
     # begin Execution
 
-    if useModelData:
-        uID = uniqID
-
-        # Prep to move to directory
-        if makeRunDir:
-            oDir = outputDir + 'run_' + str(genNum).zfill(2) + '_' + str(runNum).zfill(4) + '/'
-        else:
-            oDir = outputDir
-
-        if not overWrite and path.exists(oDir):
-            print('zooRun.py %d : Directory already exists \'%s\' \nExiting' % ( uniqID, oDir ))
-            return 1
-
-        partCreated = runBasicRun( nPart, uID, modelData )
-
-        partMoved = False
-        if partCreated:
-            partMoved = movePartFiles( uID, oDir )
-
-        if partMoved:
-            createInfoFile(oDir)
-
-    # End if useModelData
-
-
-    if useZooFile:
-
-        # Read Galaxy zoo file
-        modelList = readZooFile(zooFile, nZooRuns)
-
-        # Begin generating runs
-        sdssName = zooFile.split('/')[-1]
-        sdssName = zooName.split('.')[0]
-        if printAll:
-            print('Using name %s' % zooName)
-
-        # Changed runBasicRuns, recreate before using
-        #runBasicRuns( zooName, nPart, modelList )
 
 # End main
-
-
-def createInfoFile( oDir ):
-
-    infoFile = open(oDir + 'info.txt', 'w')
-
-    infoFile.write('SPAM Particle Information\n')
-    infoFile.write('sdss_name %s\n' % sdssName )
-    infoFile.write('generation %d\n' % genNum )
-    infoFile.write('run_number %d\n' % runNum )
-    infoFile.write('model_name %s\n' % modelName )
-    infoFile.write('model_data %s\n' % modelData )
-    infoFile.write('human_score %s\n' % humanScore )
-    infoFile.write('g1_num_particles %d\n' % nPart)
-    infoFile.write('g2_num_particles %d\n' % nPart)
-    infoFile.write('\n')
-    
-    infoFile.close()
-# end Create Info File
 
 
 def movePartFiles( uID, oDir ):
@@ -212,15 +175,14 @@ def movePartFiles( uID, oDir ):
 
 
 
-def runBasicRun( nPart, uID, data ):
-
+def runBasicRun( nPart, data ):
 
     global basicRun
 
     if basicRun[0] != '/':
         basicRun = '/' + basicRun
         
-    sysCmd = '.%s -m %d -n1 %d -n2 %d %s' % ( basicRun, uID, nPart, nPart, data )
+    sysCmd = '.%s -m %d -n1 %d -n2 %d %s' % ( basicRun, 0, nPart, nPart, data )
 
     if printAll:
         print('Running command: ',sysCmd)
@@ -239,44 +201,68 @@ def runBasicRun( nPart, uID, data ):
 # End runBasicRun
 
 
+def new_readArg():
 
-def readZooFile( zooFile, nZooRuns):
-    zFile = open(zooFile,'r')
-    print('Reading Galaxy Zoo file...')
-    fileData = []
-    count = 1
+    # Global input arguments
+    global runDir, nPart, overWrite
 
-    # Loop line by line through file
-    for i,l in enumerate(zFile):
+    # Get list of arguments from command line
+    argList = argv
 
-        # break out of file loop if found rejected line
-        if '#rejected' in l:
-            break
+    # Loop through command line arguments
+    for i,arg in enumerate(argList):
 
-        # break out of file loop if reached number of desired runs
-        if i >= nZooRuns:
-            break
+        # Ignore argument unless it has '-' specifier
+        if arg[0] != '-':
+            continue
         
-        spamData = l.strip().split('\t')[1]
-        
-        nData = len(spamData.split(','))
+        elif arg == '-runDir':
+            runDir = argList[i+1]
 
-        # ensure grabbed data is of proper format
-        if nData == 34:
-            fileData.append([count,spamData])
-            count += 1
+        elif arg == '-nPart':
+            nPart = argList[i+1]
+
+        elif arg == '-overWrite':
+            overWrite = True
+
+
+
+    # Check validity of commandline arguments
+    endEarly = False
+
+    # Check if run Dir exists or if not given one
+    if not path.exists(runDir):
+        
+        if runDir == '':
+            print("ERROR: Please specify path to run directory.")
+            print("\t$: python simulator.py -runDir path/to/runDir") 
         else:
-            print("#######################    POSSIBLE ERROR   ########################")
-            print('Found spam data in file \'%s\' on line %d, \'%s\' that does not match default 34 values seperated by a \',\' after a tab' % ( zooFile, i, l.strip() ) )
+            print("ERROR: Path to run directory not found: '%s'" % runDir)
+        endEarly = True
+    # End check runDir
 
-    # End looping through file
 
-    print(fileData[-1][0], ' models found')
+    # Check if number of particles was specified
+    if nPart == 0:
+        print("ERROR: Please specify number of particles per galaxy.")
+        print("\t$: python simulator.py -nPart 1000")
+        endEarly = True
+    
+    # Check if input particles was an integer
+    try:
+        nPart = int(nPart)
+    except:
+        print("ERROR: -nPart is not an integer: '%s'" % nPart)
+        nPart = 0
+        endEarly = True
 
-    zFile.close()
 
-    return fileData
-# End readZooFile()
+    return endEarly
+
+
+
+
+
 
 
 def readArg():
@@ -463,4 +449,6 @@ def readArg():
 
 
 # Execute everything after declaring functions
-main()
+print('')
+new_main()
+print('')
