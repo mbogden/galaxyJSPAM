@@ -39,8 +39,8 @@ def main():
     if printAll:
         print('mainDir : %s' % mainDir)
         print('imgDir  : %s' % imgDir)
-        print('goodDir : %s' % imgDir + goodDir)
-        print('badDir  : %s' % imgDir + badDir)
+        print('goodDir : %s' % goodDir)
+        print('badDir  : %s' % badDir)
         print('nGoodImg: %d' % nGood)
         print('nBadImg : %d' % nBad)
 
@@ -65,6 +65,7 @@ def main():
             sdssDir = mainDir + sDir + '/'
             print('\t',sdssDir)
             sdss_dir(sdssDir)
+
 
 # End main
 
@@ -117,27 +118,21 @@ def copyImg( sdssName, rNum, rPath, toDir):
     # Find images
     rFiles = listdir(rPath)
     
-    modelPath = ''
-    initPath = ''
+    diffPath = ''
 
     for rFile in rFiles:
 
-        if 'model.png' in rFile:
-            modelPath = rPath + rFile
-
-        if 'model_init.png' in rFile:
-            initPath = rPath + rFile
+        if 'init_diff.png' in rFile:
+            diffPath = rPath + rFile
 
     # Make sure you found both images
-    if modelPath == '' or initPath == '':
+    if diffPath == '':
         print("Error: Did not find images in: %s" % rPath)
         return
 
-    toModelPath = toDir + '%s_%d_model.png' % (sdssName, rNum )
-    toInitPath = toDir + '%s_%d_init.png' % ( sdssName, rNum )
+    toDiffPath = toDir + '%s_%d_init_diff.png' % (sdssName, rNum )
     
-    system("cp %s %s" % ( modelPath, toModelPath ))
-    system("cp %s %s" % ( initPath, toInitPath ))
+    system("cp %s %s" % ( diffPath, toDiffPath ))
 
 
 # end copy Img
@@ -166,8 +161,10 @@ def readArg():
 
         elif arg == '-imgDir':
             imgDir = argList[i+1]
+            print(imgDir)
             if imgDir[-1] != '/':
                 imgDir += '/'
+
             goodDir = imgDir + goodDir
             badDir  = imgDir + badDir
 
@@ -180,11 +177,11 @@ def readArg():
     # Check if input arguments were valid
 
     if imgDir == '':
-        print('Warning: Please enter Image Directory')
+        print('ERROR: \tPlease enter Image Directory')
         endEarly = True
 
     if not path.exists(mainDir):
-        print('\tmainDir not found: \'%s\'' % mainDir)
+        print('ERROR: \tmainDir not found: \'%s\'' % mainDir)
         endEarly = True
 
     return endEarly
