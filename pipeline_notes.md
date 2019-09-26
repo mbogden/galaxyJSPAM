@@ -23,20 +23,21 @@
 
 
 ```
-###  Model Data  ### 	( Found in Input_Data/zoo_models/from_site/**sdss**.txt )
+###  Model Data  ### 		( Found in Input_Data/zoo_models/from_site/**sdss**.txt )
 sdss_name 588***14 		( zoo model file name )
 generation 0			( all 0 for now.  Have commandline argument for this )
 run number 00100		( Line # in zoo model file )
 model data 	1,3***5,3	( comma seperated values after tab in zoo model file)	
-human_score .8412434 	( zoo model file )
+human_score 84.12434 		( zoo model file )
+wins 23/32 			( zoo Model file ) 
 wins/total 23/32 		( zoo Model file ) 
 
-###  Target Image Data  ###					( All info should be found within "Input_Data/targets/SDSS#/" with same sdss name)
-/Input_Data/targets/*SDSS*/**.png 			( Use calibrated target image if available )
+###  Target Image Data  ###			( All info should be found within "Input_Data/targets/SDSS#/" with same sdss name)
+/Input_Data/targets/*SDSS*/**.png 		( Use calibrated target image if available )
 primary_center_1 508.57234 510.290384 		( "px" and "py" from meta file )
 secondary_center_2 288.57234 340.290384 	( "sx" and "sy" from meta file )
-primary_luminosity 5.306E10 				( "primaryLuminosity" from .pair file )
-secondary_luminosity 5.856E11 				( "secondaryLuminosity" from  .pair file )
+primary_luminosity 5.306E10 			( "primaryLuminosity" from .pair file )
+secondary_luminosity 5.856E11 			( "secondaryLuminosity" from  .pair file )
 
 ###  Model Image Parameters  ### 	( Use param found at Input_Data/image_parameters/param_2.txt for now )
 param_2 v2 path_to/param.txt  		( param_name version_# path_to_file )
@@ -50,7 +51,7 @@ param_2 v2 path_to/param.txt  		( param_name version_# path_to_file )
 ## Modify simulator_v2.py 
 - Tasks
   - Simplify command line to accept...
-	- run directory location
+	- path to run directory
 	- number of particles for each galaxy
   - read info.txt to get model info
   - Check if particle files of that quantity already exist in particle folder.

@@ -1,23 +1,23 @@
 # Creating usefule interactive webpages.
 
-## Visualize Photos.
+## Website 1: Visualize Photos.
 - Beginning:
   - Create PHP file.  
   - Displays all images found in a directory.
+    - Useful additions: Add button to specify directory of interest? 
   - Format page to scroll through images.
-  - Point to sdss directory and display model images found in subdirectories.
-	- directory structure: mainDir -> sdssDir -> genDir -> runDir
+
+- Next Steps
+  - Point to an sdss directory and display model images found in subdirectories.
+	- directory structure: mainDir -> sdssDir -> runDir
   - Display select info from info.txt files in subdirectories with image
 	- sdss_name, gen#, run#, human_score
-
-- Useful additions
-  - Add button to specify directory of interest? 
 
 - Webpage 1: Scientist's quick view of models
   - Select range of runs of interest
   - Select sample ratio ( Ex. 1 out of 10 runs) 
 
-- Webpage 2: To classify Images
+## Webpage 2: To classify Images
   - Add Check boxes/buttons that allow users to classify image
 	- Ex.  No tidal distortions, Jumbled Mess, goood bridge/tail, etc
   - Append classificaiton response in model's info.txt

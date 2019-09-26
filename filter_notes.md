@@ -4,7 +4,7 @@
 ## Tidal Distortion filter  
 - Input 
   1. model image 
-  2. inital image
+  2. initial image
 
 - Output classification
   - "good" or "bad" tidal distortion
@@ -12,6 +12,7 @@
 - Training process
 
   - First training set can be found at '/nsfhome/mbo2d/Public/training_image_set_1.zip'.  Upzip
+	- 'scp system64.cs.mtsu.edu:/nsfhome/mbo2d/Public/training_image_set_1.zip'
 	- Two directories.
 	  - goodDir: Contains image pairs for "good" tidal distortions
 	  - badDir: Contains image pairs for "bad" tidal distortions
