@@ -26,10 +26,9 @@
 ###  Model Data  ### 		( Found in Input_Data/zoo_models/from_site/**sdss**.txt )
 sdss_name 588***14 		( zoo model file name )
 generation 0			( all 0 for now.  Have commandline argument for this )
-run number 00100		( Line # in zoo model file )
-model data 	1,3***5,3	( comma seperated values after tab in zoo model file)	
-human_score 84.12434 		( zoo model file )
-wins 23/32 			( zoo Model file ) 
+run_number 00100		( Line # in zoo model file )
+model_data 	1,3***5,3	( comma seperated values after tab in zoo model file)	
+human_score 84.12434 	( zoo model file )
 wins/total 23/32 		( zoo Model file ) 
 
 ###  Target Image Data  ###			( All info should be found within "Input_Data/targets/SDSS#/" with same sdss name)
