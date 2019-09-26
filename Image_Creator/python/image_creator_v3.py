@@ -44,7 +44,10 @@ paramInfo = ''
 paramName = ''
 
 
-def runImageCreator_v2( inArg ):
+def new_main():
+
+
+def runImageCreator_v3( inArg ):
 
     global imageLoc
 
@@ -110,6 +113,7 @@ def runImageCreator_v2( inArg ):
 
         print("Saving Shifted Initial Particle Image")
         initImageLoc = runDir + '%s_model_init.png' % pName
+        initDiffLoc = runDir + '%s_model_init_diff.png' % pName
 
         # Shift galaxy 2 to where it would be in final image
         dC = fCenters - iCenters
@@ -120,9 +124,11 @@ def runImageCreator_v2( inArg ):
         dotImg = addParticles( g1iPart2, g2iPart2, nRows, nCols, g1iPart[:,3], g2iPart[:,3], rConst )
 
         blurImg = cv2.GaussianBlur( dotImg, (gSize, gSize), gWeight )
-        normImg = normImg_v0( blurImg, normVal )
+        normImg2 = normImg_v0( blurImg, normVal )
+        initDiffImg = np.abs( normImg2 - normImg )
 
-        cv2.imwrite( initImageLoc, normImg )
+        cv2.imwrite( initImageLoc, normImg2 )
+        cv2.imwrite( initDiffLoc, initDiffImg )
 
     cleanUpDir()
     # End saving inital particles
@@ -412,7 +418,10 @@ def readPartFile( pLoc ):
     
 # end read particle file    
 
+def new_readArg():
 
+    global printAll, overWrite, runDir
+    global paramLoc, partZip
 
 
 def readArg( inArg ):
@@ -425,7 +434,7 @@ def readArg( inArg ):
     if len( inArg ) == 0:
         argList = argv
 
-    # For importing image_creator_v2 as a python module
+    # For importing image_creator_v5 as a python module
     else:
         argList = inArg
 
@@ -577,4 +586,5 @@ def readArgFile(argList, argFileLoc):
 
 # Run main after declaring functions
 if __name__ == "__main__":
-    runImageCreator_v2( [] )
+    #new_main()
+    runImageCreator_v3( [] )

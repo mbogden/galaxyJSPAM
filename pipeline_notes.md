@@ -43,6 +43,9 @@ param_2 v2 path_to/param.txt  		( param_name version_# path_to_file )
 
 ```
 
+## General Modifications
+- Make the following 3 programs all be callable as a main function or module for importing
+  - Ex. if __name__ == '__main__': 
 
 ## Modify simulator_v2.py 
 - Tasks
