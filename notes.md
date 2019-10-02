@@ -13,19 +13,20 @@ IRB course?
 
 ## Pete
 - Statistics and graphs!
-  - Read through directories gathering score files
-	- Save results so they are not read everytime
-	- Add command line argument for going back out and reading everything
+  - Stop storing images.  (Should be as simple as commenting out 1 line)
+  - Save all the scores in a single csv file.
+	- Change code to either read from this big file or a directory containing sdss dir
+
   - New graphs
-	- Comparing different galaxy pairs
 	- comparing different comparison methods
+	- Comparing same comparison method between different galaxy pairs
 	- Come up with correlation statistics
+
   - Gather images with same human score and different tiered machine scores
+	- Save them in unique folder and write file explaining what comparison, sdss, etc
 
 
 ## Matt's To-Do
-
-- Write program to add human_score to info.txt in all 66,000 models on babbage
 
 - Image Creator v2
   - Add version control to image creator and param visualization
