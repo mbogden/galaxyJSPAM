@@ -37,9 +37,11 @@ Currently, active work is being done in a student's repository on GitHub and can
 ```
 git clone https://github.com/mbogden/galaxyJSPAM.git
 cd galaxyJSPAM
-git checkout Working
 make
 ```
+
+If you are making modifications, checkout a different branch
+- For Software Engineering execute `git checkout working_SE` 
 
 ## *Add test and daily instructions for...*
 - Simulation
