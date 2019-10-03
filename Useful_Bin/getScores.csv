@@ -30,19 +30,15 @@ nBad = 50
 imgDir = ''
 goodDir = 'goodImgs/'
 badDir = 'badImgs/'
-allDir = 'allImgs/'
 
 
 def main():
-
 
     endEarly = readArg()
 
     if printAll:
         print('mainDir : %s' % mainDir)
-        print('sdssDir : %s' % mainDir)
         print('imgDir  : %s' % imgDir)
-        print('allDir  : %s' % imgDir)
         print('goodDir : %s' % goodDir)
         print('badDir  : %s' % badDir)
         print('nGoodImg: %d' % nGood)
@@ -61,14 +57,7 @@ def main():
         print("Creating dir: %s" % badDir)
         system("mkdir -p %s" % badDir)
 
-    if not path.exists(allDir):
-        print("Creating dir: %s" % allDir)
-        system("mkdir -p %s" % allDir)
-
-    sdss_dir(sdssDir)
     
-    return 0
-'''
     print("Going through dirs:")
     if mainDir != '':
         allSdssDirs = listdir(mainDir)
@@ -76,7 +65,7 @@ def main():
             sdssDir = mainDir + sDir + '/'
             print('\t',sdssDir)
             sdss_dir(sdssDir)
-'''
+
 
 # End main
 
@@ -107,14 +96,6 @@ def sdss_dir( sdssDir ):
 
     runFrame = pd.DataFrame( toFrameList, columns = ['runPath', 'runNum'] )
 
-    runFrame = runFrame.sort_values( by=['runNum'] ).reset_index()
-    for i,row in runFrame.iterrows():
-        rPath = row.runPath + '/'
-        rNum = row.runNum
-        copyImg( sdssName, rNum, rPath, imgDir)
-
-
-    '''
     # Loop through top n runs for good images
     runFrame = runFrame.sort_values( by=['runNum'] ).reset_index()
     for i,row in runFrame.head(n=nGood).iterrows():
@@ -128,7 +109,7 @@ def sdss_dir( sdssDir ):
         rPath = row.runPath + '/'
         rNum = row.runNum
         copyImg( sdssName, rNum, rPath, badDir)
-    '''
+
 
 # End sdss_dir
 
@@ -141,7 +122,7 @@ def copyImg( sdssName, rNum, rPath, toDir):
 
     for rFile in rFiles:
 
-        if 'model.png' in rFile:
+        if 'init_diff.png' in rFile:
             diffPath = rPath + rFile
 
     # Make sure you found both images
@@ -149,9 +130,8 @@ def copyImg( sdssName, rNum, rPath, toDir):
         print("Error: Did not find images in: %s" % rPath)
         return
 
-    toDiffPath = toDir + '%s_%d_model.png' % (sdssName, rNum )
+    toDiffPath = toDir + '%s_%d_init_diff.png' % (sdssName, rNum )
     
-    print("cp %s %s" % ( diffPath, toDiffPath ))
     system("cp %s %s" % ( diffPath, toDiffPath ))
 
 
@@ -159,7 +139,7 @@ def copyImg( sdssName, rNum, rPath, toDir):
  
 def readArg():
 
-    global printAll, mainDir, imgDir, goodDir, badDir, allDir, sdssDir
+    global printAll, mainDir, imgDir, goodDir, badDir
     endEarly = False
 
     argList = argv
@@ -179,9 +159,6 @@ def readArg():
         elif arg == '-mainDir':
             mainDir = argList[i+1]
 
-        elif arg == '-sdssDir':
-            sdssDir = argList[i+1]
-
         elif arg == '-imgDir':
             imgDir = argList[i+1]
             print(imgDir)
@@ -190,7 +167,6 @@ def readArg():
 
             goodDir = imgDir + goodDir
             badDir  = imgDir + badDir
-            allDir  = imgDir + allDir
 
         elif arg == '-n':
             nLines = int( argList[i+1] )
@@ -200,14 +176,13 @@ def readArg():
 
     # Check if input arguments were valid
 
-    endEarly = False
-
     if imgDir == '':
         print('ERROR: \tPlease enter Image Directory')
         endEarly = True
 
     if not path.exists(mainDir):
         print('ERROR: \tmainDir not found: \'%s\'' % mainDir)
+        endEarly = True
 
     return endEarly
 
