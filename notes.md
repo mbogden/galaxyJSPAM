@@ -97,6 +97,7 @@ IRB course?
 	- Mask
 	  - Solid mask
 	  - Weighted mask
+	  - Different weighted sections of image 
 	- OpenCV feature extraction
 	  - Histogram of Oriented gradients
 	  - Scale-Invariant feature transform

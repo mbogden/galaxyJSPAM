@@ -52,12 +52,12 @@ def test4():
     return page_contents
 
 @app.route("/test5")
-
 def test5():
     imgName = 'test.png'
     page_contents = render_template("img.html", imgName = imgName)
-
+    page_contents += render_template("img.html", imgName = imgName)
     return page_contents
+
 
 
 if __name__ == '__main__':
