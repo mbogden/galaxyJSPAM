@@ -261,9 +261,10 @@ bool galaxyMainWindow::createRunsFromFile(const QFileInfo& fi, const QDir& inDir
     {        
         //Make the info.txt information
         QString toWrite = infoFileFromLine(sdss, padToN(i, 5), line, padToN(generation, 3));
+        //Skip the iteration if no scoring information is detected
         if (toWrite == "")
         {
-            return false;
+            continue;
         }
 
         QString iPadded = padToN(i, 5);
@@ -314,6 +315,8 @@ bool galaxyMainWindow::createRunsFromFile(const QFileInfo& fi, const QDir& inDir
         i++;
     }
 
+    std::cout << "Initilized " + QString::number(i).toStdString() + " runs for sdss " + sdss.toStdString() + "\n";
+
     return true;
 }
 
@@ -332,7 +335,7 @@ QString galaxyMainWindow::infoFileFromLine(const QString& sdss, const QString& r
 #ifdef DEBUG
         qDebug() << "DEBUG: model data line may be incomplete, left of tab is detected as wrong: " + sdssFileLine;
 #endif
-        //return "";
+        return "";
     }
 
     ret += "sdss_name " + sdss + "\n";
@@ -342,14 +345,7 @@ QString galaxyMainWindow::infoFileFromLine(const QString& sdss, const QString& r
     ret += "human_score " + scoreParts.value(1) + "\n";
     ret += "wins/total " + scoreParts.value(2) + "/" + scoreParts.value(3)  + "\n";
 
-    QStringList imageData = getImageDataFromDir(sdss);
-    if (imageData.length() == 0)
-    {
-#ifdef DEBUG
-        qDebug() << "No image data detected for sdss: " + sdss;
-#endif
-        //return ""; //Instructed to only make model dirs if image data is detected
-    }
+    QStringList imageData = getImageDataFromDir(sdss); //Checked before this function chain is called so gauranteed for the folder to exists, contents are not checked
     ret += "\n###  Target Image Data  ###\n";
     ret +=  imageData.value(0) + "\n";
     ret += "primary_center_1 " + imageData.value(1) + "\n";
