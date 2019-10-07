@@ -47,7 +47,7 @@ galaxyMainWindow::galaxyMainWindow(QWidget *parent)
     }
     else
     {
-        //Setup is handled by calling function in main
+        //Setup is handled by calling function in main.cpp for headless use
     }
 }
 
@@ -145,16 +145,18 @@ void galaxyMainWindow::on_runSetupPushButton_clicked()
     QString setupDir = OURDIR.absolutePath();
 
     int generation = 0;
-    createModelDirectory(setupDir, modelsDir, generation);
+    int count = 0;
+    createModelDirectory(setupDir, modelsDir, generation, count);
 
     f.close();
 
-    std::cout << "Initilized simulation directories in:\n" + setupDir.toStdString() + "\n";
+    std::cout << "Initilized " + QString::number(count).toStdString() + " simulation directories in:\n" + setupDir.toStdString() + "\n";
 }
 
 //Generates the directory tree
-bool galaxyMainWindow::createModelDirectory(const QString& dirIn, const QString& inFile, const int& generation)
+bool galaxyMainWindow::createModelDirectory(const QString& dirIn, const QString& inFile, const int& generation, int& count)
 {
+    count = 0;
     QDir wd(dirIn);
     QFile inF(inFile);
 
@@ -178,22 +180,38 @@ bool galaxyMainWindow::createModelDirectory(const QString& dirIn, const QString&
     //Check if inF was a directory, if so loop over the files there instead of just one
     if (fi.isDir())
     {
-        QStringList toDo;
         QDirIterator di(fi.filePath());
+        //Only do sdss files that have a corresponding file in the dat dir
+        //createRunsFromFile will not make a run dir for lines without scoring info
         while (di.hasNext())
         {
            QFileInfo lfi(di.next());
 
            if (lfi.fileName().contains(QRegularExpression("[0-9]+\\.txt")))
            {
-               bool b = createRunsFromFile(lfi, wd, generation);
-               if (!b)
-                   return false;
-           }
+               QFileInfo datMatch(SDSS_DATA_DIR + "/" + lfi.fileName().replace(".txt", ""));
+
+               if (datMatch.exists())
+               {
+#ifdef DEBUG
+                   qDebug() << "Found matching dat for sdss file " + lfi.fileName();
+#endif
+                   bool b = createRunsFromFile(lfi, wd, generation);
+                   if (!b)
+                   {
+                       return false;
+                   }
+                   else
+                   {
+                       count++;
+                   }
+               }
+            }
         }
     }
     else
     {
+        count = 1;
         return createRunsFromFile(fi, wd, generation);
     }
 

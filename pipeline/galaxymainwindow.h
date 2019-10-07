@@ -24,7 +24,7 @@ public slots:
 
 private slots:
     //Main methods to create data
-    bool createModelDirectory(const QString &dirIn, const QString &inFile, const int &generation);
+    bool createModelDirectory(const QString &dirIn, const QString &inFile, const int &generation, int &count);
     QString infoFileFromLine(const QString &sdss, const QString &run, const QString& sdssFileLine, const QString &generation);
     bool createRunsFromFile(const QFileInfo& fi, const QDir& inDir, int generation);
     QStringList getImageDataFromDir(const QString& sdss);
