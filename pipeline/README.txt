@@ -17,4 +17,4 @@ make -j 2
 //GUI
 ./galaxyGUI
 //No GUI
-./galaxyGUI -platform minimal /file1 /file2 /file3 
+./galaxyGUI -platform minimal /galaxyZooModel_file_or_folder /imageParameterFile /SDSS_targetInfoFolder <WorkDir>
