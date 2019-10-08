@@ -65,7 +65,7 @@ def main():
         print("Creating dir: %s" % allDir)
         system("mkdir -p %s" % allDir)
 
-    sdss_dir(sdssDir)
+    getSdssInitImages(sdssDir)
     
     return 0
 '''
@@ -79,6 +79,66 @@ def main():
 '''
 
 # End main
+
+
+def getSdssInitImages( sdssDir ):
+    print("sdssDir: %s" %  sdssDir)
+
+    runDirList = listdir( sdssDir )
+    parsedSdss = sdssDir.split('/')
+    sdssName = parsedSdss[5]
+
+    toFrameList = []
+
+    # get run # from dir name
+    for rDir in runDirList:
+
+        if 'run' not in rDir:
+            continue
+        
+        parsedRun = rDir.split('_')
+
+        if len(parsedRun) != 3:
+            print("ERROR.  Found: %s" % rDir)
+            continue
+
+        toFrameList.append( [ sdssDir + rDir , int(parsedRun[2]) ] )
+        
+    # End looping through runs for #'s
+    print("\t\t Found %d runs" % len(toFrameList))
+
+    runFrame = pd.DataFrame( toFrameList, columns = ['runPath', 'runNum'] )
+
+    runFrame = runFrame.sort_values( by=['runNum'] ).reset_index()
+    for i,row in runFrame.iterrows():
+        rPath = row.runPath + '/'
+        rNum = row.runNum
+        copyInitImg( sdssName, rNum, rPath, imgDir)
+
+def copyInitImg( sdssName, rNum, rPath, toDir):
+
+    # Find images
+    rFiles = listdir(rPath)
+    
+    imgPath = ''
+
+    for rFile in rFiles:
+
+        if 'init.png' in rFile:
+            imgPath = rPath + rFile
+
+    if imgPath == '':
+        print("Error: Did not find images in: %s" % rPath)
+        return
+
+    toImgPath = toDir + '%d_init.png' % (rNum )
+    
+    print("cp %s %s" % ( imgPath, toImgPath ))
+    system("cp %s %s" % ( imgPath, toImgPath ))
+
+
+
+
 
 def sdss_dir( sdssDir ):
 
@@ -206,8 +266,9 @@ def readArg():
         print('ERROR: \tPlease enter Image Directory')
         endEarly = True
 
-    if not path.exists(mainDir):
+    if not path.exists(mainDir) and not path.exists(sdssDir):
         print('ERROR: \tmainDir not found: \'%s\'' % mainDir)
+        print('ERROR: \tsdssDir not found: \'%s\'' % mainDir)
 
     return endEarly
 

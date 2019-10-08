@@ -13,7 +13,8 @@ from sys import (
 
 from os import (
         path,
-        system
+        system,
+        getcwd
         )
 
 # Global/Input Variables
@@ -21,7 +22,13 @@ from os import (
 printAll = True
 
 basicRun = 'Simulator/bin/basic_run'
-uniqID = 0
+if path.exists(basicRun):
+    basicRun = path.abspath(basicRun)
+else:
+    print("Can't find basic_run. Exiting....")
+    print("basic_run location: %s" % basicRun)
+    print("current location: %s" % getcwd())
+    exit('-1')
 
 runDir = ''
 nPart = 0
@@ -32,21 +39,22 @@ overWrite = False
 
 
 # SE_TODO: Work with this function for main
-def new_main():
+def simulator_v2( argList ):
 
-    endEarly = new_readArg()
+    endEarly = new_readArg( argList )
 
     # SE: These should all have a value
     if printAll:
         print("Run Dir : %s" % runDir)
-        print("Num Part: %d" % nPart)
+
 
     # Exit program with error
     if endEarly:
         print('Exiting...\n')
         exit(-1)
 
-    # SE_TODO: Create function to read info.txt located in runDir
+    # SE_TODO: Create function to read info.txt and get model data located in runDir
+
     '''
     1. Check if info file exists. exit with print statement if not
     2. Open file, get info for model_data (after space), and return as string 
@@ -66,42 +74,6 @@ def new_main():
     # SE_TODO: Rename both files as nPart_pts.000 and nPart_pts.101 (Ex. 1000_pts.000)
     # SE_TODO: Zip both files up in 1 zip file named nPart_pts.zip
     # SE_TODO: Delete .000 and .101 if they remain
-
-
-
-
-def old_main():
-
-    endEarly = readArg()
-
-    # Exit program with error
-    if endEarly:
-        print('Exiting...\n')
-        exit(-1)
-
-    # Print info being used
-
-    if printAll:
-        print('Using SPAM basic_run: \'%s\'' % basicRun)
-        print('Using %d particles in basic_run' % nPart)
-
-        if useModelData:
-            print('Using model data\'%s\'' % modelData)
-
-        if useZooFile:
-            print('Using Zoo Model File: \'%s\' ' % zooFile )
-
-            if nZooRuns > 0:
-                print('Using %d models from zoo file' % nZooRuns)
-
-            if allZooRuns:
-                print('Using all major models from Galaxy Zoo file')
-                nZooRuns = float("inf")     # set number of run to infinite to do all
-
-    # begin Execution
-
-
-# End main
 
 
 def movePartFiles( uID, oDir ):
@@ -174,7 +146,6 @@ def movePartFiles( uID, oDir ):
 # movePartFiles
 
 
-
 def runBasicRun( nPart, data ):
 
     global basicRun
@@ -201,13 +172,10 @@ def runBasicRun( nPart, data ):
 # End runBasicRun
 
 
-def new_readArg():
+def new_readArg(argList):
 
     # Global input arguments
     global runDir, nPart, overWrite
-
-    # Get list of arguments from command line
-    argList = argv
 
     # Loop through command line arguments
     for i,arg in enumerate(argList):
@@ -232,7 +200,6 @@ def new_readArg():
 
     # Check if run Dir exists or if not given one
     if not path.exists(runDir):
-        
         if runDir == '':
             print("ERROR: Please specify path to run directory.")
             print("\t$: python simulator.py -runDir path/to/runDir") 
@@ -240,7 +207,6 @@ def new_readArg():
             print("ERROR: Path to run directory not found: '%s'" % runDir)
         endEarly = True
     # End check runDir
-
 
     # Check if number of particles was specified
     if nPart == 0:
@@ -256,199 +222,18 @@ def new_readArg():
         nPart = 0
         endEarly = True
 
-
     return endEarly
+# End new_readArg
 
 
 
 
 
-
-
-def readArg():
-
-    global basicRun, nPart, outputDir, makeRunDir
-    global sdssName, runNum, genNum, uniqID, compressFiles, pName
-    global useZooFile, zooDir, zooFile, allZooRuns, nZooRuns
-    global useModelData, modelData, modelName, humanScore, printAll, overWrite
-
-    argList = argv
-
-    for i,arg in enumerate(argList):
-
-        if arg == '-0':
-            print('You found Zero')
-
-        # Define if you want printing
-        elif arg == '-print':
-            printAll = True
-
-        # Define spam executable location
-        elif arg == '-spam':
-            basicRun = argList[i+1]
-
-        # Define spam executable location
-        elif arg == '-uID':
-            try:
-                uniqID = int(argList[i+1])
-            except:
-                print('\'%s\' is an invalid number spam basic run unique id' %  argList[i+1] )
-                print('Exiting...\n')
-                exit(-1)
-        # end '-n'
-
-
-        # Specify the number of particles in each galaxy
-        elif arg == '-n':
-            try:
-                nPart = int(argList[i+1])
-            except:
-                print('\'%s\' is an invalid number for the number of particles' %  argList[i+1] )
-                print('Exiting...\n')
-                exit(-1)
-        # end '-n'
- 
-        # Output Directory
-        elif arg == '-o':
-            outputDir = argList[i+1]
-            if outputDir[-1] != '/':
-                outputDir = outputDir + '/'
-       
-       
-        # Check if wants a run directory or not
-        elif arg == '-overwrite':
-            overWrite = True
-
-        # Check if wants a run directory or not
-        elif arg == '-createDir':
-            makeRunDir = True
-
-        elif arg == '-noDir':
-            makeRunDir = False
-
-        elif arg == '-compress':
-            compressFiles = True
-
-
-        # Specify name for particle file
-        elif arg == '-name':
-            pName = argList[i+1]
-
-        # Specify SDSS Name
-        elif arg == '-sdss':
-            sdssName = argList[i+1]
-
-        # Specify run numer
-        elif arg == '-run':
-            try:
-                runNum = int(argList[i+1])
-            except:
-                print('\'%s\' is invalid for run number' %  argList[i+1] )
-                print('Exiting...\n')
-                exit(-1)
-
-        elif arg == '-gen':
-            try:
-                genNum = int(argList[i+1])
-            except:
-                print('\'%s\' is invalid generation number' %  argList[i+1] )
-                print('Exiting...\n')
-                exit(-1)
-
-        # Just one model with data via command line
-        elif arg == '-modelData':
-            useModelData = True
-            modelData = argList[i+1]
-
-        # Just one model with data via command line
-        elif arg == '-modelName':
-            useModelData = True
-            modelName = argList[i+1]
-
-        # Just one model with data via command line
-        elif arg == '-humanScore':
-            humanScore = argList[i+1]
-
-
-        # Define Zoo Model File
-        elif arg == '-zoofile':
-            zooFile = argList[i+1]
-            useZooFile = True
-
-        # Do N number of runs in zoo model file
-        elif arg == '-zn':
-            try:
-                nZooRuns = int(argList[i+1])
-            except:
-                print('\'%s\' is an invalid number for the number zoo models' %  argList[i+1] )
-                exit(-1)
-
-        # Do all Zoo models (All in competition, not all in file)
-        elif arg == '-za':
-            allZooRuns = True
-
-    # end looping through arguments
-
-
-    # This double checks if inputs are meaninful
-
-    exitProgram = False
-
-    # Is number of particle practical? 
-    if nPart <= 0:
-        print('Number of particles must be greater than 0')
-        exitProgram = True
-
-    elif nPart > maxN:
-        print('Not accepting number of particle greater than %d' % maxN)
-        exitProgram = True
-
-    # Is basic run an actual file? 
-    isFile = path.isfile(basicRun)
-    if not isFile:
-        print('SPAM Basic Run executable at \'%s\' was not found' % basicRun)
-        exitProgram = True
-
-
-    if useZooFile and useModelData:
-        print('Both zoo file and model data given.')
-        print('Please choose one or the other.')
-        exitProgram = True
-
-    if not useZooFile and not useModelData:
-        print('Neither zoo file nor model data given.')
-        print('Please choose one or the other.')
-        exitProgram = True
-
-    if useZooFile: 
-
-        if nZooRuns == 0 and allZooRuns == False:
-            print('Please specify how many runs you would like from zoo file')
-            exitProgram = True
-
-        if nZooRuns > 0 and allZooRuns == True:
-            print('Please specify either all Zoo runs or a Number of zoo runs')
-            exitProgram = True
-
-        isFile = path.isfile(zooFile)
-        if not isFile:
-            print('Galaxy Zoo model file \'%s\' not found' % zooFile)
-            print('Please specify by adding \'-zooFile zooDirectory/zooFile.txt\' as command line argument')
-            exitProgram = True
-
-    if useModelData:
-        lData = len(modelData.split(','))
-        if lData != 34:
-            print( 'Model Data was not the correct format.' )
-            print( 'Expected format is 34 floating point numbers seperated by commas, no spaces')
-            exitProgram = True
-
-    return exitProgram
-
-# End read argumnets()
 
 
 # Execute everything after declaring functions
 print('')
-new_main()
+if __name__=="__main__":
+    argList = argv
+    simulator_v2( argList )
 print('')
