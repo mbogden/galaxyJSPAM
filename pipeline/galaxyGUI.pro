@@ -10,7 +10,7 @@ CONFIG += c++11
 # deprecated API in order to know how to port your code away from it.
 DEFINES += QT_DEPRECATED_WARNINGS
 
-#Undefine this for all the output you could ever need, and more!
+#Uncomment this for all the output you could ever need, and more!
 #DEFINES += DEBUG
 
 # You can also make your code fail to compile if it uses deprecated APIs.

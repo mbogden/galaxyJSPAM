@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
         std::cout << "Running in headless mode\n";
         if (argc != 4 && argc != 5)
         {
-            std::cout << "Wrong # of arguements specified.\n";
+            std::cout << "Wrong # of arguments specified.\n";
             return -1;
         }
 
