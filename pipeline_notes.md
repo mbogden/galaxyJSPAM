@@ -1,5 +1,23 @@
 # Streamline Model to Machine score process
 
+
+## Oct 8, To-Do:
+- In README.  Specify what file1, file2, file3 are.  
+
+- In code, rename "SDSS input file(s)" to "Galaxy Zoo Model file/folder"
+- In code, rename "SDSS data dir" to "SDSS Target Information folder"
+
+- Add a commandline argument for the directory I want to place all the folders.
+
+- Only create SDSS directories that have all available target information from 'Input_Data/targets' and model information 'Input_Data/zoo_models'
+
+- The code is still creating too many run folders that have empty human_scores and wins/totals.
+  - Ex.  58\*14 should only have about 1300ish run folders.  It goes into the 2800's currently when I run it. 
+
+- In GUI, I still cannot select the location for the "sdss data dir".  
+  - It pings and give erro:
+	XDG_RUNTIME_DIR not set, defaulting to '/tmp/runtime-mbo2d' qt.qpa.xcv: QXcbConnection: XCB erro: 1 (BadREquest), sequence: 167, resource id: 142, major code: 130 (Unknown), minor code: 47
+
 ## Write new code to initaliaze a model directory
 
 - Reads and processes
