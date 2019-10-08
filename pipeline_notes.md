@@ -1,25 +1,57 @@
 # Streamline Model to Machine score process
 
+## General Modifications
+- Make the following 3 programs all be callable as a main function or module for importing
+  - Ex. if __name__ == '__main__': 
 
-## Oct 8, To-Do:
-- In README.  Specify what file1, file2, file3 are.  
+## Modify simulator_v2.py 
+- Tasks
+  - Simplify command line to accept...
+	- path to run directory
+	- number of particles for each galaxy
+  - read info.txt to get model info
+  - Check if particle files of that quantity already exist in particle folder.
+	- Exit with statement if they already exist.
+  - Change active directory to particle_file folder before calling JSPAM code
+	- jspam automatically creates its files in whatever directory the program was called from
+  - Rename particle files
+	- Initial particles. From: `a\_#.000`  To: `#pts_pts.000`.  (Ex. 100000_pts.000)
+	- Final particles.   From: `a\_#.101`  To: `#pts_pts.101`.  (Ex. 20000_pts.101)
+  - Zip particle files together in one zip file named `#pts_pts.zip` (Ex. 1000_pts.zip)
+  - Delete unzipped particle files.
 
-- In code, rename "SDSS input file(s)" to "Galaxy Zoo Model file/folder"
-- In code, rename "SDSS data dir" to "SDSS Target Information folder"
 
-- Add a commandline argument for the directory I want to place all the folders.
+## Modify image_creator_v3.py ( I will likely work on this )
+- Complete simulator_v2.py modification first.
+- Tasks
+  - read info.txt for most information
+  - check for proper image_parameter_verion#. Exit if not compatible
+  - Check if model image of that image_parameter exists.  Exit if already present.
+  - Save model image and init image in 'model_images' folder.  All other images go to 'misc_images' folder.
 
-- Only create SDSS directories that have all available target information from 'Input_Data/targets' and model information 'Input_Data/zoo_models'
 
-- The code is still creating too many run folders that have empty human_scores and wins/totals.
-  - Ex.  58\*14 should only have about 1300ish run folders.  It goes into the 2800's currently when I run it. 
+## compare_v2.py
+- Tasks
+  - Retrieve Target information from info.txt
+	- target location
+	- target pixel centers
+  - Check if comparison method has already been applied to model image in scores.csv file
 
-- In GUI, I still cannot select the location for the "sdss data dir".  
-  - It pings and give erro:
-	XDG_RUNTIME_DIR not set, defaulting to '/tmp/runtime-mbo2d' qt.qpa.xcv: QXcbConnection: XCB erro: 1 (BadREquest), sequence: 167, resource id: 142, major code: 130 (Unknown), minor code: 47
+
+## Begin Building Model Pipeline Code
+- Core Pipeline
+  - Simulate 100k pts -> Image Creations -> Machine Score
+
+- Filter Pipeline ( Once filter is ready to test )
+  - Run before core.
+  - Simulate 10k pts -> apply filter
+  - If filter decides model is "good", apply basic pipeline
+
+
+
+# Completed Work!
 
 ## Write new code to initaliaze a model directory
-
 - Reads and processes
   - Zoo models @ Input_Data/zoo_models/from_site/*SDSS*.txt
   - target images and select files @ Input_Data/target_images/*SDSS*/
@@ -61,50 +93,24 @@ param_2 v2 path_to/param.txt  		( param_name version_# path_to_file )
 
 ```
 
-## General Modifications
-- Make the following 3 programs all be callable as a main function or module for importing
-  - Ex. if __name__ == '__main__': 
-
-## Modify simulator_v2.py 
-- Tasks
-  - Simplify command line to accept...
-	- path to run directory
-	- number of particles for each galaxy
-  - read info.txt to get model info
-  - Check if particle files of that quantity already exist in particle folder.
-	- Exit with statement if they already exist.
-  - Change active directory to particle_file folder before calling JSPAM code
-	- jspam automatically creates its files in whatever directory the program was called from
-  - Rename particle files
-	- Initial particles. From: `a\_#.000`  To: `#pts_pts.000`.  (Ex. 100000_pts.000)
-	- Final particles.   From: `a\_#.101`  To: `#pts_pts.101`.  (Ex. 20000_pts.101)
-  - Zip particle files together in one zip file named `#pts_pts.zip` (Ex. 1000_pts.zip)
-  - Delete unzipped particle files.
 
 
-## Modify image_creator_v3.py
-- Complete simulator_v2.py modification first.
-- Tasks
-  - read info.txt for most information
-  - check for proper image_parameter_verion#. Exit if not compatible
-  - Check if model image of that image_parameter exists.  Exit if already present.
-  - Save model image and init image in 'model_images' folder.  All other images go to 'misc_images' folder.
+## Oct 8, To-Do:
+(DONE)
+- In README.  Specify what file1, file2, file3 are.  
 
+- In code, rename "SDSS input file(s)" to "Galaxy Zoo Model file/folder"
+- In code, rename "SDSS data dir" to "SDSS Target Information folder"
 
-## compare_v2.py
-- Tasks
-  - Retrieve Target information from info.txt
-	- target location
-	- target pixel centers
-  - Check if comparison method has already been applied to model image in scores.csv file
+- Add a commandline argument for the directory I want to place all the folders.
 
+- Only create SDSS directories that have all available target information from 'Input_Data/targets' and model information 'Input_Data/zoo_models'
 
-## Begin Building Model Pipeline Code
-- Core Pipeline
-  - Simulate 100k pts -> Image Creations -> Machine Score
+- The code is still creating too many run folders that have empty human_scores and wins/totals.
+  - Ex.  58\*14 should only have about 1300ish run folders.  It goes into the 2800's currently when I run it. 
 
-- Filter Pipeline ( Once filter is ready to test )
-  - Run before core.
-  - Simulate 10k pts -> apply filter
-  - If filter decides model is "good", apply basic pipeline
+- In GUI, I still cannot select the location for the "sdss data dir".  
+  - It pings and give erro:
+	XDG_RUNTIME_DIR not set, defaulting to '/tmp/runtime-mbo2d' qt.qpa.xcv: QXcbConnection: XCB erro: 1 (BadREquest), sequence: 167, resource id: 142, major code: 130 (Unknown), minor code: 47
+
 
