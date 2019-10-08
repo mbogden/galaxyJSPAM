@@ -28,21 +28,21 @@ galaxyMainWindow::galaxyMainWindow(QWidget *parent)
         if (d2.exists("image_parameters/param_1.txt"))
         {
             IMAGE_PARAM_FILE = d2.absoluteFilePath("image_parameters/param_1.txt");
-            ui->imageDirLabel->setText("Image param file: " + IMAGE_PARAM_FILE);
+            ui->imageDirLabel->setText("Image parameter file: " + IMAGE_PARAM_FILE);
         }
 
         //Set zoo_models dir if it exists
         if (d2.exists("zoo_models"))
         {
             SDSS_MODELS_DIR = d2.absoluteFilePath("zoo_models");
-            ui->sdssFilesLabel->setText("SDSS dir: " + SDSS_MODELS_DIR);
+            ui->sdssFilesLabel->setText("Galaxy zoo models folder: " + SDSS_MODELS_DIR);
         }
 
         //Set data dir if it exists
         if (d2.exists("targets"))
         {
             SDSS_DATA_DIR = d2.absoluteFilePath("targets");
-            ui->dataDirLabel->setText("Data dir: " + SDSS_DATA_DIR);
+            ui->dataDirLabel->setText("SDSS target information folder: " + SDSS_DATA_DIR);
         }
     }
     else
@@ -74,19 +74,19 @@ void galaxyMainWindow::on_selectFilePushButton_clicked()
 
         if (fi.exists())
         {
-            ui->sdssFilesLabel->setText("SDSS file: " + fi.absoluteFilePath());
+            ui->sdssFilesLabel->setText("Galaxy zoo model file: " + fi.absoluteFilePath());
             SDSS_MODELS_DIR = fi.absoluteFilePath();
         }
         else
-            QMessageBox::information(this, "Erorr", "Selected file(s) " + fi.absoluteFilePath() + " does not exist");
+            QMessageBox::information(this, "Erorr", "Selected file " + fi.absoluteFilePath() + " does not exist");
     }
     else
     {
-        QDir d(QFileDialog::getExistingDirectory(this, "Select input dir", OURDIR.currentPath()));
+        QDir d(QFileDialog::getExistingDirectory(this, "Select input folder", OURDIR.currentPath()));
 
         if (d.exists())
         {
-            ui->sdssFilesLabel->setText("SDSS dir: " + d.absolutePath());
+            ui->sdssFilesLabel->setText("Galaxy zoo models folder: " + d.absolutePath());
             SDSS_MODELS_DIR = d.absolutePath();
         }
         else
@@ -96,15 +96,38 @@ void galaxyMainWindow::on_selectFilePushButton_clicked()
 
 void galaxyMainWindow::on_selectImageDirPushButton_clicked()
 {
-    QFileInfo f(QFileDialog::getOpenFileName(this, "Select image param file", OURDIR.currentPath()));
+    QFileInfo f(QFileDialog::getOpenFileName(this, "Select image parameter file", OURDIR.currentPath()));
 
     if (f.exists())
     {
-        ui->imageDirLabel->setText("Image param file: " + f.absoluteFilePath());
+        ui->imageDirLabel->setText("Image parameter file: " + f.absoluteFilePath());
         IMAGE_PARAM_FILE = f.absoluteFilePath();
     }
     else
-        QMessageBox::information(this, "Erorr", "Selected image param file " + f.absoluteFilePath() + " does not exist");
+        QMessageBox::information(this, "Erorr", "Selected image parameter file " + f.absoluteFilePath() + " does not exist");
+}
+
+void galaxyMainWindow::on_dataDirPushButton_clicked()
+{
+    QDir d(QFileDialog::getExistingDirectory(this, "Select SDSS target information folder", OURDIR.currentPath()));
+
+    if (d.exists())
+    {
+        ui->dataDirLabel->setText("SDSS target information folder: " + d.absolutePath());
+        SDSS_DATA_DIR = d.absolutePath();
+    }
+    else
+        QMessageBox::information(this, "Erorr", "Selected folder " + d.path() + " does not exist");
+}
+
+void galaxyMainWindow::on_selectWorkDirPushButton_clicked()
+{
+    QDir d = QFileDialog::getExistingDirectory(this, "Please select the working directory", d.currentPath());
+    if (d.exists())
+    {
+        OURDIR = d;
+        ui->workDirLabel->setText("Working dir: " + d.absolutePath());
+    }
 }
 
 //Action for the gui go button
@@ -115,9 +138,9 @@ void galaxyMainWindow::on_runSetupPushButton_clicked()
     if (!f.exists())
     {
         if (GUI)
-            QMessageBox::information(this, "Error", "Current models file/dir does not exist");
+            QMessageBox::information(this, "Error", "Current zoo models file/dir does not exist");
         else
-            qDebug() << "Current models file/dir: " + SDSS_MODELS_DIR + " does not exist";
+            qDebug() << "Current galaxy zoo models file/dir: " + SDSS_MODELS_DIR + " does not exist";
         return;
     }
 
@@ -125,9 +148,9 @@ void galaxyMainWindow::on_runSetupPushButton_clicked()
     if (!id.exists())
     {
         if (GUI)
-            QMessageBox::information(this, "Error", "Current image param file does not exist");
+            QMessageBox::information(this, "Error", "Current image parameter file does not exist");
         else
-            qDebug() << "Current image param file: " + IMAGE_PARAM_FILE + " does not exist";
+            qDebug() << "Current image parameter file: " + IMAGE_PARAM_FILE + " does not exist";
         return;
     }
 
@@ -138,7 +161,7 @@ void galaxyMainWindow::on_runSetupPushButton_clicked()
         if (GUI)
             QMessageBox::information(this, "Error", "Current sdss data dir does not exist");
         else
-            qDebug() << "Current sdss data dir: " + SDSS_DATA_DIR + " does not exist";
+            qDebug() << "Current SDSS target information folder: " + SDSS_DATA_DIR + " does not exist";
         return;
     }
 
@@ -345,7 +368,7 @@ QString galaxyMainWindow::infoFileFromLine(const QString& sdss, const QString& r
     ret += "human_score " + scoreParts.value(1) + "\n";
     ret += "wins/total " + scoreParts.value(2) + "/" + scoreParts.value(3)  + "\n";
 
-    QStringList imageData = getImageDataFromDir(sdss); //Checked before this function chain is called so gauranteed for the folder to exists, contents are not checked
+    QStringList imageData = getImageDataFromDir(sdss); //Checked before this function chain is called so guaranteed for the folder to exists, contents are not checked
     ret += "\n###  Target Image Data  ###\n";
     ret +=  imageData.value(0) + "\n";
     ret += "primary_center_1 " + imageData.value(1) + "\n";
@@ -532,12 +555,6 @@ QStringList galaxyMainWindow::getImageDataFromDir(const QString& sdss)
     }
 }
 
-void galaxyMainWindow::on_selectWorkDirPushButton_clicked()
-{
-    QDir d;
-    ui->workDirLabel->setText("Working dir: " + QFileDialog::getExistingDirectory(this, "Please select the working directory", d.currentPath()));
-}
-
 void galaxyMainWindow::runManually(QString model, QString image, QString data)
 {
     SDSS_MODELS_DIR = model;
@@ -545,4 +562,19 @@ void galaxyMainWindow::runManually(QString model, QString image, QString data)
     SDSS_DATA_DIR = data;
 
     on_runSetupPushButton_clicked();
+}
+
+//Call before you run manually, else whats the point
+bool galaxyMainWindow::setWorkDir(const QString& in)
+{
+    QDir d(in);
+
+    if (!d.exists())
+    {
+        qDebug() << "Work dir folder: " + in + " does not exist.";
+        return false;
+    }
+
+    OURDIR = d;
+    return true;
 }

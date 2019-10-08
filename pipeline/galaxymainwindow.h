@@ -17,6 +17,7 @@ public:
     ~galaxyMainWindow();
 
     void runManually(QString model, QString image, QString data);
+    bool setWorkDir(const QString& in);
     bool GUI = true;
 public slots:
     //GUI methods
@@ -49,6 +50,8 @@ private slots:
     void on_selectFilePushButton_clicked();
     void on_selectWorkDirPushButton_clicked();
     void on_selectImageDirPushButton_clicked();
+
+    void on_dataDirPushButton_clicked();
 
 private:
     Ui::galaxyMainWindow *ui;
