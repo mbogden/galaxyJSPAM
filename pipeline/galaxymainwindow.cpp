@@ -364,7 +364,7 @@ QString galaxyMainWindow::infoFileFromLine(const QString& sdss, const QString& r
     ret += "sdss_name " + sdss + "\n";
     ret += "generation " + generation + "\n";
     ret += "run_number " + run + "\n";
-    ret += "model data " + parts.value(1) + "\n";
+    ret += "model_data " + parts.value(1) + "\n";
     ret += "human_score " + scoreParts.value(1) + "\n";
     ret += "wins/total " + scoreParts.value(2) + "/" + scoreParts.value(3)  + "\n";
 
