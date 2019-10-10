@@ -1,5 +1,8 @@
 # Streamline Model to Machine score process
 
+## Oct 9 To-Do
+- Info files need to have 'model\_data' and not 'model data'
+
 ## General Modifications
 - Make the following 3 programs all be callable as a main function or module for importing
   - Ex. if __name__ == '__main__': 
