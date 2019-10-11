@@ -1,0 +1,15 @@
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>{{ galaxyName }}</title>
+    </head>
+    <body>
+        <p> Image Loc = {{ imgLoc }} </p>
+        <img src= "/static/{{ imgLoc }}" alt="Failed image load for: " {{ imgName }} style="width:400ox;height:400px;">
+        <p> "sdss name: " {{ sdss }} </p>
+        <p> "gen#: " {{ genNumber }} </p>
+        <p> "run#: " {{ runNumber }} </p>
+        <p> "human score: " {{ humanScore }} </p>
+    </body>
+</html>
