@@ -28,12 +28,15 @@ IRB course?
 
 ## Matt's To-Do
 
-- Image Creator v2
-  - Add version control to image creator and param visualization
-  - Alter brightness of galaxies seperately once luminosity is added to info.txt 
-  - Have seperate radial constants for each galaxy 
+- Image Creator v3
+
+  - Alter brightness of galaxies based on orbserved luminosities.
+	- Consider placing lum in img param file since param files should be unique as is.
+
+  - (Done) Have seperate radial constants for each galaxy 
   - (DONE) Add ability to create model image from inital particle file.
   - (DONE) Delete unzipped file
+  - (Done) Add version control to image creator and param visualization
 
 - Comparison methods
   - Check that new target info files are actual target centers

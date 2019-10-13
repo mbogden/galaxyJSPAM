@@ -123,6 +123,8 @@ def main():
 
     # Rotate and translate images to overlap
     image, target = overLapTarget( image, imgCenters, target, targetCenters) 
+    cv2.imwrite( 'target.png' , target)
+
 
     # Final check to see if images are the same size
     if image.size != target.size:

@@ -2,7 +2,7 @@
     Author:     Matthew Ogden
     Created:    20 July 2019
     Altered:    19 Sep 2019
-Description:    This program is meant to get training images for a filter
+Description:    This program is temporary get images
 '''
 
 from sys import \
@@ -15,211 +15,115 @@ from os import \
         listdir, \
         system
 
-import pandas as pd
-
-from re import findall
-
 printAll = True
 
-sdssDir = ''
-mainDir = ''
-
-nGood = 50
-nBad = 50
-
-imgDir = ''
-goodDir = 'goodImgs/'
-badDir = 'badImgs/'
-allDir = 'allImgs/'
-
+fromDir = ''
+toDir = ''
 
 def main():
-
 
     endEarly = readArg()
 
     if printAll:
-        print('mainDir : %s' % mainDir)
-        print('sdssDir : %s' % mainDir)
-        print('imgDir  : %s' % imgDir)
-        print('allDir  : %s' % imgDir)
-        print('goodDir : %s' % goodDir)
-        print('badDir  : %s' % badDir)
-        print('nGoodImg: %d' % nGood)
-        print('nBadImg : %d' % nBad)
+        print("fromDir: %s" % fromDir)
+        print("toDir: %s" % toDir)
 
     if endEarly:
         print('Exiting...')
         exit(-1)
 
-    #Create image directories if they don't exist
-    if not path.exists(goodDir):
-        print("Creating dir: %s" % goodDir)
-        system("mkdir -p %s" % goodDir)
-
-    if not path.exists(badDir):
-        print("Creating dir: %s" % badDir)
-        system("mkdir -p %s" % badDir)
-
-    if not path.exists(allDir):
-        print("Creating dir: %s" % allDir)
-        system("mkdir -p %s" % allDir)
-
-    getSdssInitImages(sdssDir)
-    
-    return 0
-'''
     print("Going through dirs:")
-    if mainDir != '':
-        allSdssDirs = listdir(mainDir)
-        for sDir in allSdssDirs:
-            sdssDir = mainDir + sDir + '/'
-            print('\t',sdssDir)
-            sdss_dir(sdssDir)
-'''
+
+    sdss_dir(fromDir)
 
 # End main
 
+def sdss_dir( fSdssDir ):
 
-def getSdssInitImages( sdssDir ):
-    print("sdssDir: %s" %  sdssDir)
+    runDirList = listdir( fSdssDir )
+    runDirList.sort()
 
-    runDirList = listdir( sdssDir )
-    parsedSdss = sdssDir.split('/')
-    sdssName = parsedSdss[5]
-
-    toFrameList = []
-
-    # get run # from dir name
     for rDir in runDirList:
+        runDir = fSdssDir + rDir + '/'
 
-        if 'run' not in rDir:
-            continue
-        
-        parsedRun = rDir.split('_')
-
-        if len(parsedRun) != 3:
-            print("ERROR.  Found: %s" % rDir)
+        if not path.exists( runDir ):
+            print("runDir doesn't exist: %s" % runDir)
             continue
 
-        toFrameList.append( [ sdssDir + rDir , int(parsedRun[2]) ] )
-        
-    # End looping through runs for #'s
-    print("\t\t Found %d runs" % len(toFrameList))
-
-    runFrame = pd.DataFrame( toFrameList, columns = ['runPath', 'runNum'] )
-
-    runFrame = runFrame.sort_values( by=['runNum'] ).reset_index()
-    for i,row in runFrame.iterrows():
-        rPath = row.runPath + '/'
-        rNum = row.runNum
-        copyInitImg( sdssName, rNum, rPath, imgDir)
-
-def copyInitImg( sdssName, rNum, rPath, toDir):
-
-    # Find images
-    rFiles = listdir(rPath)
-    
-    imgPath = ''
-
-    for rFile in rFiles:
-
-        if 'init.png' in rFile:
-            imgPath = rPath + rFile
-
-    if imgPath == '':
-        print("Error: Did not find images in: %s" % rPath)
-        return
-
-    toImgPath = toDir + '%d_init.png' % (rNum )
-    
-    print("cp %s %s" % ( imgPath, toImgPath ))
-    system("cp %s %s" % ( imgPath, toImgPath ))
-
-
-
-
-
-def sdss_dir( sdssDir ):
-
-    runDirList = listdir( sdssDir )
-    parsedSdss = sdssDir.split('/')
-    sdssName = parsedSdss[5]
-
-    toFrameList = []
-
-    # get run # from dir name
-    for rDir in runDirList:
-
-        if 'run' not in rDir:
-            continue
-        
-        parsedRun = rDir.split('_')
-
-        if len(parsedRun) != 3:
-            print("ERROR.  Found: %s" % rDir)
+        if 'run' not in runDir:
+            print("run not in dir: %s" % runDir)
             continue
 
-        toFrameList.append( [ sdssDir + rDir , int(parsedRun[2]) ] )
+        rNum = int(rDir.split('_')[2])
+        print(rNum,rDir)
+
+        run_dir( rNum, runDir )
         
-    # End looping through runs for #'s
-    print("\t\t Found %d runs" % len(toFrameList))
-
-    runFrame = pd.DataFrame( toFrameList, columns = ['runPath', 'runNum'] )
-
-    runFrame = runFrame.sort_values( by=['runNum'] ).reset_index()
-    for i,row in runFrame.iterrows():
-        rPath = row.runPath + '/'
-        rNum = row.runNum
-        copyImg( sdssName, rNum, rPath, imgDir)
-
-
-    '''
-    # Loop through top n runs for good images
-    runFrame = runFrame.sort_values( by=['runNum'] ).reset_index()
-    for i,row in runFrame.head(n=nGood).iterrows():
-        rPath = row.runPath + '/'
-        rNum = row.runNum
-        copyImg( sdssName, rNum, rPath, goodDir)
-
-    # Reverse and go through bottom n images 
-    runFrame = runFrame.sort_values(ascending=False, by=['runNum'] ).reset_index()
-    for i,row in runFrame.head(n=nGood).iterrows():
-        rPath = row.runPath + '/'
-        rNum = row.runNum
-        copyImg( sdssName, rNum, rPath, badDir)
-    '''
-
 # End sdss_dir
 
-def copyImg( sdssName, rNum, rPath, toDir):
+def run_dir(rNum, fDir):
 
-    # Find images
-    rFiles = listdir(rPath)
-    
-    diffPath = ''
+    fInfoLoc = fDir + 'info.txt'
+    fFiles = listdir( fDir )
 
-    for rFile in rFiles:
+    modelLoc = ''
+    initLoc = ''
 
-        if 'model.png' in rFile:
-            diffPath = rPath + rFile
+    for f in fFiles:
+        if 'param_2_model.png' in f:
+            modelLoc = fDir  + f
+        if 'param_2_model_init.png' in f:
+            initLoc = fDir + f
 
-    # Make sure you found both images
-    if diffPath == '':
-        print("Error: Did not find images in: %s" % rPath)
+    if modelLoc == '' or initLoc == '':
+        print("Failed to find images in: %s" % fDir)
+        print("modelLoc: %s" % modelLoc)
+        print("initLoc: %s" % initLoc)
         return
 
-    toDiffPath = toDir + '%s_%d_model.png' % (sdssName, rNum )
+    cpCmd1 = 'cp %s %s' % ( fInfoLoc, toDir + '%04d_info.txt' % rNum)
+    cpCmd2 = 'cp %s %s' % ( modelLoc, toDir + '%04d_model.png' % rNum)
+    cpCmd3 = 'cp %s %s' % ( initLoc, toDir + '%04d_init.png' % rNum)
+    system(cpCmd1)
+    system(cpCmd2)
+    system(cpCmd3)
+
+# End run dir
+
+def checkInfoFiles( fInfo, tInfo ):
+
+    fModel = ''
+    tModel = ''
+
+    for l in fInfo:
+        if 'model_data' in l:
+            fModel = l
+
+    for l in tInfo:
+        if 'model data' in l:
+            tModel = l
+
+    if fModel == '' or tModel == '':
+        print("Warning: Info files don't match")
+        print("fModel: %s" % fModel)
+        print("tModel: %s" % tModel )
+        return False
     
-    print("cp %s %s" % ( diffPath, toDiffPath ))
-    system("cp %s %s" % ( diffPath, toDiffPath ))
+    fModel = fModel.split(' ')[1].strip()
+    tModel = tModel.split(' ')[2].strip()
+
+    if fModel == tModel:
+        return True
+    else:
+        print("Warning: Info files don't match")
+        print("fModel: %s" % fModel)
+        print("tModel: %s" % tModel )
+        return False
 
 
-# end copy Img
  
 def readArg():
-
-    global printAll, mainDir, imgDir, goodDir, badDir, allDir, sdssDir
+    global printAll, fromDir, toDir 
     endEarly = False
 
     argList = argv
@@ -229,78 +133,50 @@ def readArg():
         if arg[0] != '-':
             continue
 
-        elif arg == '-argFile':
-            argFileLoc = argList[i+1]
-            argList = readArgFile( argList, argFileLoc ) 
-
         elif arg == '-noprint':
             printAll = False
 
-        elif arg == '-mainDir':
-            mainDir = argList[i+1]
+        elif arg == '-fromDir':
+            fromDir = argList[i+1]
+            if fromDir[-1] != '/':
+                fromDir += '/'
 
-        elif arg == '-sdssDir':
-            sdssDir = argList[i+1]
-
-        elif arg == '-imgDir':
-            imgDir = argList[i+1]
-            print(imgDir)
-            if imgDir[-1] != '/':
-                imgDir += '/'
-
-            goodDir = imgDir + goodDir
-            badDir  = imgDir + badDir
-            allDir  = imgDir + allDir
-
-        elif arg == '-n':
-            nLines = int( argList[i+1] )
-
-        elif arg == '-noprint':
-            noPrint = True
+        elif arg == '-toDir':
+            toDir = argList[i+1]
+            if toDir[-1] != '/':
+                toDir += '/'
 
     # Check if input arguments were valid
 
-    endEarly = False
-
-    if imgDir == '':
-        print('ERROR: \tPlease enter Image Directory')
+    if not path.exists(fromDir):
+        print('\tfromDir not found: \'%s\'' % fromDir)
         endEarly = True
 
-    if not path.exists(mainDir) and not path.exists(sdssDir):
-        print('ERROR: \tmainDir not found: \'%s\'' % mainDir)
-        print('ERROR: \tsdssDir not found: \'%s\'' % mainDir)
+    if not path.exists(toDir):
+        print('\ttoDir not found: \'%s\'' % toDir)
+        endEarly = True
 
     return endEarly
 
 # End reading command line arguments
 
+def readFile( fileLoc ):
 
-def readArgFile(argList, argFileLoc):
+    if not path.exists( fileLoc ):
+        print("File not found: %s" % fileLoc)
+        return []
 
     try:
-        argFile = open( argFileLoc, 'r')
+        fileIn = open(fileLoc,'r')
+
     except:
-        print("Failed to open/read argument file '%s'" % argFileLoc)
+        print("File failed to open: %s" % fileLoc)
+        return []
+
     else:
-
-        for l in argFile:
-            l = l.strip()
-
-            # Skip line if empty
-            if len(l) == 0:
-                continue
-
-            # Skip line if comment
-            if l[0] == '#':
-                continue
-
-            lineItems = l.split()
-            for item in lineItems:
-                argList.append(item)
-
-        # End going through file
-
-# end read argument file
+        fileContents = list(fileIn)
+        fileIn.close()
+        return fileContents
 
 # Run main after declaring functions
 main()
