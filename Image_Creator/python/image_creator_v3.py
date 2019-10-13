@@ -1,11 +1,13 @@
 '''
     Author:     Matthew Ogden
     Created:    19 July 2019
-    Altered:    18 Sep 2019
+    Altered:    11 Oct 2019
 Description:    This is my python version 3, currently the version in developement.
 
 ToDo:
     Different brightness in each galaxy
+    Integrate with new pipeline layout.
+    New image parameter file 
 '''
 
 from sys import \
@@ -22,54 +24,282 @@ import cv2
 
 # Global input variables
 printAll = True
-makeMask = False
-overwriteImage = True
-
-runDir = ''
-imageLoc = ''
-initImageLoc = ''
-saveInit = False
+overwriteImage = False
+saveInit = True
 writeDotImg = False
 
-partLoc1 = ''
-partLoc2 = ''
-zipFile1 = ''
-zipFile2 = ''
-
-infoFile = ''
-imgHeaderFound = ''
-
+runDir = ''
 paramLoc = ''
-paramInfo = ''
-paramName = ''
+nPart = 100000
 
+def image_creator_v3(argList):
 
-def new_main():
-
-
-def runImageCreator_v3( inArg ):
-
-    global imageLoc
-
-    endEarly = readArg( inArg )
+    # Read input arguments
+    endEarly = nReadArg( argList )
 
     if printAll:
-        print('runDir: %s' % runDir)
-        print('partLoc1: %s' % partLoc1)
-        print('partLoc2: %s' % partLoc2)
-        print('paramLoc: %s' % paramLoc)
-        print('paramInfo: %s' % paramInfo)
+        print('runDir       : %s' % runDir)
+        print('paramLoc     : %s' % paramLoc)
+        print('nPart        : %d' % nPart) 
 
     if endEarly:
-        exit(-1)
+        print("Exiting...")
+        return False
 
-    # Get image parameter info from param file
-    if paramLoc != '':
-        pName, gSize, gWeight, rConst, normVal, nRows, nCols = readParamFile( paramLoc ) 
+    imgParam = imageParameterClass_v3(paramLoc)
+    pV = imgParam.printVal()
+    if printAll:
+        for l in pV: print(l)
 
-    # Get image parameter info from command line
-    elif paramInfo != '':
-        pName, gSize, gWeight, rConst, normVal, nRows, nCols = paramInfo.split() 
+    if imgParam.version != 3:
+        print("Incorrect image parameter verion:")
+        print("Expecting: version 3")
+        print("Found:     version %d" % imgParam.version)
+        print("Exiting...")
+        return False
+
+    endEarly, infoLoc, pts1Loc, pts2Loc = nReadRunDir()
+    if endEarly:
+        print("Exiting...")
+        return False
+
+    g1Lum, g2Lum = getLuminosity( infoLoc )
+    if printAll: print( 'Lumisoties: %f %f' % ( g1Lum, g2Lum ) )
+    if g1Lum == 0.0 or g2Lum == 0.0:
+        endEarly = True
+        print("Exiting...")
+        return False
+
+    # Read particle files
+    g1iPart, g2iPart, iCenters = readPartFile( pts1Loc )
+    g1fPart, g2fPart, fCenters = readPartFile( pts2Loc )
+    ir1 = g1iPart[:,3]
+    ir2 = g2iPart[:,3]
+    
+    # Remove uncompressed 
+    cleanPts = True
+    if cleanPts:
+        if printAll: print('rm %s %s' % ( pts1Loc, pts2Loc ) ) 
+        system('rm %s %s' % ( pts1Loc, pts2Loc ) ) 
+
+
+    # Write model image
+
+    imgLoc = runDir + 'model_images/%s_model.png' % imgParam.name 
+
+    g1fPart, g2fPart, fCenters2 = shiftPoints( g1fPart, g2fPart, fCenters, imgParam.nRow, imgParam.nCol )
+
+    imgGal1 = addGalaxy( g1fPart, ir1, imgParam, imgParam.rConst1 )
+    imgGal1 = cv2.GaussianBlur( imgGal1, (imgParam.gSize, imgParam.gSize), imgParam.gWeight )
+
+    imgGal2 = addGalaxy( g2fPart, ir2, imgParam, imgParam.rConst2 )
+    imgGal2 = cv2.GaussianBlur( imgGal2, (imgParam.gSize, imgParam.gSize), imgParam.gWeight )
+
+    b1 = np.sum( imgGal1 )
+    b2 = np.sum( imgGal2 )
+
+    bScale = ( g1Lum / g2Lum ) * ( b2 / b1 ) 
+
+    print(bScale)
+    print('Desire: ', g1Lum/g2Lum, g1Lum, g2Lum)
+    print('Before: ', b1/b2, b1, b2)
+
+    bScale = 1
+    if bScale < 1:
+        imgGal1 *= bScale
+    else:
+        imgGal2 *= ( 1 / bScale )
+
+    b1 = np.sum( imgGal1 )
+    b2 = np.sum( imgGal2 )
+    print('Before: ', b1/b2, b1, b2)
+
+    finalImg = imgGal1 + imgGal2
+
+    # Fails terribly
+    #finalImg = cv2.normalize( finalImg, np.zeros( finalImg.shape ), 0, 255, cv2.NORM_MINMAX)
+
+    finalImg = normImg_v1( finalImg, imgParam.nVal )
+
+    cv2.imwrite( imgLoc, finalImg )
+
+
+
+    # Create unperterbed particles with inital particles relocated to final position
+    initImageLoc = runDir + 'model_images/%s_unperturbed.png' % imgParam.name
+
+
+    '''
+    # Shift galaxy 2 to where it would be in final image
+    dC = fCenters - iCenters
+    g2iPart[:,0:2] += dC[1,0:2]
+    g1iPart, g2iPart, iCenters2 = shiftPoints( g1iPart, g2iPart, fCenters, imgParam.nRow, imgParam.nCol )
+
+    imgGal1 = addGalaxy( g1iPart, imgParam, imgParam.rConst1 )
+    imgGal2 = addGalaxy( g2iPart, imgParam, imgParam.rConst2 )
+
+    dotImg = imgGal1 + imgGal2
+
+    blurImg = cv2.GaussianBlur( dotImg, (imgParam.gSize, imgParam.gSize), imgParam.gWeight )
+    normImg = cv2.normalize( blurImg, np.zeros( blurImg.shape ), 0, 255, cv2.NORM_MINMAX)
+
+    cv2.imwrite( initImageLoc, normImg )
+    '''
+
+# end image_creator_v3
+
+def addGalaxy( pts, ir, imgParam, rConst ):
+
+    if printAll: print("writing galaxy")
+
+    img = np.zeros(( imgParam.nRow, imgParam.nCol ))
+    
+    rMax = np.amax( pts[:,3] )
+
+    for i, pt in enumerate(pts):
+        x, y, z, r = pt
+        x = int(x)
+        y = int(y)
+        
+        if  x > 0 and x < imgParam.nCol \
+        and y > 0 and y < imgParam.nRow:
+            img[imgParam.nRow - y, x] += np.exp( -rConst * ir[i] / rMax )
+
+    return img
+
+
+def getLuminosity( infoLoc ):
+    
+    if printAll: print("Getting gal brightnesses")
+
+    infoFile = readFile( infoLoc )
+
+    g1Lum = 0.0
+    g2Lum = 0.0
+
+    for l in infoFile:
+        if 'primary_luminosity' in l: 
+            g1Lum = float( l.split()[1].strip() )
+
+        if 'secondary_luminosity' in l: 
+            g2Lum = float( l.split()[1].strip() )
+
+    return g1Lum, g2Lum
+
+
+def nReadRunDir():
+
+    if printAll: print("In run dir: %s" % runDir )
+
+    ptsDir = runDir + 'particle_files/'
+    imgDir = runDir + 'model_images/'
+    miscDir = runDir + 'misc_images/'
+    infoLoc = runDir + 'info.txt'
+
+    if not path.exists(ptsDir) \
+            or not path.exists(imgDir) \
+            or not path.exists(miscDir) \
+            or not path.exists(infoLoc):
+
+        print("Not all folders and files found in run directory")
+        return True, '', '', ''
+
+    ptsZip = ptsDir + '%d_pts.zip' % nPart
+
+    if not path.exists(ptsZip):
+        print("Particle zip file not found: %s" % ptsZip)
+        return True, '', '', ''
+
+    unzipCmd = "unzip -o %s -d %s" % ( ptsZip, ptsDir )
+    system(unzipCmd)
+    
+    pts1Loc = ptsDir + "%d_pts.000" % nPart
+    pts2Loc = ptsDir + "%d_pts.101" % nPart
+
+    if not path.exists(pts1Loc) or not path.exists(pts2Loc):
+        print("Can't find particle files after unzipping")
+        print("\tparticle file 1: %s" % pts1Loc)
+        print("\tparticle file 2: %s" % pts2Loc)
+        return True, '', '', ''
+
+
+    if printAll:
+        print("\tinfoLoc: %s" % infoLoc)
+        print("\tpts1Loc: %s" % pts1Loc)
+        print("\tpts2Loc: %s" % pts2Loc)
+
+    return False, infoLoc, pts1Loc, pts2Loc
+
+# End Reading run Folder
+
+
+def nReadArg( argList ):
+
+    global printAll, overWrite, runDir, writeDotImg, nPart, paramLoc
+
+    for i,arg in enumerate(argList):
+
+        if arg[0] != '-':
+            continue
+
+        elif arg == '-argFile':
+            argFileLoc = argList[i+1]
+            argList = readArgFile( argList, argFileLoc ) 
+
+        elif arg == '-noprint':
+            printAll = False
+
+        elif arg == '-overwrite':
+            overwrite = True
+
+        elif arg == '-runDir':
+            runDir = argList[i+1]
+            if runDir[-1] != '/':
+                runDir = runDir + '/'
+
+        elif arg == '-paramLoc':
+            paramLoc = argList[i+1]
+
+        elif arg == '-dotImg':
+            writeDotImg = True
+
+        elif arg == '-init':
+            saveInit = True
+
+        elif arg == '-nPart':
+            nPart = argList[i+1]
+            try:
+                nPart = int( nPart)
+            except:
+                print("Number of particles not recognized as integer: %s" % nPart) 
+
+    # Check if input arguments were valid
+    endEarly = False
+    
+    if runDir == '':
+        print('No run directory given')
+        endEarly = True
+
+    elif not path.exists(runDir):
+        print('Run directory \'%s\' not found')
+        endEarly = True
+
+    if paramLoc == '':
+        print("No image parameter file given.")
+        endEarly = True
+
+    elif not path.exists(paramLoc):
+        print("Image parameter file not found: %s" % paramLoc)
+        endEarly = True
+    
+
+    return endEarly
+
+# End reading command line arguments
+
+
+
+def image_creator_v2( inArg ):
 
     g1iPart, g2iPart, iCenters = readPartFile( partLoc1 )
     g1fPart, g2fPart, fCenters = readPartFile( partLoc2 )
@@ -79,8 +309,7 @@ def runImageCreator_v3( inArg ):
         imageLoc = runDir + '%s_model.png' % pName
 
 
-    if printAll:
-        print("Saving image at %s" % imageLoc)
+    if printAll: print("Saving image at %s" % imageLoc)
 
     g1fPart, g2fPart, fCenters2 = shiftPoints( g1fPart, g2fPart, fCenters, nRows, nCols )
 
@@ -91,7 +320,7 @@ def runImageCreator_v3( inArg ):
     dotImg = addParticles( g1fPart, g2fPart, nRows, nCols, g1iPart[:,3], g2iPart[:,3], rConst )
 
     if writeDotImg:
-        dotNormImg = normImg_v0( dotImg, normVal )
+        dotNormImg = normImg_v1( dotImg, normVal )
         #dotNormImg = cv2.normalize( dotImg, np.zeros( dotImg.shape ), 0, 255, cv2.NORM_MINMAX)
         cv2.imwrite( runDir + '%s_dot.png' % pName, dotNormImg )
 
@@ -103,7 +332,7 @@ def runImageCreator_v3( inArg ):
     if False:
         normImg = cv2.normalize( blurImg, np.zeros( blurImg.shape ), 0, 255, cv2.NORM_MINMAX)
     else:
-        normImg = normImg_v0( blurImg, normVal )
+        normImg = normImg_v1( blurImg, normVal )
 
     # Write image
     cv2.imwrite( imageLoc, normImg )
@@ -124,7 +353,7 @@ def runImageCreator_v3( inArg ):
         dotImg = addParticles( g1iPart2, g2iPart2, nRows, nCols, g1iPart[:,3], g2iPart[:,3], rConst )
 
         blurImg = cv2.GaussianBlur( dotImg, (gSize, gSize), gWeight )
-        normImg2 = normImg_v0( blurImg, normVal )
+        normImg2 = normImg_v1( blurImg, normVal )
         initDiffImg = np.abs( normImg2 - normImg )
 
         cv2.imwrite( initImageLoc, normImg2 )
@@ -146,44 +375,12 @@ def cleanUpDir():
     # delete unziped files
 
 
-def normImg_v0( img, nVal ):
+def normImg_v1( img, nVal ):
 
     maxVal = np.max( img )
-
     normImg = (img/maxVal)**(1/nVal)
-
     return normImg*255
 # End normImg
-
-
-def writeParamInfo( infoLoc, pName, centers ):
-
-    # Check if info
-    if not path.isfile( infoLoc ):
-        return
-    
-    else:
-        infoFile = open( infoLoc, 'r' )
-        infoList = list( infoFile )
-        infoFile.close()
-
-    foundHeader = False
-
-    for line in infoList:
-        l = line.strip()
-
-        if 'Image Creator Information' in l:
-            foundHeader = True
-
-    infoFile = open( infoLoc, 'a' )
-    if not foundHeader:
-        infoFile.write('Image Creator Information\n')
-
-    infoFile.write( '%s %d %d %d %d\n' % \
-        ( pName, centers[0,0], centers[0,1], centers[1,0], centers[1,1] ))
-    infoFile.close()
-
-# End write to info file
 
 
 
@@ -287,89 +484,10 @@ def shiftPoints( g1P, g2P, gC_in, nRows, nCols ):
 
 # end shift Points
 
-
-def readParamFile( paramLoc ):
-
-    if printAll:
-        print('Reading image parameter file %s'%paramLoc)
-
-    try:
-        pFile = open( paramLoc, 'r')
-        pList = list( pFile )
-        pFile.close()
-    except:
-        print('Failed to read iamge parameter file %s' % paramLoc)
-        exit(-1)
-
-    pName = ''
-    gSize = ''
-    gWeight = ''
-    rConts = ''
-    normVal = ''
-    nRows = ''
-    nCols = ''
-
-    for l in pList:
-        l = l.strip()
-        #print(l)
-
-        if len(l) == 0:
-            continue
-        elif l[0] == '#':
-            continue
-
-        if 'parameter_name' in l:
-            if printAll:
-                print('Found %s'%l)
-            pName = l.split()[1]
-        
-        elif 'gaussian_size' in l:
-            if printAll:
-                print('Found %s'%l)
-            gSize = int(l.split()[1])
-
-        elif 'gaussian_weight' in l:
-            if printAll:
-                print('Found %s'%l)
-            gWeight = float(l.split()[1])
-
-        elif 'radial_constant' in l:
-            if printAll:
-                print('Found %s'%l)
-            rConst = float(l.split()[1])
-
-        elif 'norm_value' in l:
-            if printAll:
-                print('Found %s'%l)
-            normVal = float(l.split()[1])
-
-        elif 'image_rows' in l:
-            if printAll:
-                print('Found %s'%l)
-            nRows = int(l.split()[1])
-
-        elif 'image_cols' in l:
-            if printAll:
-                print('Found %s'%l)
-            nCols = int(l.split()[1])
-
-
-    endEarly = False
-    if printAll:
-        print('%s,%f,%f,%f,%f,%d,%d'%(pName, gSize, gWeight, rConst, normVal, nRows, nCols) )
-
-    try:
-        return pName, gSize, gWeight, rConst, normVal,nRows, nCols 
-    except:
-        print("Failed to retrieve all parameters from file")
-        exit(-1)
-
-# End read param file
-
 def readPartFile( pLoc ):
     
     if printAll:
-        print('Reading particle file %s'%pLoc)
+        print('Reading particle file: %s'%pLoc)
 
     try:
         pFile = open( pLoc, 'r' )
@@ -418,147 +536,6 @@ def readPartFile( pLoc ):
     
 # end read particle file    
 
-def new_readArg():
-
-    global printAll, overWrite, runDir
-    global paramLoc, partZip
-
-
-def readArg( inArg ):
-
-    global printAll, makeMask, imageLoc, overwrite, runDir
-    global infoLoc, paramLoc, partLoc1, partLoc2, paramInfo
-    global keepZip, writeDotImg, saveInit
-
-    # If input arguments is empty, read from command line as main
-    if len( inArg ) == 0:
-        argList = argv
-
-    # For importing image_creator_v5 as a python module
-    else:
-        argList = inArg
-
-    for i,arg in enumerate(argList):
-
-        if arg[0] != '-':
-            continue
-
-        elif arg == '-argFile':
-            argFileLoc = argList[i+1]
-            argList = readArgFile( argList, argFileLoc ) 
-
-        elif arg == '-noprint':
-            printAll = False
-
-        elif arg == '-mask':
-            makeMask = True
-
-        elif arg == '-overwrite':
-            overwrite = True
-
-        elif arg == '-runDir':
-            runDir = argList[i+1]
-            if runDir[-1] != '/':
-                runDir = runDir + '/'
-            readRunDir(runDir)
-
-        elif arg == '-paramLoc':
-            paramLoc = argList[i+1]
-
-        elif arg == '-imageLoc':
-            imageLoc = argList[i+1]
-
-        elif arg == '-dotImg':
-            writeDotImg = True
-
-        elif arg == '-initial':
-            saveInit = True
-
-
-    # Check if input arguments were valid
-    endEarly = False
-    
-    if runDir == '':
-        print('No run directory given')
-    elif not path.exists(runDir):
-        print('Run directory \'%s\' not found')
-        endEarly = True
-
-    if not path.isfile(partLoc1) or not path.isfile(partLoc2):
-        print('Could not find particle files')
-        endEarly = True
-
-    if paramLoc == '' and paramInfo == '':
-        print('Please specify image parameter location or information')
-        endEarly = True
-
-    if not path.isfile(paramLoc):
-        print('Parameter file not found at: %s' % paramLoc)
-
-# End reading command line arguments
-
-def readRunDir( runDir ):
-    global partLoc1, partLoc2, infoLoc, zipFile1, zipFile2
-
-    zipFile1 = ''
-    zipFile2 = ''
-
-    try:
-        dirList = listdir( runDir)
-
-    except:
-        print("Run directory '%s' not found" % runDir)
-        return
-
-    else:
-        
-        for f in dirList:
-            fPath = runDir + f
-
-            if 'info' in f:
-                infoLoc = fPath
-
-            elif '.000' in f:
-                partLoc1 = fPath
-
-            elif '.101' in f:
-                partLoc2 = fPath
-
-            elif '000.zip' in f:
-                zipFile1 = fPath
-
-            elif '101.zip' in f:
-                zipFile2 = fPath
-
-        # End loop through run files
-        
-        if partLoc1 == '' and zipFile1 != '':
-            unzip = 'unzip -d %s -o %s' % (runDir, zipFile1)
-            system(unzip)
-
-            dirList = listdir( runDir)
-            # Find particle file
-            for f in dirList:
-                print(f)
-                if '.000' in f:
-                    fPath = runDir + f
-                    partLoc1 = fPath
-
-
-
-        if partLoc2 == '' and zipFile2 != '':
-            unzip = 'unzip -d %s -o %s' % (runDir, zipFile2)
-            system(unzip)
-
-            dirList = listdir( runDir)
-            for f in dirList:
-                if '.101' in f:
-                    fPath = runDir + f
-                    partLoc2 = fPath
-
-# End read run dir
-
-
 def readArgFile(argList, argFileLoc):
 
     try:
@@ -581,10 +558,162 @@ def readArgFile(argList, argFileLoc):
             lineItems = l.split()
             for item in lineItems:
                 argList.append(item)
+
         # End going through file
+
 # end read argument file
+
+def readFile( fileLoc ):
+
+    if not path.isfile( fileLoc ):
+        print("File does not exist: %s" % fileLoc)
+        return []
+    
+    try:
+        inFile = open( fileLoc, 'r' )
+
+    except:
+        print('Failed to open/read file at \'%s\'' % fileLoc)
+        return []
+
+    else:
+        inList = list(inFile)
+        inFile.close()
+        return inList
+
+# End simple read file
+
+
+# Define image parameter class
+class imageParameterClass_v3:
+
+    def __init__(self, pInLoc):
+
+        self.status     = 'starting'
+        self.gCenter    = np.zeros((2,2))   # [[ x1, x2 ] 
+        self.comment    = 'blank comment'
+
+        self.readParamFile(pInLoc)
+
+    # end init
+
+    def readParamFile(self, pInLoc):
+
+        if not path.exists(pInLoc):
+            print("Image parameter file not found: %s" % pInLoc)
+            self.status = 'bad'
+            return 
+
+        try:
+            paramFile = open(pInLoc,'r')
+
+        except:
+            print("Failed to open image parameter file: %s" % pInLoc)
+            self.status = 'bad'
+            return 
+
+        else:
+            pFile = list( paramFile )
+            paramFile.close()
+
+
+        for line in pFile:
+            l = line.strip()
+            if len(l) == 0:
+                continue
+            
+            if l[0] == '#':
+                self.comment = l
+            
+            pL = l.split(' ')
+
+            if pL[0] == 'parameter_name':
+                self.name = pL[1] 
+
+            elif pL[0] == 'version':
+                self.version = int(pL[1])   
+
+            elif pL[0] == 'gaussian_size':
+                self.gSize = int(pL[1])   
+
+            elif pL[0] == 'gaussian_weight':
+                self.gWeight = float(pL[1])   
+
+            elif pL[0] == 'radial_constant1':
+                self.rConst1 = float(pL[1])   
+
+            elif pL[0] == 'radial_constant2':
+                self.rConst2 = float(pL[1])   
+
+            elif pL[0] == 'brightness_constant':
+                self.bConst = float(pL[1]) 
+
+            elif pL[0] == 'norm_value':
+                self.nVal = float(pL[1]) 
+
+            elif pL[0] == 'image_rows':
+                self.nRow = int(pL[1]) 
+
+            elif pL[0] == 'image_cols':
+                self.nCol = int(pL[1]) 
+
+            elif pL[0] == 'galaxy1_center':
+                self.gCenter[0,0] = int(pL[1])
+                self.gCenter[1,0] = int(pL[2])
+
+            elif pL[0] == 'galaxy2_center':
+                self.gCenter[0,1] = int(pL[1])
+                self.gCenter[1,1] = int(pL[2])
+
+    # end read param file
+
+    def printVal(self):
+
+        printList = []
+
+        printList.append(' Name                    : %s' % self.name)
+        printList.append(' Version                 : %s' % self.version)
+        printList.append(' Comment                 : %s' % self.comment)
+        printList.append(' Gaussian size           : %d' % self.gSize)
+        printList.append(' Gaussian weight         : %f' % self.gWeight)
+        printList.append(' Radial constant1        : %f' % self.rConst1)
+        printList.append(' Radial constant2        : %f' % self.rConst2)
+        printList.append(' Brightness constant     : %f' % self.bConst)
+        printList.append(' Normalization constant  : %f' % self.nVal)
+        printList.append(' Number of rows          : %d' % self.nRow)
+        printList.append(' Number of columns       : %d' % self.nCol)
+        printList.append(' Galaxy 1 center         : %d %d' % ( int(self.gCenter[0,0]), int(self.gCenter[0,1]) ))
+        printList.append(' Galaxy 2 center         : %d %d' % ( int(self.gCenter[1,0]), int(self.gCenter[1,1]) ))
+
+        return printList
+    # end print
+
+    def writeParam(self, saveLoc):
+        try:
+            pFile = open(saveLoc,'w')
+        except:
+            print('Failed to create: %s' % saveLoc)
+        else:
+            pFile.write('parameter_name %s\n' % self.name)
+            pFile.write('# %s\n\n' % self.comment)
+            pFile.write('gaussian_size %d\n' % self.gSize)
+            pFile.write('gaussian_weight %f\n' % self.gWeight)
+            pFile.write('radial_constant1 %f\n' % self.rConst1)
+            pFile.write('radial_constant2 %f\n' % self.rConst2)
+            pFile.write('brightness_constant %f\n' % self.bConst)
+            pFile.write('norm_value %f\n' % self.nVal)
+            pFile.write('image_rows %d\n' % self.nRow)
+            pFile.write('image_cols %d\n' % self.nCol)
+            pFile.write('galaxy_1_center %d %d\n' % ( int(self.gCenter[0,0]), int(self.gCenter[0,1]) ))
+            pFile.write('galaxy_2_center %d %d\n' % ( int(self.gCenter[1,0]), int(self.gCenter[1,1]) ))
+            pFile.close()
+
+
+# End parameter class
 
 # Run main after declaring functions
 if __name__ == "__main__":
     #new_main()
-    runImageCreator_v3( [] )
+    argList = argv
+    image_creator_v3( argList )
+
