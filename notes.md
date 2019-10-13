@@ -33,6 +33,9 @@ IRB course?
   - Alter brightness of galaxies based on orbserved luminosities.
 	- Consider placing lum in img param file since param files should be unique as is.
 
+  - initial and model images have noticably different brightnesses.  
+	- May have something to do how the image is normalized...
+
   - (Done) Have seperate radial constants for each galaxy 
   - (DONE) Add ability to create model image from inital particle file.
   - (DONE) Delete unzipped file
