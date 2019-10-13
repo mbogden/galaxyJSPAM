@@ -226,11 +226,6 @@ def new_readArg(argList):
 # End new_readArg
 
 
-
-
-
-
-
 # Execute everything after declaring functions
 print('')
 if __name__=="__main__":
