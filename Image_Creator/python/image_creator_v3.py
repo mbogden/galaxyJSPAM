@@ -70,6 +70,8 @@ def image_creator_v3(argList):
         print("Exiting...")
         return False
 
+    bRatio = g1Lum/g2Lum
+
     # Read particle files
     g1iPart, g2iPart, iCenters = readPartFile( pts1Loc )
     g1fPart, g2fPart, fCenters = readPartFile( pts2Loc )
@@ -85,75 +87,56 @@ def image_creator_v3(argList):
 
     # Write model image
 
-    imgLoc = runDir + 'model_images/%s_model.png' % imgParam.name 
-
     g1fPart, g2fPart, fCenters2 = shiftPoints( g1fPart, g2fPart, fCenters, imgParam.nRow, imgParam.nCol )
 
-    imgGal1 = addGalaxy( g1fPart, ir1, imgParam, imgParam.rConst1 )
+    modelImg = createImg( g1fPart, g2fPart, ir1, ir2, bRatio, imgParam )
+    imgLoc = runDir + 'model_images/%s_model.png' % imgParam.name 
+    cv2.imwrite( imgLoc, modelImg )
+
+
+    # Create unperterbed image from initial points moved to final location
+
+    dC = fCenters - iCenters
+    g2iPart[:,0:2] += dC[1,0:2]
+    g1iPart, g2iPart, iCenters2 = shiftPoints( g1iPart, g2iPart, fCenters, imgParam.nRow, imgParam.nCol )
+
+    initImg = createImg( g1iPart, g2iPart, ir1, ir2, bRatio, imgParam )
+    initImageLoc = runDir + 'model_images/%s_init.png' % imgParam.name
+    cv2.imwrite( initImageLoc, initImg )
+
+# end image_creator_v3
+
+def createImg( g1Pts, g2Pts, ir1, ir2, bRatio, imgParam ):
+
+    imgGal1 = addGalaxy( g1Pts, ir1, imgParam, imgParam.rConst1 )
     imgGal1 = cv2.GaussianBlur( imgGal1, (imgParam.gSize, imgParam.gSize), imgParam.gWeight )
 
-    imgGal2 = addGalaxy( g2fPart, ir2, imgParam, imgParam.rConst2 )
+    imgGal2 = addGalaxy( g2Pts, ir2, imgParam, imgParam.rConst2 )
     imgGal2 = cv2.GaussianBlur( imgGal2, (imgParam.gSize, imgParam.gSize), imgParam.gWeight )
 
     b1 = np.sum( imgGal1 )
     b2 = np.sum( imgGal2 )
 
-    bScale = ( g1Lum / g2Lum ) * ( b2 / b1 ) 
+    bScale = bRatio * b2 / b1 
 
-    print(bScale)
-    print('Desire: ', g1Lum/g2Lum, g1Lum, g2Lum)
-    print('Before: ', b1/b2, b1, b2)
-
-    bScale = 1
     if bScale < 1:
         imgGal1 *= bScale
     else:
         imgGal2 *= ( 1 / bScale )
 
-    b1 = np.sum( imgGal1 )
-    b2 = np.sum( imgGal2 )
-    print('Before: ', b1/b2, b1, b2)
-
     finalImg = imgGal1 + imgGal2
 
-    # Fails terribly
     #finalImg = cv2.normalize( finalImg, np.zeros( finalImg.shape ), 0, 255, cv2.NORM_MINMAX)
 
     finalImg = normImg_v1( finalImg, imgParam.nVal )
+    
+    return finalImg
 
-    cv2.imwrite( imgLoc, finalImg )
-
-
-
-    # Create unperterbed particles with inital particles relocated to final position
-    initImageLoc = runDir + 'model_images/%s_unperturbed.png' % imgParam.name
-
-
-    '''
-    # Shift galaxy 2 to where it would be in final image
-    dC = fCenters - iCenters
-    g2iPart[:,0:2] += dC[1,0:2]
-    g1iPart, g2iPart, iCenters2 = shiftPoints( g1iPart, g2iPart, fCenters, imgParam.nRow, imgParam.nCol )
-
-    imgGal1 = addGalaxy( g1iPart, imgParam, imgParam.rConst1 )
-    imgGal2 = addGalaxy( g2iPart, imgParam, imgParam.rConst2 )
-
-    dotImg = imgGal1 + imgGal2
-
-    blurImg = cv2.GaussianBlur( dotImg, (imgParam.gSize, imgParam.gSize), imgParam.gWeight )
-    normImg = cv2.normalize( blurImg, np.zeros( blurImg.shape ), 0, 255, cv2.NORM_MINMAX)
-
-    cv2.imwrite( initImageLoc, normImg )
-    '''
-
-# end image_creator_v3
+# end create Img
 
 def addGalaxy( pts, ir, imgParam, rConst ):
 
-    if printAll: print("writing galaxy")
-
     img = np.zeros(( imgParam.nRow, imgParam.nCol ))
-    
     rMax = np.amax( pts[:,3] )
 
     for i, pt in enumerate(pts):
@@ -210,7 +193,7 @@ def nReadRunDir():
         print("Particle zip file not found: %s" % ptsZip)
         return True, '', '', ''
 
-    unzipCmd = "unzip -o %s -d %s" % ( ptsZip, ptsDir )
+    unzipCmd = "unzip -qq -o %s -d %s" % ( ptsZip, ptsDir )
     system(unzipCmd)
     
     pts1Loc = ptsDir + "%d_pts.000" % nPart
