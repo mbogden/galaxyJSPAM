@@ -32,10 +32,10 @@ runDir = ''
 paramLoc = ''
 nPart = 100000
 
-def image_creator_v3(argList):
+def image_creator_pl_v1(argList):
 
     # Read input arguments
-    endEarly = nReadArg( argList )
+    endEarly = readArg( argList )
 
     if printAll:
         print('runDir       : %s' % runDir)
@@ -58,18 +58,18 @@ def image_creator_v3(argList):
         print("Exiting...")
         return False
 
-    endEarly, infoLoc, pts1Loc, pts2Loc = nReadRunDir()
+    endEarly, infoLoc, pts1Loc, pts2Loc = readRunDir()
     if endEarly:
         print("Exiting...")
         return False
 
+    # Get luminosity ratio
     g1Lum, g2Lum = getLuminosity( infoLoc )
     if printAll: print( 'Lumisoties: %f %f' % ( g1Lum, g2Lum ) )
     if g1Lum == 0.0 or g2Lum == 0.0:
         endEarly = True
         print("Exiting...")
         return False
-
     bRatio = g1Lum/g2Lum
 
     # Read particle files
@@ -78,7 +78,7 @@ def image_creator_v3(argList):
     ir1 = g1iPart[:,3]
     ir2 = g2iPart[:,3]
     
-    # Remove uncompressed 
+    # Remove uncompressed particles files after being read
     cleanPts = True
     if cleanPts:
         if printAll: print('rm %s %s' % ( pts1Loc, pts2Loc ) ) 
@@ -86,7 +86,6 @@ def image_creator_v3(argList):
 
 
     # Write model image
-
     g1fPart, g2fPart, fCenters2 = shiftPoints( g1fPart, g2fPart, fCenters, imgParam.nRow, imgParam.nCol )
 
     modelImg = createImg( g1fPart, g2fPart, ir1, ir2, bRatio, imgParam )
@@ -170,7 +169,7 @@ def getLuminosity( infoLoc ):
     return g1Lum, g2Lum
 
 
-def nReadRunDir():
+def readRunDir():
 
     if printAll: print("In run dir: %s" % runDir )
 
@@ -216,7 +215,7 @@ def nReadRunDir():
 # End Reading run Folder
 
 
-def nReadArg( argList ):
+def readArg( argList ):
 
     global printAll, overWrite, runDir, writeDotImg, nPart, paramLoc
 
@@ -281,118 +280,12 @@ def nReadArg( argList ):
 # End reading command line arguments
 
 
-
-def image_creator_v2( inArg ):
-
-    g1iPart, g2iPart, iCenters = readPartFile( partLoc1 )
-    g1fPart, g2fPart, fCenters = readPartFile( partLoc2 )
-
-
-    if imageLoc == '':
-        imageLoc = runDir + '%s_model.png' % pName
-
-
-    if printAll: print("Saving image at %s" % imageLoc)
-
-    g1fPart, g2fPart, fCenters2 = shiftPoints( g1fPart, g2fPart, fCenters, nRows, nCols )
-
-    if True:
-        simpleWriteImg( runDir + 'simple.png', g1fPart, g2fPart, nRows, nCols )
-
-    # Add particles to image
-    dotImg = addParticles( g1fPart, g2fPart, nRows, nCols, g1iPart[:,3], g2iPart[:,3], rConst )
-
-    if writeDotImg:
-        dotNormImg = normImg_v1( dotImg, normVal )
-        #dotNormImg = cv2.normalize( dotImg, np.zeros( dotImg.shape ), 0, 255, cv2.NORM_MINMAX)
-        cv2.imwrite( runDir + '%s_dot.png' % pName, dotNormImg )
-
-    # Perform gaussian blur
-    blurImg = cv2.GaussianBlur( dotImg, (gSize, gSize), gWeight )
-    #blurImg = cv2.bilateralFilter( dotImg, int(gWeight), gSize, gSize )
-
-    # Normalize brightness to image format
-    if False:
-        normImg = cv2.normalize( blurImg, np.zeros( blurImg.shape ), 0, 255, cv2.NORM_MINMAX)
-    else:
-        normImg = normImg_v1( blurImg, normVal )
-
-    # Write image
-    cv2.imwrite( imageLoc, normImg )
-    writeParamInfo( infoLoc, pName, fCenters2 )
-
-    if saveInit:
-
-        print("Saving Shifted Initial Particle Image")
-        initImageLoc = runDir + '%s_model_init.png' % pName
-        initDiffLoc = runDir + '%s_model_init_diff.png' % pName
-
-        # Shift galaxy 2 to where it would be in final image
-        dC = fCenters - iCenters
-        for i in range(g2iPart.shape[0]):
-            g2iPart[i,0:2] += dC[1,0:2]
-
-        g1iPart2, g2iPart2, iCenters2 = shiftPoints( g1iPart, g2iPart, fCenters, nRows, nCols )
-        dotImg = addParticles( g1iPart2, g2iPart2, nRows, nCols, g1iPart[:,3], g2iPart[:,3], rConst )
-
-        blurImg = cv2.GaussianBlur( dotImg, (gSize, gSize), gWeight )
-        normImg2 = normImg_v1( blurImg, normVal )
-        initDiffImg = np.abs( normImg2 - normImg )
-
-        cv2.imwrite( initImageLoc, normImg2 )
-        cv2.imwrite( initDiffLoc, initDiffImg )
-
-    cleanUpDir()
-    # End saving inital particles
-
-# End main
-
-def cleanUpDir():
-
-    if path.exists(zipFile1):
-        system("rm %s" % partLoc1)
-
-    if path.exists(zipFile2):
-        system("rm %s" % partLoc2)
-
-    # delete unziped files
-
-
 def normImg_v1( img, nVal ):
 
     maxVal = np.max( img )
     normImg = (img/maxVal)**(1/nVal)
     return normImg*255
 # End normImg
-
-
-
-def addParticles( g1P, g2P, nRows, nCols, g1r, g2r, rConst ):
-
-    rawDotImg = np.zeros(( nRows, nCols ))
-
-    g1rMax = np.amax( g1r )
-    g2rMax = np.amax( g2r )
-
-    for i,point in enumerate(g1P):
-        x, y, z, r = point
-        px = int(x)
-        py = int(y)
-        if px > 0 and px < nCols and py > 0 and py < nRows:
-            rawDotImg[nRows-py,px] += np.exp( -rConst * g1r[i] / g1rMax )  
-
-
-    for i,point in enumerate(g2P):
-        x, y, z, r = point
-        px = int(x)
-        py = int(y)
-        if px > 0 and px < nCols and py > 0 and py < nRows:
-            rawDotImg[nRows-py,px] += np.exp( -rConst * g2r[i] / g2rMax )  
-
-    return np.float32(rawDotImg)
-
-# End adding points to image
-
 
 
 def simpleWriteImg( iLoc, g1P, g2P, nRows, nCols ):
@@ -519,32 +412,6 @@ def readPartFile( pLoc ):
     
 # end read particle file    
 
-def readArgFile(argList, argFileLoc):
-
-    try:
-        argFile = open( argFileLoc, 'r')
-    except:
-        print("Failed to open/read argument file '%s'" % argFileLoc)
-    else:
-
-        for l in argFile:
-            l = l.strip()
-
-            # Skip line if comment
-            if l[0] == '#':
-                continue
-
-            # Skip line if empty
-            if len(l) == 0:
-                continue
-
-            lineItems = l.split()
-            for item in lineItems:
-                argList.append(item)
-
-        # End going through file
-
-# end read argument file
 
 def readFile( fileLoc ):
 
@@ -671,6 +538,7 @@ class imageParameterClass_v3:
         return printList
     # end print
 
+    # Not complete
     def writeParam(self, saveLoc):
         try:
             pFile = open(saveLoc,'w')
@@ -690,13 +558,13 @@ class imageParameterClass_v3:
             pFile.write('galaxy_1_center %d %d\n' % ( int(self.gCenter[0,0]), int(self.gCenter[0,1]) ))
             pFile.write('galaxy_2_center %d %d\n' % ( int(self.gCenter[1,0]), int(self.gCenter[1,1]) ))
             pFile.close()
-
+    # end write param
 
 # End parameter class
 
 # Run main after declaring functions
 if __name__ == "__main__":
-    #new_main()
     argList = argv
-    image_creator_v3( argList )
+    image_creator_pl_v1( argList )
+
 
