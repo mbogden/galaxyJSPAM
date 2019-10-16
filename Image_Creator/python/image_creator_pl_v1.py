@@ -5,9 +5,7 @@
 Description:    This is my python version 3, currently the version in developement.
 
 ToDo:
-    Different brightness in each galaxy
-    Integrate with new pipeline layout.
-    New image parameter file 
+    Check if image already exists
 '''
 
 from sys import \
@@ -24,13 +22,13 @@ import cv2
 
 # Global input variables
 printAll = True
-overwriteImage = False
-saveInit = True
 writeDotImg = False
+overWriteImg = False
 
 runDir = ''
 paramLoc = ''
 nPart = 100000
+
 
 def image_creator_pl_v1(argList):
 
@@ -46,64 +44,103 @@ def image_creator_pl_v1(argList):
         print("Exiting...")
         return False
 
-    imgParam = imageParameterClass_v3(paramLoc)
-    pV = imgParam.printVal()
-    if printAll:
-        for l in pV: print(l)
+    endEarly, runData = getRunData()
 
-    if imgParam.version != 3:
-        print("Incorrect image parameter verion:")
-        print("Expecting: version 3")
-        print("Found:     version %d" % imgParam.version)
-        print("Exiting...")
-        return False
-
-    endEarly, infoLoc, pts1Loc, pts2Loc = readRunDir()
     if endEarly:
         print("Exiting...")
         return False
 
-    # Get luminosity ratio
-    g1Lum, g2Lum = getLuminosity( infoLoc )
-    if printAll: print( 'Lumisoties: %f %f' % ( g1Lum, g2Lum ) )
-    if g1Lum == 0.0 or g2Lum == 0.0:
-        endEarly = True
-        print("Exiting...")
-        return False
-    bRatio = g1Lum/g2Lum
-
     # Read particle files
-    g1iPart, g2iPart, iCenters = readPartFile( pts1Loc )
-    g1fPart, g2fPart, fCenters = readPartFile( pts2Loc )
+    g1iPart, g2iPart, iCenters = readPartFile( runData.pts1Loc )
+    g1fPart, g2fPart, fCenters = readPartFile( runData.pts2Loc )
     ir1 = g1iPart[:,3]
     ir2 = g2iPart[:,3]
     
     # Remove uncompressed particles files after being read
     cleanPts = True
     if cleanPts:
-        if printAll: print('rm %s %s' % ( pts1Loc, pts2Loc ) ) 
-        system('rm %s %s' % ( pts1Loc, pts2Loc ) ) 
+        if printAll: print('rm %s %s' % ( runData.pts1Loc, runData.pts2Loc ) ) 
+        system('rm %s %s' % ( runData.pts1Loc, runData.pts2Loc ) ) 
+
+    # Create and save model image
+    g1fPart, g2fPart, fCenters2 = shiftPoints( g1fPart, g2fPart, fCenters, runData.imgParam.nRow, runData.imgParam.nCol )
+
+    modelImg = createImg( g1fPart, g2fPart, ir1, ir2, runData.bRatio, runData.imgParam )
+    cv2.imwrite( runData.modelLoc, modelImg )
 
 
-    # Write model image
-    g1fPart, g2fPart, fCenters2 = shiftPoints( g1fPart, g2fPart, fCenters, imgParam.nRow, imgParam.nCol )
-
-    modelImg = createImg( g1fPart, g2fPart, ir1, ir2, bRatio, imgParam )
-    imgLoc = runDir + 'model_images/%s_model.png' % imgParam.name 
-    cv2.imwrite( imgLoc, modelImg )
-
-
-    # Create unperterbed image from initial points moved to final location
-
+    # Create and save unperterbed image from initial points moved to final location
     dC = fCenters - iCenters
     g2iPart[:,0:2] += dC[1,0:2]
-    g1iPart, g2iPart, iCenters2 = shiftPoints( g1iPart, g2iPart, fCenters, imgParam.nRow, imgParam.nCol )
 
-    initImg = createImg( g1iPart, g2iPart, ir1, ir2, bRatio, imgParam )
-    initImageLoc = runDir + 'model_images/%s_init.png' % imgParam.name
-    cv2.imwrite( initImageLoc, initImg )
+    g1iPart, g2iPart, iCenters2 = shiftPoints( g1iPart, g2iPart, fCenters, runData.imgParam.nRow, runData.imgParam.nCol )
+
+    initImg = createImg( g1iPart, g2iPart, ir1, ir2, runData.bRatio, runData.imgParam )
+    cv2.imwrite( runData.initLoc, initImg )
 
 # end image_creator_v3
+
+# Prepare directory and information
+def getRunData():
+
+    runData = runDataClass()
+
+    # Reading from globals runDir, paramDir
+    if printAll: print('prepping directory')
+
+    # Check if particle files and information file is present
+    endEarly, runData = readRunDir(runData)
+    if endEarly: return endEarly
+
+    runData.imgParam = imageParameterClass_v3(paramLoc)
+
+    try:
+        pV = runData.imgParam.printVal() # Also doubles as a check if all information needed is initialized
+    except:
+        print("Failed to read all Image parameters from file: %s" % paramLoc) 
+        endEarly = True
+        return endEarly, runData
+    
+    if printAll:
+        print("Printing Image Parameter Info")
+        for l in pV: print('\t',l)
+
+    if runData.imgParam.version != 3:
+        print("Incorrect image parameter verion:")
+        print("Expecting: version 3")
+        print("Found:     version %d" % runData.imgParam.version)
+        print("Exiting...")
+        endEarly = True
+        return endEarly, runData
+    
+    runData.modelLoc = runData.imgDir + '%s_model.png' % runData.imgParam.name 
+    runData.initLoc = runData.imgDir + '%s_init.png' % runData.imgParam.name 
+
+    if path.exists( runData.modelLoc ) \
+            and path.exists( runData.initLoc ) \
+            and not overWriteImg:
+                print("Model and unperturbed image already exist")
+                endEarly = True
+                return endEarly, runData
+
+    # Get luminosity ratio
+    g1Lum, g2Lum = getLuminosity( runData.infoLoc )
+    if printAll: print( 'Lumisoties: %f %f' % ( g1Lum, g2Lum ) )
+    if g1Lum == 0.0 or g2Lum == 0.0:
+        endEarly = True
+        return endEarly, runData
+
+    runData.bRatio = g1Lum/g2Lum
+
+    return endEarly, runData
+
+
+# Define struct-like class to hold information
+class runDataClass:
+    def __init__( self ):
+        # stuff
+        self.stuff = 0
+
 
 def createImg( g1Pts, g2Pts, ir1, ir2, bRatio, imgParam ):
 
@@ -132,6 +169,7 @@ def createImg( g1Pts, g2Pts, ir1, ir2, bRatio, imgParam ):
     return finalImg
 
 # end create Img
+
 
 def addGalaxy( pts, ir, imgParam, rConst ):
 
@@ -167,57 +205,57 @@ def getLuminosity( infoLoc ):
             g2Lum = float( l.split()[1].strip() )
 
     return g1Lum, g2Lum
+# End get Luminosity
 
 
-def readRunDir():
+def readRunDir(runData):
 
-    if printAll: print("In run dir: %s" % runDir )
+    if printAll: print("\tRun Directory: %s" % runDir )
 
-    ptsDir = runDir + 'particle_files/'
-    imgDir = runDir + 'model_images/'
-    miscDir = runDir + 'misc_images/'
-    infoLoc = runDir + 'info.txt'
+    runData.ptsDir = runDir + 'particle_files/'
+    runData.imgDir = runDir + 'model_images/'
+    runData.miscDir = runDir + 'misc_images/'
+    runData.infoLoc = runDir + 'info.txt'
 
-    if not path.exists(ptsDir) \
-            or not path.exists(imgDir) \
-            or not path.exists(miscDir) \
-            or not path.exists(infoLoc):
+    if not path.exists(runData.ptsDir) \
+            or not path.exists(runData.imgDir) \
+            or not path.exists(runData.miscDir) \
+            or not path.exists(runData.infoLoc):
 
         print("Not all folders and files found in run directory")
-        return True, '', '', ''
+        return True, runData
 
-    ptsZip = ptsDir + '%d_pts.zip' % nPart
+    ptsZip = runData.ptsDir + '%d_pts.zip' % nPart
 
     if not path.exists(ptsZip):
         print("Particle zip file not found: %s" % ptsZip)
-        return True, '', '', ''
+        return True, runData
 
-    unzipCmd = "unzip -qq -o %s -d %s" % ( ptsZip, ptsDir )
+    unzipCmd = "unzip -qq -o %s -d %s" % ( ptsZip, runData.ptsDir )
     system(unzipCmd)
     
-    pts1Loc = ptsDir + "%d_pts.000" % nPart
-    pts2Loc = ptsDir + "%d_pts.101" % nPart
+    runData.pts1Loc = runData.ptsDir + "%d_pts.000" % nPart
+    runData.pts2Loc = runData.ptsDir + "%d_pts.101" % nPart
 
-    if not path.exists(pts1Loc) or not path.exists(pts2Loc):
+    if not path.exists(runData.pts1Loc) or not path.exists(runData.pts2Loc):
         print("Can't find particle files after unzipping")
-        print("\tparticle file 1: %s" % pts1Loc)
-        print("\tparticle file 2: %s" % pts2Loc)
-        return True, '', '', ''
-
+        print("\tparticle file 1: %s" % runData.pts1Loc)
+        print("\tparticle file 2: %s" % runData.pts2Loc)
+        return True, runData
 
     if printAll:
-        print("\tinfoLoc: %s" % infoLoc)
-        print("\tpts1Loc: %s" % pts1Loc)
-        print("\tpts2Loc: %s" % pts2Loc)
+        print("\tinfoLoc: %s" % runData.infoLoc)
+        print("\tpts1Loc: %s" % runData.pts1Loc)
+        print("\tpts2Loc: %s" % runData.pts2Loc)
 
-    return False, infoLoc, pts1Loc, pts2Loc
+    return False, runData
 
 # End Reading run Folder
 
 
 def readArg( argList ):
 
-    global printAll, overWrite, runDir, writeDotImg, nPart, paramLoc
+    global printAll, overWriteImg, runDir, writeDotImg, nPart, paramLoc
 
     for i,arg in enumerate(argList):
 
@@ -232,7 +270,7 @@ def readArg( argList ):
             printAll = False
 
         elif arg == '-overwrite':
-            overwrite = True
+            overWriteImg = True
 
         elif arg == '-runDir':
             runDir = argList[i+1]
@@ -439,7 +477,6 @@ class imageParameterClass_v3:
 
     def __init__(self, pInLoc):
 
-        self.status     = 'starting'
         self.gCenter    = np.zeros((2,2))   # [[ x1, x2 ] 
         self.comment    = 'blank comment'
 
@@ -507,11 +544,11 @@ class imageParameterClass_v3:
             elif pL[0] == 'image_cols':
                 self.nCol = int(pL[1]) 
 
-            elif pL[0] == 'galaxy1_center':
+            elif pL[0] == 'galaxy_1_center':
                 self.gCenter[0,0] = int(pL[1])
                 self.gCenter[1,0] = int(pL[2])
 
-            elif pL[0] == 'galaxy2_center':
+            elif pL[0] == 'galaxy_2_center':
                 self.gCenter[0,1] = int(pL[1])
                 self.gCenter[1,1] = int(pL[2])
 
