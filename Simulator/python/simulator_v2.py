@@ -2,8 +2,13 @@
 Author:     Matthew Ogden
 Created:    10 May 2019
 Altered:    24 Sep 2019
-Purpose:    This program is the main function that prepares galaxy models, 
+Purpose:    This program is the main function that prepares galaxy models,
                 runs them through the JSPAM software, and creates particle files
+
+Author:     John Lasseter
+Altered:    20 Oct 2019
+Tested:     python3.6 ~/g/galaxy/Simulator/python/simulator_v2.py -runDir ./ -basicRun ~/g/galaxy/Simulator/bin/basic_run -nPart 100
+Purpose:    Updated the simulator_v2 function to the SE_TODO instructions
 '''
 
 from sys import (
@@ -16,7 +21,8 @@ from os import (
     system,
     getcwd,
     mkdir,
-    chdir
+    chdir,
+    remove
 )
 
 from re import (
@@ -24,12 +30,17 @@ from re import (
     match
 )
 
+from glob import (
+    glob
+)
+
 from zipfile import (
-    ZipFile
+    ZipFile,
+    ZIP_DEFLATED,
+    ZIP_STORED
 )
 
 # Global/Input Variables
-
 printAll = True
 
 basicRun = ""  # Set with the required flag -basicRun in new_readArg
@@ -96,84 +107,30 @@ def simulator_v2(argList):
     chdir(runDir + "particle_files/")
 
     # Call JSPAM!
-    runBasicRun(nPart, mData)
+    runBasicRun(nPart, md)
 
-    # SE_TODO: Check if particle files were created.  Should end with .000 and .101
-    # SE_TODO: Rename both files as nPart_pts.000 and nPart_pts.101 (Ex. 1000_pts.000)
-    # SE_TODO: Zip both files up in 1 zip file named nPart_pts.zip
-    # SE_TODO: Delete .000 and .101 if they remain
+    # Move the files to the new names
+    files_000 = glob(runDir + "particle_files/*.000")
+    files_101 = glob(runDir + "particle_files/*.101")
 
-
-def movePartFiles(uID, oDir):
-    # Check if particle files were created
-    fileNames = ['a_%d.000' % uID, 'a_%d.101' % uID]
-
-    if not (path.isfile(fileNames[0]) and path.isfile(fileNames[1])):
-        print('###  WARNING  ###')
-        print("Particle files not found, exiting...")
+    if len(files_000) == 0:
+        print("No *.000 found, exiting...")
         exit(-1)
 
-    # Create directory if it doesn't exist
-    if not path.isdir(oDir):
-        try:
-            if printAll:
-                print('Creating directory %s' % oDir)
-            mkdir(oDir)
-        except Exception as e:
-            print("Failed to create new directory: " + e)
-            exit(-1)
-    # End create dir
+    if len(files_101) == 0:
+        print("No *.101 found, exiting...")
+        exit(-1)
 
-    # Zip files if requested
-    if compressFiles:
-        try:
-            if printAll:
-                print('Zipping files')
+    # Zip them for convenience
+    # Auto closed on with exit
+    with ZipFile(runDir + "particle_files/" + str(nPart) + "_pts.zip", 'w') as myzip:
+        myzip.write(files_000[0], str(nPart) + "_pts.000", compress_type=ZIP_DEFLATED)
+        myzip.write(files_101[0], str(nPart) + "_pts.101", compress_type=ZIP_DEFLATED)
 
-            #r1 = ZipFile("a_" + uID + "_000.zip", mode='w').write("a_" + uID + "_000")
-            #r2 = ZipFile("a_" + uID + "_001.zip", mode='w').write("a_" + uID + "_001")
-
-            zipCmd1 = 'zip a_%d_000.zip a_%d.000' % (uID, uID)
-            zipCmd2 = 'zip a_%d_101.zip a_%d.101' % (uID, uID)
-
-            #system(zipCmd1)
-            #system(zipCmd2)
-
-            if printAll:
-                print('Moving files to %s' % oDir)
-
-            if pName == '':
-                mvCmd = 'mv a_%d_*.zip %s' % (uID, oDir)
-                #system(mvCmd)
-            else:
-                mv1Cmd = 'mv a_%d_000.zip %s' % (uID, oDir + pName + '_000.zip')
-                mv2Cmd = 'mv a_%d_101.zip %s' % (uID, oDir + pName + '_101.zip')
-                #system(mv1Cmd)
-                #system(mv2Cmd)
-
-            rmCmd = 'rm a_%d.*' % uID
-            #system(rmCmd)
-
-        except:
-            print('Failed zipping and moving')
-
-    else:
-
-        # Move particle files to output
-        try:
-            mvCmd = 'mv a_%d* %s' % (uID, oDir)
-            #system(mvCmd)
-
-        except:
-            print('###  WARNING  ###')
-            print('Could not move spam particle files... ', fileNames)
-            return False
-
-    return True
-
-
-# movePartFiles
-
+    # Remove the unzipped files
+    remove(files_000[0])
+    remove(files_101[0])
+# End simulator_v2
 
 def runBasicRun(nPart, data):
     global basicRun
@@ -184,19 +141,16 @@ def runBasicRun(nPart, data):
         print('Running command: ', sysCmd)
 
     try:
-        retVal = system(sysCmd)  # Consider implementing a way to check return val from spam code
+        retVal = system(sysCmd)
 
         if printAll:
-            print('Command Complete')
+            print("Command Complete: " + str(retVal))
         return True
 
     except Exception as e:
         print("Failed running command due to: " + e)
         return False
-
-
 # End runBasicRun
-
 
 def new_readArg(argList):
     # Global input arguments
@@ -269,9 +223,7 @@ def new_readArg(argList):
         endEarly = True
 
     return endEarly
-
 # End new_readArg
-
 
 # Execute everything after declaring functions
 print('')
