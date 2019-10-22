@@ -2,10 +2,9 @@
     Author:     Matthew Ogden
     Created:    19 July 2019
     Altered:    11 Oct 2019
-Description:    This is my python version 3, currently the version in developement.
+Description:    Image creator
+python version 3, currently the version in developement.
 
-ToDo:
-    Check if image already exists
 '''
 
 from sys import \
@@ -62,6 +61,7 @@ def image_creator_pl_v1(argList):
         if printAll: print('rm %s %s' % ( runData.pts1Loc, runData.pts2Loc ) ) 
         system('rm %s %s' % ( runData.pts1Loc, runData.pts2Loc ) ) 
 
+
     # Create and save model image
     g1fPart, g2fPart, fCenters2 = shiftPoints( g1fPart, g2fPart, fCenters, runData.imgParam.nRow, runData.imgParam.nCol )
 
@@ -113,7 +113,7 @@ def getRunData():
         endEarly = True
         return endEarly, runData
     
-    runData.modelLoc = runData.imgDir + '%s_model.png' % runData.imgParam.name 
+    runData.modelLoc = runData.imgDir + '%s_model_2.png' % runData.imgParam.name 
     runData.initLoc = runData.imgDir + '%s_init.png' % runData.imgParam.name 
 
     if path.exists( runData.modelLoc ) \
@@ -125,6 +125,8 @@ def getRunData():
 
     # Get luminosity ratio
     g1Lum, g2Lum = getLuminosity( runData.infoLoc )
+    g1Lum = 1.0
+    g2Lum = 25.0
     if printAll: print( 'Lumisoties: %f %f' % ( g1Lum, g2Lum ) )
     if g1Lum == 0.0 or g2Lum == 0.0:
         endEarly = True
@@ -197,14 +199,18 @@ def getLuminosity( infoLoc ):
     g1Lum = 0.0
     g2Lum = 0.0
 
-    for l in infoFile:
+    for l in infoFile: 
+
         if 'primary_luminosity' in l: 
             g1Lum = float( l.split()[1].strip() )
 
-        if 'secondary_luminosity' in l: 
+        elif 'secondary_luminosity' in l: 
             g2Lum = float( l.split()[1].strip() )
 
+    # 
+
     return g1Lum, g2Lum
+
 # End get Luminosity
 
 

@@ -24,51 +24,106 @@ import cv2
 import numpy as np
 
 import methods.pixel_difference as pixMod
-import image_prep.image_prep_v1 as imgPrep
+import image_prep.image_prep_v1 as imgPrepMod
 
 # Global input arguments
 printAll = True
+checkGalCenter = False
 
 runDir = ''
-sdssName = ''
-genName = ''
-runName = ''
-zooModel = ''
-humanScore = ''
-userComment = 'Testing pipeline v1. Oct 13, 2019'
-
-imageLoc = ''
-imgInfoLoc = ''
-scoreLoc = ''
-imgParam = ''
-imgCenters = np.zeros((4,2))
-printScore = False
-
-writeScore = True
-overWriteScore = False
-retScore = False
+paramLoc = ''
 
 targetLoc = ''
 targetInfoLoc = ''
 
-checkGalCenter = False
+overWriteScore = False
+printScore = False
+writeScore = True
+
+userComment = 'Testing pipeline v1. Oct 13, 2019'
+
 writeDiffImage = False
-
-methodName = ''
-diffMethod = False
-diffSqMethod = False
-diffSqNonZeroMethod = False
-diffNonZeroMethod = False
-featMethods = False
-
-toShape = ( 1200, 800 )
 
 def compare_pl_v1( argList ):
 
     print("In compare!")
-    imgPrep.check()
+    imgPrepMod.check()
 
-    endEarly = readArg( argList )
+    endEarly = nReadArg( argList )
+
+# new read Artuments
+def nReadArg( argList ):
+
+    global printAll, checkGalCenter 
+    global overWriteScoreFile, printScore, appendScore
+    global runDir, paramLoc
+
+    # TODO!   Later....  whenever needed
+    global targetLoc, targetInfoLoc
+
+    endEarly = False
+
+    for i,arg in enumerate(argList):
+
+        if arg[0] != '-':
+            continue
+
+        elif arg == '-noprint':
+            printAll = False
+
+        elif arg == '-runDir':
+            runDir = argList[i+1]
+            if runDir[-1] != '/':
+                runDir += '/'
+
+        elif arg == '-paramLoc':
+            paramLoc = argList[i+1]
+
+        elif arg == '-overWriteScore':
+            overWriteScore = True
+
+        elif arg == '-center':
+            checkGalCenter = True
+
+        # Not used for now
+        elif arg == '-target':
+            targetLoc = argList[i+1]
+
+        elif arg == '-targetInfo':
+            targetInfoLoc = argList[i+1]
+
+        elif arg == '-all':
+            comList = []
+
+        elif arg == '-toShape':
+            endEarly = readShape(argList[i+1])
+
+        elif arg == '-writeDiffImage':
+            writeDiffImage = True
+
+        elif arg == '-methodName':
+            methodName = argList[i+1]
+
+    # Check if arguments are valid
+
+    if printAll:
+        print('\nChecking validity of arguments')
+
+    # Check if information passed for target
+    if not path.isfile( targetInfoLoc ):
+        print( 'Target info file at \'%s\' not found' % targetInfoLoc )
+        endEarly = True
+
+    # Check if any comparison method was chosen
+    if methodName == '' and not diffMethod and not diffSqMethod and not diffSqNonZeroMethod and not diffNonZeroMethod:
+        print('No comparison methods selected')
+        endEarly = True
+
+
+    return endEarly
+
+# end reading arguments
+
 
 
 def main():
