@@ -30,10 +30,6 @@ from re import (
     match
 )
 
-from glob import (
-    glob
-)
-
 from zipfile import (
     ZipFile,
     ZIP_DEFLATED,
@@ -100,7 +96,7 @@ def simulator_v2(argList):
     if not path.isdir(runDir + "particle_files/"):
         mkdir(runDir + "particle_files/")
 
-    # SE_TODO: Check 'particle_files' folder if particles of nPart size have already been made 
+    # SE_TODO: Check 'particle_files' folder if particles of nPart size have already been made
     # Ignore if overWrite is true
 
     # Move active directory into 'particle_files'.
@@ -110,26 +106,31 @@ def simulator_v2(argList):
     runBasicRun(nPart, md)
 
     # Move the files to the new names
-    files_000 = glob(runDir + "particle_files/*.000")
-    files_101 = glob(runDir + "particle_files/*.101")
+    file_000 = runDir + "particle_files/a_0.000"
+    file_101 = runDir + "particle_files/a_0.101"
 
-    if len(files_000) == 0:
-        print("No *.000 found, exiting...")
+    if not path.exists(file_000):
+        print("No " + file_000 + " found, exiting...")
         exit(-1)
 
-    if len(files_101) == 0:
-        print("No *.101 found, exiting...")
+    if not path.exists(file_101):
+        print("No " + file_000 + " found, exiting...")
         exit(-1)
 
     # Zip them for convenience
     # Auto closed on with exit
     with ZipFile(runDir + "particle_files/" + str(nPart) + "_pts.zip", 'w') as myzip:
-        myzip.write(files_000[0], str(nPart) + "_pts.000", compress_type=ZIP_DEFLATED)
-        myzip.write(files_101[0], str(nPart) + "_pts.101", compress_type=ZIP_DEFLATED)
+        myzip.write(file_000, str(nPart) + "_pts.000", compress_type=ZIP_DEFLATED)
+        myzip.write(file_101, str(nPart) + "_pts.101", compress_type=ZIP_DEFLATED)
 
-    # Remove the unzipped files
-    remove(files_000[0])
-    remove(files_101[0])
+    # Remove the unzipped files and other outputs
+    remove(file_000)
+    remove(file_101)
+    remove(runDir + "particle_files/fort.21")
+    remove(runDir + "particle_files/fort.24")
+    remove(runDir + "particle_files/fort.50")
+    remove(runDir + "particle_files/gmon.out")
+    remove(runDir + "particle_files/gscript")
 # End simulator_v2
 
 def runBasicRun(nPart, data):
