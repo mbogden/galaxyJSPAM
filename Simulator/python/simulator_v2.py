@@ -22,7 +22,7 @@ from os import (
     getcwd,
     mkdir,
     chdir,
-    rename
+    remove
 )
 
 from re import (
@@ -116,20 +116,20 @@ def simulator_v2(argList):
     if len(files_000) == 0:
         print("No *.000 found, exiting...")
         exit(-1)
-    newFN1 = runDir + "particle_files/" + str(nPart) + "_pts.000"
-    rename(files_000[0], newFN1)
 
     if len(files_101) == 0:
         print("No *.101 found, exiting...")
         exit(-1)
-    newFN2 = runDir + "particle_files/" + str(nPart) + "_pts.101"
-    rename(files_101[0], newFN2)
 
     # Zip them for convenience
     # Auto closed on with exit
     with ZipFile(runDir + "particle_files/" + str(nPart) + "_pts.zip", 'w') as myzip:
-        myzip.write(newFN1, str(nPart) + "_pts.000", compress_type=ZIP_DEFLATED)
-        myzip.write(newFN2, str(nPart) + "_pts.101", compress_type=ZIP_DEFLATED)
+        myzip.write(files_000[0], str(nPart) + "_pts.000", compress_type=ZIP_DEFLATED)
+        myzip.write(files_101[0], str(nPart) + "_pts.101", compress_type=ZIP_DEFLATED)
+
+    # Remove the unzipped files
+    remove(files_000[0])
+    remove(files_101[1])
 # End simulator_v2
 
 def runBasicRun(nPart, data):
