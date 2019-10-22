@@ -129,7 +129,7 @@ def simulator_v2(argList):
 
     # Remove the unzipped files
     remove(files_000[0])
-    remove(files_101[1])
+    remove(files_101[0])
 # End simulator_v2
 
 def runBasicRun(nPart, data):
