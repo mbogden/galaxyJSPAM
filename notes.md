@@ -28,6 +28,14 @@ IRB course?
 
 ## Matt's To-Do
 
+- Get images for 
+  - 3101
+  - 2756
+  - 8612
+  - 2970
+  - 2775
+
+
 - Image Creator v3
 
   - Alter brightness of galaxies based on orbserved luminosities.
@@ -56,6 +64,14 @@ IRB course?
   - image creator
   - Image refinement
   - comparison methods
+
+- General purpose simulated annealing program.
+  - Build special modules that contain
+	- cost function
+	- List of things to change
+	- list of size for changes
+
+- Neural network to build weight based on weights for existing 62 pairs? 
 
 - SPAM
   - Consider storing points in native c/c++ binary floating point data
@@ -103,6 +119,7 @@ IRB course?
 	- Mask
 	  - Solid mask
 	  - Weighted mask
+		- simulated annealing for pixel difference
 	  - Different weighted sections of image 
 	- OpenCV feature extraction
 	  - Histogram of Oriented gradients
