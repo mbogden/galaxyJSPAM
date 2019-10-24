@@ -1,10 +1,8 @@
 # Streamline Model to Machine score process
 
 ## Oct 24 - RunCreator Modifications
-- Create new Folder under sdss# along with gen folders and add info
-  - Under sdss# -> Gen000
-				-> gen001
-				-> sdssParameters.txt ( Will pick better name later )
+- Create new Folder under sdss# along with gen folders
+   - sdss# -> sdssParameters
 
   - Create File 'parameters.txt'
 
