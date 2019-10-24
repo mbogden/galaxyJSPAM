@@ -489,7 +489,7 @@ QStringList galaxyMainWindow::getImageDataFromDir(const QString& sdss)
                 }
             }
 
-            if (s.contains("py="))
+            if (s.contains("sy="))
             {
                 QStringList line = s.split("=");
                 sc2.second = line[1].toDouble(&ok);
