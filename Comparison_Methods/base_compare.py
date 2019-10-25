@@ -20,11 +20,177 @@ printAll = True
 
 # global input variables
 imgDir = ''
+plotDir = 'plots_seminar/'
+scoreDir = ''
 everyN = 1
 
 imgScale = 0.1
 
-def main():
+def runSpread():
+    # goal is to print out a spread of the run#'s for the "perturbed" values 
+
+    pScores = readScores( 'pCorrScores.txt' )
+
+    printVal = 1.0
+    nData = len( pScores )
+
+    for i, p in enumerate( np.flip(pScores) ):
+
+        if p < printVal and p > printVal -.1: 
+            print(nData - i -1,p)
+            printVal -= 0.1
+
+        
+
+def make_plots2():
+    print("Making plots")
+    tImg = cv2.imread( imgDir + 'target.png' )
+
+    # read all files
+    allScores = []
+    allScores.append( readScores( 'scoreFile.txt' ))        # 0 Human scores
+    allScores.append( readScores( 'pCorrScores.txt' ))      # 1 correlation with unperturbed pts
+    allScores.append( readScores( 'pixelDiffScores.txt' ))  # 2 Pixel difference with target img
+    allScores.append( readScores( 'mCorrScores.txt' ))      # 3 correlation with target img
+    allScores.append( readScores( 'mBinaryCorrScores.txt')) # 4 correlation between binary b/w images
+
+    w1 = 0.22
+    w2 = 0.38
+    w3 = 0.41
+
+    allScores.append( w1*allScores[3] +  w2*allScores[4] + w3*allScores[2] )
+
+    #pVal, allScores = filterScores2( allScores, allScores[1], 0, 0.75 )
+
+    hScores = allScores[0]
+    pScores = allScores[1]
+    mScores = allScores[4]
+
+
+    eVal = np.linspace( 1, 100, 100 )
+    fVal = np.linspace( 0, 1.0, 100 )
+    
+    eImg = np.zeros((100,100))
+    fImg = np.zeros((100,100))
+    cImg = np.zeros((100,100))
+
+    for i,e in enumerate( eVal ):
+
+        for j, f in enumerate( fVal ):
+
+            nScores = expFunc( mScores, pScores, e, f )
+
+            cImg[i,j] = np.corrcoef( hScores, nScores)[0,1]
+            eImg[i,j] = e
+            fImg[i,j] = f
+
+    cPlot = cImg.flatten()
+    ePlot = eImg.flatten()
+    fPlot = fImg.flatten()
+
+    cMax = np.amax( cPlot )
+    iMax = np.argmax( cPlot )
+    fMax = fPlot[iMax]
+    eMax = ePlot[iMax]
+
+    nScores = expFunc( mScores, pScores, eMax, fMax )
+
+    createHeatPlot( hScores, nScores, pScores, plotDir + 'ps_plot_scaled_1.png', 'Max Perturbed Scaled' )
+
+    cHeatPlot( ePlot, fPlot, cPlot, plotDir + 'ps_finding_ef.png', 'Perturbed Scale:\ncorr: %f,  filter: %f,  eVal: %f' % ( cMax, fMax, eMax ), eMax, fMax  )
+
+
+        
+
+def make_plots():
+
+    # read all files
+    allScores = []
+    allScores.append( readScores( 'scoreFile.txt' ))        # 0 Human scores
+    allScores.append( readScores( 'pCorrScores.txt' ))      # 1 correlation with unperturbed pts
+    allScores.append( readScores( 'pixelDiffScores.txt' ))  # 2 Pixel difference with target img
+    allScores.append( readScores( 'mCorrScores.txt' ))      # 3 correlation with target img
+    allScores.append( readScores( 'mBinaryCorrScores.txt')) # 4 correlation between binary b/w images
+
+    w1 = 0.22
+    w2 = 0.38
+    w3 = 0.41
+
+    allScores.append( w1*allScores[3] +  w2*allScores[4] + w3*allScores[2] )
+
+    pVal, allScores = filterScores2( allScores, allScores[1], 0, 0.75 )
+
+    pVal = int(pVal)
+
+    print(pVal)
+
+    createHeatPlot( allScores[0], allScores[2], allScores[1], plotDir + 'diff_f.png', 'Pixel Difference: %d %s filtered' % (pVal, '%') )
+    createHeatPlot( allScores[0], allScores[3], allScores[1], plotDir +'corr_f.png', 'Brightness Correlation: %d %s filtered' % (pVal, '%'))
+    createHeatPlot( allScores[0], allScores[4], allScores[1], plotDir +'binCorr_f.png', 'Binary Correlation: %d %s filtered' % (pVal,'%'))
+    createHeatPlot( allScores[0], allScores[5], allScores[1], plotDir + 'weighted_f.png', 'Weighted Comparison Methods: %d %s filtered' % (pVal,'%') )
+
+# end make plots
+
+def expFunc( inScores, fScores, eVal, fVal ):
+    nScores = inScores * ( np.exp( - eVal * np.abs( fVal - fScores )**2 ) )
+    return nScores
+
+def cHeatPlot( eVals, fVals, cVals, saveLoc, titleName, eMax, fMax ):
+
+    plt.clf()
+
+    pMin = np.amin( cVals )
+    pMax = np.amax( cVals )
+
+    cMap = plt.cm.get_cmap('RdYlBu_r')
+    plot = plt.scatter( eVals, fVals, c=cVals, vmin = pMin, vmax = 1.0, s=10, cmap=cMap)
+    plt.plot( eMax, fMax, 'kd')
+
+    cBar = plt.colorbar(plot)
+    cBar.set_label("Correlation for Human vs Machine Scores")
+    
+    plt.title( titleName )
+    plt.xlabel("Exponential Constant")
+    plt.ylabel("Center Filter Value")
+
+    ax = plt.gca()
+    ax.set_facecolor("xkcd:grey")
+
+    plt.savefig( saveLoc )
+
+# End plot creation
+
+
+def createHeatPlot( hScores, mScores, pScores, saveLoc, titleName ):
+
+    plt.clf()
+    corrVal = np.corrcoef(hScores,mScores)[0,1]
+
+    pMin = np.amin( pScores )
+    pMax = np.amax( pScores )
+
+    cMap = plt.cm.get_cmap('RdYlBu_r')
+    plot = plt.scatter( hScores, mScores, c=pScores, vmin = pMin, vmax = 1.0, s=10, cmap=cMap)
+
+    cBar = plt.colorbar(plot)
+    cBar.set_label("Correlation with Unperturbed model image")
+    
+    plt.xlim(0,1)
+    plt.ylim(0,1)
+
+    plt.title( titleName + "\nCorrelation: %f" % corrVal )
+    plt.xlabel("Human Scores")
+    plt.ylabel("Machine Score")
+
+    ax = plt.gca()
+    ax.set_facecolor("xkcd:grey")
+
+    plt.savefig( saveLoc )
+
+# End plot creation
+
+
+def main_old():
 
     endEarly = readArg()
 
@@ -81,7 +247,7 @@ def main():
     allScores.append( bScores )
     allScores.append( dScores )
 
-    newScores = filterScores3( allScores, pScores, 0, 0.75 )
+    newScores = filterScores2( allScores, pScores, 0, 0.75 )
 
     hScores = newScores[0]
     pScores = newScores[1]
@@ -184,7 +350,7 @@ def findBestWeights( hScores, dScores, cScores ):
 # End find best weights
 
 
-def filterScores3( allScores, fScores, lowFilter, highFilter ):
+def filterScores2( allScores, fScores, lowFilter, highFilter ):
 
     newScores = []
     newFScores = []
@@ -213,42 +379,10 @@ def filterScores3( allScores, fScores, lowFilter, highFilter ):
 
     print("Filtering...\n\tBefore: %d   \n\tAfter: %d" % ( nBefore, nAfter )) 
 
-    return finalScores
+    pVal = ( nBefore - nAfter) / nBefore * 100
+
+    return pVal, finalScores
 # End filter scores
-
-
-
-def filterScores2( hScores, mScores1, mScores2, pScores, lowFilter, highFilter ):
-
-    nH = []
-    nP = []
-    nM = []
-    nM2 = []
-
-    nBefore = len( hScores )
-
-    # Filter out lowly perturbed
-    for i in range( len( hScores )):
-
-        if pScores[i] > highFilter or pScores[i] < lowFilter:
-            continue
-
-        nH.append( hScores[i] )
-        nP.append( pScores[i] )
-        nM.append( mScores1[i] )
-        nM2.append( mScores2[i] )
-
-    hScores = np.array( nH )
-    mScores1 = np.array( nM )
-    mScores2 = np.array( nM2 )
-    pScores = np.array( nP )
-
-    nAfter = len( hScores )
-    print("Filtering...\n\tBefore: %d   \n\tAfter: %d" % ( nBefore, nAfter )) 
-
-    return hScores, mScores1, mScores2, pScores
-# End filter scores
-
 
 
 def filterScores( hScores, mScores, pScores, lowFilter, highFilter ):
@@ -431,34 +565,6 @@ def createCorrPScores( mImgs, iImgs ):
     return pScores
 
 # end createPScores()
-
-def createHeatPlot( hScores, mScores, pScores, saveLoc, titleName ):
-
-    plt.clf()
-
-
-    pMin = np.amin( pScores )
-    pMax = np.amax( pScores )
-
-    cMap = plt.cm.get_cmap('RdYlBu_r')
-    #plot = plt.scatter( hScores, mScores, c=pScores, vmin = pMin, vmax = 1, s=10, cmap=cMap)
-    plot = plt.scatter( hScores, mScores, c=pScores, vmin = pMin, vmax = pMax, s=10, cmap=cMap)
-    cBar = plt.colorbar(plot)
-
-    plt.title(titleName)
-    plt.xlabel("Human Scores")
-    plt.ylabel("Correlation with Target")
-
-    ax = plt.gca()
-    ax.set_facecolor("xkcd:grey")
-
-    cBar.set_label("Correlation with Unperturbed image")
-
-    plt.savefig( saveLoc )
-
-# End plot creation
-
-
 def recreateData(tImg):
 
     mImgs, iImgs = getImgs()
@@ -644,7 +750,7 @@ def getHumanScores():
 
 def readArg():
 
-    global printAll, imgDir, everyN
+    global printAll, imgDir, everyN, plotDir, scoreDir
 
     argList = argv
     endEarly = False
@@ -666,6 +772,12 @@ def readArg():
 
         elif arg == '-n':
             everyN = int( argList[i+1] )
+
+        elif arg == '-plotDir':
+            plotDir = argList[i+1]
+
+        elif arg == '-scoreDir':
+            scoreDir = argList[i+1]
 
     # Check if input arguments were valid
     if imgDir == '':
@@ -724,4 +836,19 @@ def readFile( fileLoc ):
 # End simple read file
 
 # Run main after declaring functions
-main()
+if __name__=='__main__':
+
+    endEarly = readArg()
+
+    if printAll: 
+        print("ImgDir  : %s" % imgDir )
+        print("plotDir : %s" % plotDir )
+        print("scoreDir: %s" % scoreDir )
+
+    if endEarly: exit(-1)
+
+    runSpread()
+    make_plots()
+    #make_plots2()
+    #main_old()
+
