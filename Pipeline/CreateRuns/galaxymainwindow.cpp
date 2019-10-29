@@ -275,7 +275,7 @@ bool galaxyMainWindow::createRunsFromFile(const QFileInfo& fi, const QDir& inDir
         //Make parameters.txt
         QString ptxt;
         QStringList imageData = getImageDataFromDir(sdss);
-        ptxt += "\n###  Target Image Data  ###\n";
+        ptxt += "###  Target Image Data  ###\n";
         ptxt += "target_zoo.png " + imageData.value(1) + " " + imageData.value(2) + "\n";
         ptxt += "primary_luminosity " + imageData.value(3) + "\n";
         ptxt += "secondary_luminosity " + imageData.value(4) + "\n";
