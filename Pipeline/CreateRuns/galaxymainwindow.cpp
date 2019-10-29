@@ -25,9 +25,9 @@ galaxyMainWindow::galaxyMainWindow(QWidget *parent)
     if (d2.exists())
     {
         //Set image dir, if it exists
-        if (d2.exists("image_parameters/param_1.txt"))
+        if (d2.exists("image_parameters/param_v3_default.txt"))
         {
-            IMAGE_PARAM_FILE = d2.absoluteFilePath("image_parameters/param_1.txt");
+            IMAGE_PARAM_FILE = d2.absoluteFilePath("image_parameters/param_v3_default.txt");
             ui->imageDirLabel->setText("Image parameter file: " + IMAGE_PARAM_FILE);
         }
 
@@ -256,12 +256,53 @@ bool galaxyMainWindow::createRunsFromFile(const QFileInfo& fi, const QDir& inDir
     }
     wd.setPath(wd.path() + "/" + sdss);
 
+    //Make the parameter dir & associated actions
+    QString paraDirName = "sdssParameters";
+    if (!wd.mkdir(paraDirName))
+    {
+        if (GUI)
+            QMessageBox::information(this, "Error", "Could not make dir: " + wd.path() + paraDirName);
+        return false;
+    }
+    else
+    {
+        QDir pd(wd.absoluteFilePath(paraDirName));
+        //Copy the image parameter file to this new dir
+        QFileInfo imf(IMAGE_PARAM_FILE);
+        if (!QFile::copy(IMAGE_PARAM_FILE, pd.absoluteFilePath(imf.fileName())))
+                qDebug() << "Failed to copy " + IMAGE_PARAM_FILE + " to " + pd.absolutePath();
+
+        //Make parameters.txt
+        QString ptxt;
+        QStringList imageData = getImageDataFromDir(sdss);
+        ptxt += "\n###  Target Image Data  ###\n";
+        ptxt += "target_zoo.png " + imageData.value(1) + " " + imageData.value(2) + "\n";
+        ptxt += "primary_luminosity " + imageData.value(3) + "\n";
+        ptxt += "secondary_luminosity " + imageData.value(4) + "\n";
+
+        ptxt += "\n###  Model Image Parameters  ###\n";
+
+        ptxt += "default " + imf.fileName() + "\n";
+
+        QFile pf(pd.absoluteFilePath("parameters.txt"));
+        if (!pf.open(QIODevice::WriteOnly))
+        {
+            qDebug() << "Could not open for writing: " + pd.absoluteFilePath("parameters.txt");
+            return false;
+        }
+        pf.write(ptxt.toUtf8());
+        pf.close();
+
+        //Copy imageData[0], the .png file, to target_zoo.png
+        QFile::copy(imageData[0], pd.absoluteFilePath("target_zoo.png"));
+    }
+
     //Check if we can make the generation dir
     QString genDirName = "gen" + padToN(generation, 3);
     if (!wd.mkdir(genDirName))
     {
         if (GUI)
-            QMessageBox::information(this, "Error", "Could not make dir: " + wd.path() + "/gen_00");
+            QMessageBox::information(this, "Error", "Could not make dir: " + wd.path() + genDirName);
         return false;
     }
 
@@ -367,18 +408,6 @@ QString galaxyMainWindow::infoFileFromLine(const QString& sdss, const QString& r
     ret += "model_data " + parts.value(1) + "\n";
     ret += "human_score " + scoreParts.value(1) + "\n";
     ret += "wins/total " + scoreParts.value(2) + "/" + scoreParts.value(3)  + "\n";
-
-    QStringList imageData = getImageDataFromDir(sdss); //Checked before this function chain is called so guaranteed for the folder to exists, contents are not checked
-    ret += "\n###  Target Image Data  ###\n";
-    ret +=  imageData.value(0) + "\n";
-    ret += "primary_center_1 " + imageData.value(1) + "\n";
-    ret += "primary_center_2 " + imageData.value(2) + "\n";
-    ret += "primary_luminosity " + imageData.value(3) + "\n";
-    ret += "secondary_luminosity " + imageData.value(4) + "\n";
-
-    ret += "\n###  Model Image Parameters  ###\n";
-
-    ret += "param_2 v2 " + IMAGE_PARAM_FILE + "\n";
 
     return ret;
 }
