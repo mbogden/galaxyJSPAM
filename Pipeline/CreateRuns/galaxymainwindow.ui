@@ -15,17 +15,31 @@
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
-    <item row="0" column="0">
-     <widget class="QPushButton" name="selectFilePushButton">
+    <item row="3" column="1">
+     <widget class="QLabel" name="workDirLabel">
       <property name="text">
-       <string>Select galaxy zoo models file/folder</string>
+       <string>Working dir: </string>
       </property>
      </widget>
     </item>
-    <item row="0" column="1">
-     <widget class="QLabel" name="sdssFilesLabel">
+    <item row="1" column="0">
+     <widget class="QPushButton" name="selectImageDirPushButton">
       <property name="text">
-       <string>Galaxy zoo models file/folder: </string>
+       <string>Select image parameter file</string>
+      </property>
+     </widget>
+    </item>
+    <item row="5" column="0" colspan="2">
+     <widget class="QPushButton" name="runSetupPushButton">
+      <property name="text">
+       <string>Setup run</string>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="1">
+     <widget class="QLabel" name="dataDirLabel">
+      <property name="text">
+       <string>SDSS target information folder: </string>
       </property>
      </widget>
     </item>
@@ -43,27 +57,6 @@
       </property>
      </widget>
     </item>
-    <item row="4" column="0" colspan="2">
-     <widget class="QPushButton" name="runSetupPushButton">
-      <property name="text">
-       <string>Setup run</string>
-      </property>
-     </widget>
-    </item>
-    <item row="1" column="0">
-     <widget class="QPushButton" name="selectImageDirPushButton">
-      <property name="text">
-       <string>Select image parameter file</string>
-      </property>
-     </widget>
-    </item>
-    <item row="3" column="1">
-     <widget class="QLabel" name="workDirLabel">
-      <property name="text">
-       <string>Working dir: </string>
-      </property>
-     </widget>
-    </item>
     <item row="2" column="0">
      <widget class="QPushButton" name="dataDirPushButton">
       <property name="text">
@@ -71,10 +64,31 @@
       </property>
      </widget>
     </item>
-    <item row="2" column="1">
-     <widget class="QLabel" name="dataDirLabel">
+    <item row="0" column="1">
+     <widget class="QLabel" name="sdssFilesLabel">
       <property name="text">
-       <string>SDSS target information folder: </string>
+       <string>Galaxy zoo models file/folder: </string>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="0">
+     <widget class="QPushButton" name="selectFilePushButton">
+      <property name="text">
+       <string>Select galaxy zoo models file/folder</string>
+      </property>
+     </widget>
+    </item>
+    <item row="4" column="0">
+     <widget class="QCheckBox" name="overWriteCheckBox">
+      <property name="toolTip">
+       <string>Will remove directories inside the work dir if they are an SDSS that we are going to create.
+Otherwise, and error will be raised on name conflict and exit.</string>
+      </property>
+      <property name="text">
+       <string>Overwrite?</string>
+      </property>
+      <property name="checked">
+       <bool>true</bool>
       </property>
      </widget>
     </item>
