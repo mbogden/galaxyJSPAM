@@ -1,7 +1,7 @@
 '''
     Author:     Matthew Ogden
     Created:    19 July 2019
-    Altered:    
+    Altered:    29 Oct 2019
 Description:    This is my python template for how I've been making my python programs
 '''
 
@@ -9,24 +9,25 @@ from sys import \
         exit, \
         argv
 
+from os import \
+        path, \
+        listdir
 
 printAll = True
 
+def main(argList):
 
-def main():
-
-    endEarly = readArg()
+    endEarly = readArg(argList)
 
     if endEarly:
         exit(-1)
 
 # End main
 
-def readArg():
+def readArg(argList):
 
     global printAll
 
-    argList = argv
     endEarly = False
 
     for i,arg in enumerate(argList):
@@ -41,7 +42,7 @@ def readArg():
         elif arg == '-noprint':
             printAll = False
 
-    # Check if input arguments were valid
+    # Check if input arguments are valid
 
     return endEarly
 
@@ -59,20 +60,23 @@ def readArgFile(argList, argFileLoc):
         for l in argFile:
             l = l.strip()
 
-            # Skip line if comment
-            if l[0] == '#':
-                continue
-
             # Skip line if empty
             if len(l) == 0:
+                continue
+
+            # Skip line if comment
+            if l[0] == '#':
                 continue
 
             lineItems = l.split()
             for item in lineItems:
                 argList.append(item)
+
         # End going through file
+
     return argList
 # end read argument file
+
 
 def readFile( fileLoc ):
 
@@ -95,4 +99,6 @@ def readFile( fileLoc ):
 # End simple read file
 
 # Run main after declaring functions
-main()
+if __name__ == '__main__':
+    argList = argv
+    main(argList)

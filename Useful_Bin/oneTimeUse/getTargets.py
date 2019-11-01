@@ -1,7 +1,8 @@
 '''
     Author:     Matthew Ogden
     Created:    20 Sep 2019
-Description:    Get target img, info, and pair file from jspamstuff.
+    Altered:    28 Oct 2019
+Description:    Get target img, info, and pair file from jspamstuff zip file
 '''
 
 from sys import \
@@ -26,19 +27,74 @@ toDir = ''
 
 def main():
 
-    endEarly = readArg()
+    global fromDir, toDir
+
+    fromDir = 'zippy/'
+    toDir = 'targets/'
 
     if printAll:
         print("\nGetting Targets and info from jspamstuff")
         print("\tfromDir : %s" % fromDir)
         print("\ttoDir   : %s" % toDir )
 
+    endEarly = False
     if endEarly:
         print('')
         exit(-1)
 
+    print(path.exists( fromDir ))
+    print(path.exists( toDir ))
+
+    zipFiles = listdir( fromDir )
+
+    for z in zipFiles:
+        zFile = fromDir + z
+
+        sName = zFile.split('/')[-1]
+        sName = sName.split('.')[0]
+        if 'sdss' in sName:
+            sName = sName.split('sdss')[1]
+        tDir = toDir + '%s/' % sName
+
+
+        #mvZipStuff(zFile, tDir)
+        checkContents(tDir)
+
     #moveFiles()
     #findThree()
+
+def checkContents( tDir ):
+
+    sFiles = listdir( tDir )
+    nFiles = len( sFiles )
+
+    imgF = False
+    metaF = False
+    pairF  = False
+
+    for f in sFiles:
+
+        if '.png' in f: imgF = True
+        elif '.meta' in f: metaF = True
+        elif '.pair' in f: pairF = True
+
+    if not ( imgF and metaF and pairF ):
+        print("Bad")
+
+
+
+
+    
+
+def mvZipStuff( zFile, tDir):
+
+    if path.exists(zFile):
+        uzCmd = 'unzip %s -d %s' % ( zFile, tDir )
+        system(uzCmd)
+
+    else:
+        print("BAD!: %s" % zFile)
+
 
 def findThree():
 

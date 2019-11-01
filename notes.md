@@ -6,12 +6,7 @@ IRB course?
 - Do not preserve any information that can identify the user.
 
 
-## Software Engineering Tasks (More of suggestions really.)
-- This contains quick notes to be added to needed files later
-
-
-
-## Pete
+## Score Analysis
 - Statistics and graphs!
   - Stop storing images.  (Should be as simple as commenting out 1 line)
   - Save all the scores in a single csv file.
@@ -35,19 +30,8 @@ IRB course?
   - 2970
   - 2775
 
-
-- Image Creator v3
-
-  - Alter brightness of galaxies based on orbserved luminosities.
-	- Consider placing lum in img param file since param files should be unique as is.
-
-  - initial and model images have noticably different brightnesses.  
-	- May have something to do how the image is normalized...
-
-  - (Done) Have seperate radial constants for each galaxy 
-  - (DONE) Add ability to create model image from inital particle file.
-  - (DONE) Delete unzipped file
-  - (Done) Add version control to image creator and param visualization
+- Optimize things
+  - 
 
 - Comparison methods
   - Check that new target info files are actual target centers
@@ -70,6 +54,10 @@ IRB course?
 	- cost function
 	- List of things to change
 	- list of size for changes
+	- plot function
+
+- Perturbedness score
+  - Consider making both pure white before comparing
 
 - Neural network to build weight based on weights for existing 62 pairs? 
 

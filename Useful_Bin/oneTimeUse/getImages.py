@@ -34,9 +34,66 @@ def main():
 
     print("Going through dirs:")
 
-    sdss_dir(fromDir)
+    pl_sdss_dir(fromDir)
 
 # End main
+
+def pl_sdss_dir( fSdssDir ):
+
+    fDir = fSdssDir + 'gen000/'
+    runDirList = listdir( fDir )
+    runDirList.sort()
+
+    for rDir in runDirList:
+        runDir = fDir + rDir + '/'
+
+        if not path.exists( runDir ):
+            print("runDir doesn't exist: %s" % runDir)
+            continue
+
+        if 'run' not in runDir:
+            print("Not a run dir: %s" % runDir)
+            continue
+
+        rNum = int(rDir.split('_')[1])
+
+        pl_run_dir( rNum, runDir )
+        
+# End pipeline sdss_dir
+
+def pl_run_dir(rNum, fDir):
+
+    fInfoLoc = fDir + 'info.txt'
+    imgDir = fDir + 'model_images/'
+
+
+    modelLoc = ''
+    initLoc = ''
+
+    fFiles = listdir( imgDir )
+    for f in fFiles:
+        if 'model.png' in f:
+            modelLoc = imgDir  + f
+        if 'init.png' in f:
+            initLoc = imgDir + f
+
+    if modelLoc == '' or initLoc == '':
+        print("Failed to find images in: %s" % fDir)
+        print("modelLoc: %s" % modelLoc)
+        print("initLoc: %s" % initLoc)
+        return
+
+    cpCmd1 = 'cp %s %s' % ( fInfoLoc, toDir + '%04d_info.txt' % rNum)
+    cpCmd2 = 'cp %s %s' % ( modelLoc, toDir + '%04d_model.png' % rNum)
+    cpCmd3 = 'cp %s %s' % ( initLoc, toDir + '%04d_init.png' % rNum)
+
+    system(cpCmd1)
+    system(cpCmd2)
+    system(cpCmd3)
+
+# End run dir
+
+
 
 def sdss_dir( fSdssDir ):
 
@@ -70,9 +127,9 @@ def run_dir(rNum, fDir):
     initLoc = ''
 
     for f in fFiles:
-        if 'param_2_model.png' in f:
+        if 'model.png' in f:
             modelLoc = fDir  + f
-        if 'param_2_model_init.png' in f:
+        if 'init.png' in f:
             initLoc = fDir + f
 
     if modelLoc == '' or initLoc == '':
@@ -84,6 +141,7 @@ def run_dir(rNum, fDir):
     cpCmd1 = 'cp %s %s' % ( fInfoLoc, toDir + '%04d_info.txt' % rNum)
     cpCmd2 = 'cp %s %s' % ( modelLoc, toDir + '%04d_model.png' % rNum)
     cpCmd3 = 'cp %s %s' % ( initLoc, toDir + '%04d_init.png' % rNum)
+
     system(cpCmd1)
     system(cpCmd2)
     system(cpCmd3)

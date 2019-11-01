@@ -1,26 +1,10 @@
 # Streamline Model to Machine score process
 
-## Oct 24 - RunCreator Modifications
-- Create new Folder under sdss# along with gen folders
-   - sdss# -> sdssParameters
+## (Todo Jack) Oct 31 Updating parameter
 
-  - Create File 'parameters.txt'
+-Tasks: Modify run creator code again
+  - Modify para_v3_default.txt
 
-- Copy "Input_Data/image_parameters/param_v3_default.txt" into sdssParameters folder.
-- Copy "Input_Data/targets/{sdss#}/sdss{#}.png" to "{sdss#}/sdssParameters/target_zoo.png"
-
-- Do not add the following info from info.txt file.
-  - write the following info into parameters.txt instead.
-
-```
-###  Target Image Data  ###
-target_zoo.png 513 514 309 514  ( imgName  center1x c1y c2x c2y )
-primary_luminosity 5.3e+10
-seconary_luminosity 5.07e+10
-
-###  Model Image Parameters  ###
-default param_v3_default.txt
-```
 
 ## (TO-DO Matthew ) compare_v2.py
 - Tasks
@@ -138,4 +122,26 @@ param_2 v2 path_to/param.txt  		( param_name version_# path_to_file )
   - Ex. if __name__ == '__main__': 
   - Simulator
 
+
+## (Done) Oct 24 - RunCreator Modifications
+- Create new Folder under sdss# along with gen folders
+   - sdss# -> sdssParameters
+
+  - Create File 'parameters.txt'
+
+- Copy "Input_Data/image_parameters/param_v3_default.txt" into sdssParameters folder.
+- Copy "Input_Data/targets/{sdss#}/sdss{#}.png" to "{sdss#}/sdssParameters/target_zoo.png"
+
+- Do not add the following info from info.txt file.
+  - write the following info into parameters.txt instead.
+
+```
+###  Target Image Data  ###
+target_zoo.png 513 514 309 514  ( imgName  center1x c1y c2x c2y )
+primary_luminosity 5.3e+10
+seconary_luminosity 5.07e+10
+
+###  Model Image Parameters  ###
+default param_v3_default.txt
+```
 
