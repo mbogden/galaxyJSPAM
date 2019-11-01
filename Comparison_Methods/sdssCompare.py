@@ -11,12 +11,13 @@ from sys import \
         path as sysPath
 
 from os import \
-        listdir, path
+        listdir, \
+        path, \
+        system
 
 import numpy as np
 import cv2
 import pandas as pd
-
 
 import matplotlib.pyplot as plt
 import machineMethods as ms
@@ -29,16 +30,40 @@ printAll = True
 
 # global input variables
 imgDir = ''
-plotDir = 'plots101/'
-scoreDir = plotDir
-
+plotDir = ''
+scoreDir = ''
+sdssDir = ''
+sdssName = ''
+targetLoc = ''
 newSdss = False
 
-def initSdss():
 
-    tImg = cv2.imread( imgDir + 'target.png', 0 )
-    mImgs = getImgs2( 'model' )
-    uImgs = getImgs2( 'init' )
+def prepSdss():
+    global plotDir, scoreDir, targetLoc, sdssName
+    
+    sdssName = sdssDir.split('/')[-2]
+
+    if plotDir == '':
+        plotDir = sdssDir + 'plots/'
+        if not path.exists( plotDir ):
+            system("mkdir %s" % plotDir )
+
+    if scoreDir == '':
+        scoreDir = sdssDir + 'scores/'
+        if not path.exists( scoreDir ):
+            system("mkdir %s" % scoreDir )
+
+    if targetLoc == '':
+        targetLoc = sdssDir + 'sdssParameters/target_zoo.png'
+
+
+def initSdss():
+    
+    prepSdss()
+
+    tImg = cv2.imread( targetLoc, 0 )
+    mImgs = getImgsSdss( 'model' )
+    uImgs = getImgsSdss( 'init' )
 
     # Gather Human Scores
     hScores = gatherHumanScores()
@@ -57,20 +82,6 @@ def initSdss():
 
     createScoreCSV()
 
-def newMain():
-
-    global newSdss
-    newSdss = True
-    if newSdss:
-        initSdss()
-
-    if False:
-        tImg = cv2.imread( imgDir + 'target.png', 0 )
-        mImgs = getImgs2( 'model' )
-        uImgs = getImgs2( 'init' )
-
-    createScoreCSV()
-
     allScores = getScores()
     
     colNames = allScores.columns
@@ -82,35 +93,112 @@ def newMain():
     mScores = allScores.target_correlation
     pScores = allScores.perturbedness_correlation
 
-    createHeatPlot( hScores, mScores, pScores, plotDir + 'correlation_plot.png', 'Perturbness' )
+    createHeatPlot( hScores, mScores, pScores, plotDir + '%s_correlation_plot.png', 'Perturbness' )
+
+    e, f = findExpFuncMax( mScores, pScores, hScores )
+    nScores = expFunc( mScores, pScores, e, f )
+
+    createHeatPlot( hScores, nScores, pScores, plotDir + 'corr_perturb_plot.png', 'Perturbness' )
+
+
+
+def newMain():
+
+    prepSdss()
+    #newSdss = True
+
+    if newSdss:
+        initSdss()
+
+    if False:
+        tImg = cv2.imread( imgDir + 'target.png', 0 )
+        mImgs = getImgs2( 'model' )
+        uImgs = getImgs2( 'init' )
+
+
+    createScoreCSV()
+    allScores = getScores()
+    
+    colNames = allScores.columns
+    print("Column Names")
+    for c in colNames:
+        print("\t%s"%c)
+
+    hScores = allScores.human_scores
+    mScores = allScores.target_correlation
+    pScores = allScores.perturbedness_correlation
+
+    e, f = findExpFuncMax( mScores, pScores, hScores )
+    nScores = expFunc( mScores, pScores, e, f )
+
+    createHeatPlot( hScores, nScores, pScores, plotDir + 'corr_perturb_plot.png', 'Perturbness' )
+
+
+def findExpFuncMax( mScores, pScores, hScores ):
+
+    eVal = np.linspace( 1, 100, 100 )
+    fVal = np.linspace( 0, 1.0, 100 )
+    
+    eImg = np.zeros((100,100))
+    fImg = np.zeros((100,100))
+    cImg = np.zeros((100,100))
+
+    for i,e in enumerate( eVal ):
+
+        for j, f in enumerate( fVal ):
+
+            nScores = expFunc( mScores, pScores, e, f )
+
+            cImg[i,j] = np.corrcoef( hScores, nScores)[0,1]
+            eImg[i,j] = e
+            fImg[i,j] = f
+
+    cPlot = cImg.flatten()
+    ePlot = eImg.flatten()
+    fPlot = fImg.flatten()
+
+    cMax = np.amax( cPlot )
+    iMax = np.argmax( cPlot )
+    fMax = fPlot[iMax]
+    eMax = ePlot[iMax]
+
+    return eMax, fMax
 
 
 def gatherHumanScores( ):
 
-    allFiles = listdir( imgDir )
+    gDir = sdssDir + 'gen000/'
 
-    iNames = [ i for i in allFiles if 'info' in i ]
-    iNames.sort()
-
-    n = len( iNames )
+    runDirList = listdir( gDir )
+    runDirList.sort()
+    n = len( runDirList )
 
     scores = np.zeros(n)
 
     print("Getting Human Scores")
 
-    for i,name in enumerate(iNames):
-        iLoc = imgDir + name
+    for i,rDir in enumerate(runDirList):
+        runDir = gDir + rDir + '/'
+
+        if not path.exists( runDir ):
+            print("runDir doesn't exist: %s" % runDir)
+            continue
+
+        if 'run' not in runDir:
+            print("Not a run dir: %s" % runDir)
+            continue
+
+        iLoc = runDir + 'info.txt'
 
         iFile = readFile( iLoc )
         for l in iFile:
             if 'human_score' in l:
                 scores[i] = l.strip().split()[1]
 
-        print( '%.1f - %d / %d - %s' % ( 100*((i+1)/n), i, n, name ), end='\r' )
+        print( '%.1f - %d / %d - %s' % ( 100*((i+1)/n), i, n, rDir ), end='\r' )
 
-    print("Gathered human scores")
+    print("Gathered Human Scores")
     return scores
-
 
 
 def getScores():
@@ -189,6 +277,47 @@ def makePerturbedness( scorePtr, mImgs, uImgs ):
     return scores
 
 
+
+
+def getImgsSdss(keyWord ):
+
+    gDir = sdssDir + 'gen000/'
+    runDirList = listdir( gDir )
+    runDirList.sort()
+    n = len( runDirList )
+
+    imgs = []
+
+    print("Getting %s images" % keyWord)
+
+    for i,rDir in enumerate(runDirList):
+        runDir = gDir + rDir + '/'
+
+        if not path.exists( runDir ):
+            print("runDir doesn't exist: %s" % runDir)
+            continue
+
+        if 'run' not in runDir:
+            print("Not a run dir: %s" % runDir)
+            continue
+
+        rNum = int(rDir.split('_')[1])
+
+        imgDir = runDir + 'model_images/'
+        imgLoc = ''
+
+        imgFiles = listdir( imgDir )
+
+        for f in imgFiles:
+            if keyWord in f:
+                imgLoc = imgDir + f
+
+        imgs.append( cv2.imread( imgLoc, 0 ) )
+
+        print( '%.1f - %d / %d - %s' % ( 100*((i+1)/n), i, n, rDir ), end='\r' )
+
+    print("Gathered %s images" % keyWord)
+    return imgs
 
 def getImgs2( keyWord ):
 
@@ -937,7 +1066,7 @@ def getHumanScores():
 
 def readArg():
 
-    global printAll, imgDir, everyN, plotDir, scoreDir, newSdss
+    global printAll, imgDir, everyN, plotDir, scoreDir, sdssDir, newSdss
 
     argList = argv
     endEarly = False
@@ -953,6 +1082,10 @@ def readArg():
 
         elif arg == '-noprint':
             printAll = False
+
+        elif arg == '-sdssDir':
+            sdssDir = argList[i+1]
+            if sdssDir[-1] != '/': sdssDir += '/'
 
         elif arg == '-imgDir':
             imgDir = argList[i+1]
@@ -973,8 +1106,8 @@ def readArg():
             newSdss = True
 
     # Check if input arguments were valid
-    if imgDir == '':
-        print("Please specify image directory")
+    if sdssDir == '':
+        print("Please specify sdss directory")
         endEarly = True
 
     return endEarly
