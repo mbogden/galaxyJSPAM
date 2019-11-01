@@ -210,9 +210,9 @@ bool galaxyMainWindow::createModelDirectory(const QString& dirIn, const QString&
         {
            QFileInfo lfi(di.next());
 
-           if (lfi.fileName().contains(QRegularExpression("[0-9]+\\.txt")))
+           if (lfi.fileName().contains(QRegularExpression(".*\\.txt")))
            {
-               QFileInfo datMatch(SDSS_DATA_DIR + "/" + lfi.fileName().replace(".txt", ""));
+               QFileInfo datMatch(SDSS_DATA_DIR + "/" + lfi.fileName().replace(".txt", ""));    
 
                if (datMatch.exists())
                {
@@ -228,8 +228,11 @@ bool galaxyMainWindow::createModelDirectory(const QString& dirIn, const QString&
                    {
                        count++;
                    }
+               } else
+               {
+                   qDebug() << "SDSS data dir not found, skipping: " + datMatch.absoluteFilePath();
                }
-            }
+           }
         }
     }
     else
@@ -248,6 +251,22 @@ bool galaxyMainWindow::createRunsFromFile(const QFileInfo& fi, const QDir& inDir
     QFile inF(inFile);
     QDir wd = inDir;
     QString sdss = fi.fileName().replace(".txt", "");
+
+    if (wd.exists(sdss))
+    {
+        if (ui->overWriteCheckBox->isChecked())
+        {
+            qDebug() << "Overwrite flag is checked, deleting old sdss folder: " + sdss;
+            QDir rdir(wd.absoluteFilePath(sdss));
+            rdir.removeRecursively();
+        }
+        else
+        {
+            qDebug() << "Name conflict (Already exists) on sdss:" + sdss + ", exiting...";
+            return false;
+        }
+    }
+
     if (!wd.mkdir(sdss))
     {
         if (GUI)
@@ -275,6 +294,7 @@ bool galaxyMainWindow::createRunsFromFile(const QFileInfo& fi, const QDir& inDir
         //Make parameters.txt
         QString ptxt;
         QStringList imageData = getImageDataFromDir(sdss);
+
         ptxt += "###  Target Image Data  ###\n";
         ptxt += "target_zoo.png " + imageData.value(1) + " " + imageData.value(2) + "\n";
         ptxt += "primary_luminosity " + imageData.value(3) + "\n";
@@ -432,7 +452,12 @@ QStringList galaxyMainWindow::getImageDataFromDir(const QString& sdss)
 #ifdef DEBUG
             qDebug() << "No sdss" + sdss +".meta file ";
 #endif
-            return ret;
+            //Check the alternate name scheme
+            QFileInfo mAlt(SDSS_DATA_DIR + "/" + sdss + "/" + sdss + ".meta" );
+            if (mAlt.exists())
+                meta = mAlt;
+            else
+                return ret;
         }
         QFileInfo pair (SDSS_DATA_DIR + "/" + sdss + "/sdss" + sdss + ".pair" );
         if (!pair.exists())
@@ -440,7 +465,12 @@ QStringList galaxyMainWindow::getImageDataFromDir(const QString& sdss)
 #ifdef DEBUG
             qDebug() << "No sdss" + sdss +".pair file ";
 #endif
-            return ret;
+            //Check the alternate name scheme
+            QFileInfo pAlt(SDSS_DATA_DIR + "/" + sdss + "/" + sdss + ".pair" );
+            if (pAlt.exists())
+                pair = pAlt;
+            else
+                return ret;
         }
         QFileInfo png (SDSS_DATA_DIR + "/" + sdss + "/sdss" + sdss + ".png" );
         if (!png.exists())
@@ -448,7 +478,12 @@ QStringList galaxyMainWindow::getImageDataFromDir(const QString& sdss)
 #ifdef DEBUG
             qDebug() << "No sdss" + sdss +".png file ";
 #endif
-            return ret;
+            //Check the alternate name scheme
+            QFileInfo pngAlt(SDSS_DATA_DIR + "/" + sdss + "/" + sdss + ".png" );
+            if (pngAlt.exists())
+                png = pngAlt;
+            else
+                return ret;
         }
 
         QFile mF(meta.absoluteFilePath());
