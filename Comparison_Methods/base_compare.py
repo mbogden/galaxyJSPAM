@@ -20,11 +20,47 @@ printAll = True
 
 # global input variables
 imgDir = ''
-plotDir = 'plots_seminar/'
-scoreDir = ''
-everyN = 1
+plotDir = 'plot101/'
+scoreDir = 'lots101/'
 
-imgScale = 0.1
+def initSdss():
+
+    tImg = cv2.imread( imgDir + 'target.png', 0 )
+    mImgs = getImgs2( 'model' )
+    uImgs = getImgs2( 'init' )
+
+
+def newMain():
+
+    tImg = cv2.imread( imgDir + 'target.png', 0 )
+    mImgs = getImgs2( 'model' )
+    uImgs = getImgs2( 'init' )
+
+    
+
+
+
+def getImgs2( keyWord ):
+
+    allFiles = listdir( imgDir )
+
+    imgNames = [ m for m in allFiles if keyWord in m ]
+
+    n = len( imgNames )
+
+    imgs = []
+
+    print("Getting %s images" % keyWord)
+
+    for i,name in enumerate(imgNames):
+        imgLoc = imgDir + name
+        imgs.append( cv2.imread( imgLoc, 0 ) )
+
+        print( '%.1f - %d / %d' % ( 100*((i+1)/n), i, n ), end='\r' )
+
+    print("Gathered %s images" % keyWord)
+    return imgs
+
 
 def runSpread():
     # goal is to print out a spread of the run#'s for the "perturbed" values 
@@ -847,8 +883,10 @@ if __name__=='__main__':
 
     if endEarly: exit(-1)
 
-    runSpread()
-    make_plots()
+    newMain()
+
+    #runSpread()
+    #make_plots()
     #make_plots2()
     #main_old()
 
