@@ -2,8 +2,7 @@
     Author:     Matthew Ogden
     Created:    19 July 2019
     Altered:    11 Oct 2019
-Description:    Image creator
-python version 3, currently the version in developement.
+Description:    Image creator for use in mdoel to score pipeline. Currently in developement.
 
 '''
 
@@ -18,6 +17,7 @@ from os import \
 
 import numpy as np
 import cv2
+import subprocess
 
 # Global input variables
 printAll = True
@@ -27,6 +27,9 @@ overWriteImg = False
 runDir = ''
 paramLoc = ''
 nPart = 100000
+
+paramGiven = False
+wrapperImgParam = None
 
 
 def image_creator_pl_v1(argList):
@@ -43,108 +46,166 @@ def image_creator_pl_v1(argList):
         print("Exiting...")
         return False
 
-    endEarly, runData = getRunData()
-
-    if endEarly:
-        print("Exiting...")
+    runData = runDataClass(runDir, nPart)
+    runGood = runData.checkRun()
+    
+    if not runGood:
+        print("Run failed intialization")
         return False
 
-    # Read particle files
-    g1iPart, g2iPart, iCenters = readPartFile( runData.pts1Loc )
-    g1fPart, g2fPart, fCenters = readPartFile( runData.pts2Loc )
-    ir1 = g1iPart[:,3]
-    ir2 = g2iPart[:,3]
-    
-    # Remove uncompressed particles files after being read
-    cleanPts = True
-    if cleanPts:
-        if printAll: print('rm %s %s' % ( runData.pts1Loc, runData.pts2Loc ) ) 
-        system('rm %s %s' % ( runData.pts1Loc, runData.pts2Loc ) ) 
+    # If this is being used by another code
+    if paramGiven:
+        global paramParam
+        imgParam = wrapperImgParam
+    else:
+        # Get image parameters from file
+        imgParam = imageParameterClass_v3(paramLoc)
 
+    runData.updateImg( imgParam )
+    
+    if not overWriteImg:
+        imgExist = runData.checkImg()
+
+        if imgExist:
+            if printAll: print("Run images already created")
+            return True
+
+    # Finally get particle information and create images
+
+    pts = getParticles( runData )
+    makeImages( runData, imgParam, pts )
+
+# end image_creator_v3
+
+def makeImages( runData, imgParam, pts ):
 
     # Create and save model image
-    g1fPart, g2fPart, fCenters2 = shiftPoints( g1fPart, g2fPart, fCenters, runData.imgParam.nRow, runData.imgParam.nCol )
+    pts.g1fPart, pts.g2fPart, pts.fCenters2 = shiftPoints_v2( pts.g1fPart, pts.g2fPart, pts.fCenters, imgParam.gCenter )
 
-    modelImg = createImg( g1fPart, g2fPart, ir1, ir2, runData.bRatio, runData.imgParam )
+    modelImg = createImg( pts.g1fPart, pts.g2fPart, pts.ir1, pts.ir2, imgParam )
     cv2.imwrite( runData.modelLoc, modelImg )
 
 
     # Create and save unperterbed image from initial points moved to final location
-    dC = fCenters - iCenters
-    g2iPart[:,0:2] += dC[1,0:2]
+    dC = pts.fCenters - pts.iCenters
+    pts.g2iPart[:,0:2] += dC[1,0:2]
 
-    g1iPart, g2iPart, iCenters2 = shiftPoints( g1iPart, g2iPart, fCenters, runData.imgParam.nRow, runData.imgParam.nCol )
+    pts.g1iPart, pts.g2iPart, pts.iCenters2 = shiftPoints_v2( pts.g1iPart, pts.g2iPart, pts.fCenters, imgParam.gCenter)
 
-    initImg = createImg( g1iPart, g2iPart, ir1, ir2, runData.bRatio, runData.imgParam )
+    initImg = createImg( pts.g1iPart, pts.g2iPart, pts.ir1, pts.ir2, imgParam )
     cv2.imwrite( runData.initLoc, initImg )
 
-# end image_creator_v3
+    return True
 
-# Prepare directory and information
-def getRunData():
+# End making images
 
-    runData = runDataClass()
+def getParticles( runData ):
 
-    # Reading from globals runDir, paramDir
-    if printAll: print('prepping directory')
+    pts = particleClass()
 
-    # Check if particle files and information file is present
-    endEarly, runData = readRunDir(runData)
-    if endEarly: return endEarly
+    runData.unZipPts()
 
-    runData.imgParam = imageParameterClass_v3(paramLoc)
+    # Read particle files
+    pts.g1iPart, pts.g2iPart, pts.iCenters = readPartFile( runData.pts1Loc )
+    pts.g1fPart, pts.g2fPart, pts.fCenters = readPartFile( runData.pts2Loc )
 
-    try:
-        pV = runData.imgParam.printVal() # Also doubles as a check if all information needed is initialized
-    except:
-        print("Failed to read all Image parameters from file: %s" % paramLoc) 
-        endEarly = True
-        return endEarly, runData
+    pts.ir1 = pts.g1iPart[:,3]
+    pts.ir2 = pts.g2iPart[:,3]
     
-    if printAll:
-        print("Printing Image Parameter Info")
-        for l in pV: print('\t',l)
+    # Remove uncompressed particles files after being read
+    runData.rmPts()
 
-    if runData.imgParam.version != 3:
-        print("Incorrect image parameter verion:")
-        print("Expecting: version 3")
-        print("Found:     version %d" % runData.imgParam.version)
-        print("Exiting...")
-        endEarly = True
-        return endEarly, runData
-    
-    runData.modelLoc = runData.imgDir + '%s_model_2.png' % runData.imgParam.name 
-    runData.initLoc = runData.imgDir + '%s_init.png' % runData.imgParam.name 
+    return pts
 
-    if path.exists( runData.modelLoc ) \
-            and path.exists( runData.initLoc ) \
-            and not overWriteImg:
-                print("Model and unperturbed image already exist")
-                endEarly = True
-                return endEarly, runData
-
-    # Get luminosity ratio
-    g1Lum, g2Lum = getLuminosity( runData.infoLoc )
-    g1Lum = 1.0
-    g2Lum = 25.0
-    if printAll: print( 'Lumisoties: %f %f' % ( g1Lum, g2Lum ) )
-    if g1Lum == 0.0 or g2Lum == 0.0:
-        endEarly = True
-        return endEarly, runData
-
-    runData.bRatio = g1Lum/g2Lum
-
-    return endEarly, runData
+# end get particles
 
 
-# Define struct-like class to hold information
-class runDataClass:
+
+# Define struct-like class to hold particles information
+class particleClass:
     def __init__( self ):
-        # stuff
         self.stuff = 0
 
+# Define struct-like class to hold information about the run directory
+class runDataClass:
+    def __init__( self, runDir, nPart ):
+        self.runDir = runDir
+        self.nPart = nPart
+        self.ptsDir = runDir + 'particle_files/'
+        self.ptsZip = self.ptsDir + '%d_pts.zip' % nPart
+        self.imgDir = runDir + 'model_images/'
+        self.miscDir = runDir + 'misc_images/'
+        self.infoLoc = runDir + 'info.txt'
 
-def createImg( g1Pts, g2Pts, ir1, ir2, bRatio, imgParam ):
+    def checkRun( self ):
+           
+        if not path.exists(self.ptsDir):
+            print("Couldn't find Folder: %s" % self.ptsDir)
+            print(listdir(self.runDir))
+            return False
+           
+        if not path.exists(self.imgDir):
+            print("Couldn't find Folder: %s" % self.imgDir)
+            print(listdir(self.runDir))
+            return False
+           
+        if not path.exists(self.miscDir):
+            print("Couldn't find Folder: %s" % self.miscDir)
+            print(listdir(self.runDir))
+            return False
+           
+        if not path.exists(self.ptsZip):
+            print("Couldn't find particle file: %s" % self.ptsZip)
+            print(listdir(self.ptsDir))
+            return False
+           
+        if not path.exists(self.infoLoc):
+            print("Couldn't find information file: %s" % self.infoLoc)
+            print(listdir(self.runDir))
+            return False
+
+        return True
+    
+    def updateImg( self, imgParam ):
+
+        self.modelLoc = self.imgDir + '%s_model.png' % imgParam.name 
+        self.initLoc = self.imgDir + '%s_init.png' % imgParam.name 
+
+    def checkImg( self ):
+
+        # Check if images already exist
+        if path.exists( self.modelLoc ):
+            return True
+        elif path.exists( self.initLoc ):
+            return True
+        else:
+            return False
+
+    
+    def unZipPts( self ):
+
+        unzipCmd = "unzip -qq -j -o %s -d %s" % ( self.ptsZip, self.ptsDir )
+        system(unzipCmd)
+        
+        self.pts1Loc = self.ptsDir + "%d_pts.000" % self.nPart
+        self.pts2Loc = self.ptsDir + "%d_pts.101" % self.nPart
+
+        if not path.exists(self.pts1Loc) or not path.exists(self.pts2Loc):
+            print("Can't find particle files after unzipping")
+            print('\t', listdir( self.ptsDir ) )
+            return False
+
+        return True
+    # End Unzipping Pts 
+
+    def rmPts( self ):
+        system('rm %s %s' % ( self.pts1Loc, self.pts2Loc ) ) 
+    # end removing points
+
+
+
+
+def createImg( g1Pts, g2Pts, ir1, ir2, imgParam ):
 
     imgGal1 = addGalaxy( g1Pts, ir1, imgParam, imgParam.rConst1 )
     imgGal1 = cv2.GaussianBlur( imgGal1, (imgParam.gSize, imgParam.gSize), imgParam.gWeight )
@@ -155,7 +216,7 @@ def createImg( g1Pts, g2Pts, ir1, ir2, bRatio, imgParam ):
     b1 = np.sum( imgGal1 )
     b2 = np.sum( imgGal2 )
 
-    bScale = bRatio * b2 / b1 
+    bScale = ( imgParam.g1Lum / imgParam.g2Lum ) * ( b2 / b1 )
 
     if bScale < 1:
         imgGal1 *= bScale
@@ -188,75 +249,6 @@ def addGalaxy( pts, ir, imgParam, rConst ):
             img[imgParam.nRow - y, x] += np.exp( -rConst * ir[i] / rMax )
 
     return img
-
-
-def getLuminosity( infoLoc ):
-    
-    if printAll: print("Getting gal brightnesses")
-
-    infoFile = readFile( infoLoc )
-
-    g1Lum = 0.0
-    g2Lum = 0.0
-
-    for l in infoFile: 
-
-        if 'primary_luminosity' in l: 
-            g1Lum = float( l.split()[1].strip() )
-
-        elif 'secondary_luminosity' in l: 
-            g2Lum = float( l.split()[1].strip() )
-
-    # 
-
-    return g1Lum, g2Lum
-
-# End get Luminosity
-
-
-def readRunDir(runData):
-
-    if printAll: print("\tRun Directory: %s" % runDir )
-
-    runData.ptsDir = runDir + 'particle_files/'
-    runData.imgDir = runDir + 'model_images/'
-    runData.miscDir = runDir + 'misc_images/'
-    runData.infoLoc = runDir + 'info.txt'
-
-    if not path.exists(runData.ptsDir) \
-            or not path.exists(runData.imgDir) \
-            or not path.exists(runData.miscDir) \
-            or not path.exists(runData.infoLoc):
-
-        print("Not all folders and files found in run directory")
-        return True, runData
-
-    ptsZip = runData.ptsDir + '%d_pts.zip' % nPart
-
-    if not path.exists(ptsZip):
-        print("Particle zip file not found: %s" % ptsZip)
-        return True, runData
-
-    unzipCmd = "unzip -qq -o %s -d %s" % ( ptsZip, runData.ptsDir )
-    system(unzipCmd)
-    
-    runData.pts1Loc = runData.ptsDir + "%d_pts.000" % nPart
-    runData.pts2Loc = runData.ptsDir + "%d_pts.101" % nPart
-
-    if not path.exists(runData.pts1Loc) or not path.exists(runData.pts2Loc):
-        print("Can't find particle files after unzipping")
-        print("\tparticle file 1: %s" % runData.pts1Loc)
-        print("\tparticle file 2: %s" % runData.pts2Loc)
-        return True, runData
-
-    if printAll:
-        print("\tinfoLoc: %s" % runData.infoLoc)
-        print("\tpts1Loc: %s" % runData.pts1Loc)
-        print("\tpts2Loc: %s" % runData.pts2Loc)
-
-    return False, runData
-
-# End Reading run Folder
 
 
 def readArg( argList ):
@@ -310,11 +302,11 @@ def readArg( argList ):
         print('Run directory \'%s\' not found')
         endEarly = True
 
-    if paramLoc == '':
+    if paramLoc == '' and not paramGiven:
         print("No image parameter file given.")
         endEarly = True
 
-    elif not path.exists(paramLoc):
+    elif not path.exists(paramLoc) and not paramGiven:
         print("Image parameter file not found: %s" % paramLoc)
         endEarly = True
     
@@ -356,14 +348,71 @@ def simpleWriteImg( iLoc, g1P, g2P, nRows, nCols ):
 # End simple write
 
 # This is to shift the points so the galaxies are horizontal
-def shiftPoints( g1P, g2P, gC_in, nRows, nCols ):
+def shiftPoints_v2( g1P, g2P, gC_in, toC ):
 
     gC = np.copy(gC_in)
 
+    fC = np.zeros((2,2))
+    fC[:,0] = gC[0,0:2]
+    fC[:,1] = gC[1,0:2]
+
+    # Calculate angle between position vectors
+    def angToXpos( c ):
+        theta = np.arctan( ( c[1,1] - c[1,0] ) / ( c[0,1] - c[0,0] ) ) 
+        return theta
+    
+    fTheta = angToXpos( fC )
+    tTheta = angToXpos( toC )
+
+    theta = fTheta + tTheta
+
+    # Build rotation matrix
+    rotMat = np.zeros((2,2))
+    rotMat[0,:] = [ np.cos( theta ) , -np.sin( theta ) ]
+    rotMat[1,:] = [ np.sin( theta ) ,  np.cos( theta ) ]
+
+    # Rotate xy plane
+    gC[:,0:2] = np.transpose(np.matmul(rotMat, np.transpose(gC[:,0:2])))
+    g1P[:,0:2] = np.transpose(np.matmul(rotMat, np.transpose(g1P[:,0:2])))
+    g2P[:,0:2] = np.transpose(np.matmul(rotMat, np.transpose(g2P[:,0:2])))
+
+    # Calculate scale to change galaxy center distance to pixel center distance
+    sF = np.sqrt( ( fC[0,1] - fC[0,0] )**2 + ( fC[1,1] - fC[1,0] ) **2 )
+    sT = np.sqrt( ( toC[0,1] - toC[0,0] )**2 + ( toC[1,1] - toC[1,0] ) **2 )
+    scale = sT/sF
+
+    #scale up points, leave radial distance untouched
+    gC[:,0:3] *= scale
+    g1P[:,0:3] *= scale
+    g2P[:,0:3] *= scale
+
+    # Shift centers up to desired point
+    gC[:,0] = gC[:,0] + toC[0,0]
+    gC[:,1] = gC[:,1] + toC[0,1]
+    g1P[:,0] = g1P[:,0] + toC[0,0]
+    g1P[:,1] = g1P[:,1] + toC[0,1]
+    g2P[:,0] = g2P[:,0] + toC[0,0]
+    g2P[:,1] = g2P[:,1] + toC[0,1]
+
+    return g1P, g2P, gC
+
+# end shift Points
+
+
+# This is to shift the points so the galaxies are horizontal
+def shiftPoints( g1P, g2P, gC_in, imgParam ):
+
+    nRows = imgParam.nRow
+    nCols = imgParam.nCol
+
+    gC = np.copy(gC_in)
+
+
+
     # Calculate pixel points I want the galaxy centers to land on
     toC = np.zeros((2,2))
-    toC[0,:] = [ nCols/3, nRows/2 ]
-    toC[1,:] = [ 2*nCols/3, nRows/2 ]
+    toC[0,:] = imgParam.gCenter[:,0]
+    toC[1,:] = imgParam.gCenter[:,1]
 
     # Calculate amount needed to rotate points to land galaxy centers horizontal
     theta = - np.arctan( ( gC[1,1] - gC[0,1] ) / ( gC[1,0] - gC[0,0] ) ) 
@@ -413,6 +462,7 @@ def readPartFile( pLoc ):
         pFile = open( pLoc, 'r' )
         pList = list( pFile )
         pFile.close()
+
     except:
         print('Failed to open particle file %s' % pLoc)
         exit(-1)
@@ -442,12 +492,15 @@ def readPartFile( pLoc ):
 
         for j in range(3):
 
+                # reading from file
                 g1Points[i,j] = float( p1[j] )
                 g2Points[i,j] = float( p2[j] )
 
+                # calculating radius from center
                 r1 += g1Points[i,j]**2
                 r2 += g2Points[i,j]**2
 
+        # finish radius calculation
         g1Points[i,3] = np.sqrt( r1 )
         g2Points[i,3] = np.sqrt( r2 )
 
@@ -485,6 +538,7 @@ class imageParameterClass_v3:
 
         self.gCenter    = np.zeros((2,2))   # [[ x1, x2 ] 
         self.comment    = 'blank comment'
+        self.paramLoc   = pInLoc
 
         self.readParamFile(pInLoc)
 
@@ -558,6 +612,12 @@ class imageParameterClass_v3:
                 self.gCenter[0,1] = int(pL[1])
                 self.gCenter[1,1] = int(pL[2])
 
+            elif pL[0] == 'galaxy_1_luminosity':
+                self.g1Lum = float(pL[1])
+
+            elif pL[0] == 'galaxy_2_luminosity':
+                self.g2Lum = float(pL[1])
+
     # end read param file
 
     def printVal(self):
@@ -577,6 +637,8 @@ class imageParameterClass_v3:
         printList.append(' Number of columns       : %d' % self.nCol)
         printList.append(' Galaxy 1 center         : %d %d' % ( int(self.gCenter[0,0]), int(self.gCenter[0,1]) ))
         printList.append(' Galaxy 2 center         : %d %d' % ( int(self.gCenter[1,0]), int(self.gCenter[1,1]) ))
+        printList.append(' Galaxy 1 Luminosity     : %f' % ( self.g1Lum ))
+        printList.append(' Galaxy 2 Luminosity     : %f' % ( self.g2Lum ))
 
         return printList
     # end print
@@ -600,10 +662,33 @@ class imageParameterClass_v3:
             pFile.write('image_cols %d\n' % self.nCol)
             pFile.write('galaxy_1_center %d %d\n' % ( int(self.gCenter[0,0]), int(self.gCenter[0,1]) ))
             pFile.write('galaxy_2_center %d %d\n' % ( int(self.gCenter[1,0]), int(self.gCenter[1,1]) ))
+            pFile.write('galaxy_1_luminosity %f' % ( self.g1Lum ))
+            pFile.write('galaxy_2_luminosity %f' % ( self.g2Lum ))
             pFile.close()
+
     # end write param
 
+    def checkParam():
+        try:
+            pV = self.printVal() # Also doubles as a check if all information needed is initialized
+        except:
+            print("Failed to read all Image parameters from file: %s" % paramLoc) 
+            return False
+        
+        if self.version != 3:
+            print("Incorrect image parameter verion:")
+            print("Expecting: version 3")
+            print("Found:     version %d" % self.version)
+            return False
+
+        # Return good if nothing bad found
+        return True
+        
+
 # End parameter class
+
+def testFunc():
+    print("In image creator pl v1")
 
 # Run main after declaring functions
 if __name__ == "__main__":
