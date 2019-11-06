@@ -15,6 +15,8 @@ from os import \
         path, \
         system
 
+from multiprocessing import Pool
+
 import numpy as np
 import cv2
 import pandas as pd
@@ -37,6 +39,8 @@ sdssName = ''
 targetLoc = ''
 newSdss = False
 
+nProc = 1
+
 
 def prepSdss():
     global plotDir, scoreDir, targetLoc, sdssName
@@ -56,12 +60,28 @@ def prepSdss():
     if targetLoc == '':
         targetLoc = sdssDir + 'sdssParameters/target_zoo.png'
 
+    return sdssName
+
+
+def binTargets(tImg):
+
+    tbImg = ms.binImg( tImg, 55 )
+    cv2.imwrite( sdssDir + 'sdssParameters/target_zoo_binary.png', tbImg )
+    exit()
+
+    binDir = sdssDir + 'sdssParameters/binTargets/'
+    system( 'mkdir %s' % binDir )
+
+
+
 
 def initSdss():
     
-    prepSdss()
+    sName = prepSdss()
 
     tImg = cv2.imread( targetLoc, 0 )
+    #binTargets(tImg)
+
     mImgs = getImgsSdss( 'model' )
     uImgs = getImgsSdss( 'init' )
 
@@ -74,11 +94,16 @@ def initSdss():
     pScores = makePerturbedness( ms.scoreCorrelation, mImgs, uImgs )
     comment = 'perturbedness_correlation' 
     saveScores2( pScores, comment, scoreDir + 'perturbedScores.txt' )
- 
-    # Make scores for target and model images
+
+    # Make correlation scores for target and model images
     cScores = makeScores2( ms.scoreCorrelation, tImg, mImgs )
     comment = 'target_correlation'
     saveScores2( cScores, comment, scoreDir + 'correlationScores.txt' )
+
+    # Make Binary correlation scores for target and model images
+    cScores = makeScores3( ms.scoreCorrelation, tImg, mImgs, 1 )
+    comment = 'target_correlation_binary'
+    saveScores2( cScores, comment, scoreDir + 'correlationBinaryScores.txt' )
 
     createScoreCSV()
 
@@ -93,12 +118,12 @@ def initSdss():
     mScores = allScores.target_correlation
     pScores = allScores.perturbedness_correlation
 
-    createHeatPlot( hScores, mScores, pScores, plotDir + '%s_correlation_plot.png', 'Perturbness' )
+    createHeatPlot( hScores, mScores, pScores, plotDir + '%s_correlation_plot.png'% sName, 'Perturbness' )
 
     e, f = findExpFuncMax( mScores, pScores, hScores )
     nScores = expFunc( mScores, pScores, e, f )
 
-    createHeatPlot( hScores, nScores, pScores, plotDir + 'corr_perturb_plot.png', 'Perturbness' )
+    createHeatPlot( hScores, nScores, pScores, plotDir + '%s_corr_perturb_plot.png' % sName, 'Perturbness' )
 
 
 
@@ -228,6 +253,26 @@ def createScoreCSV():
     allScores.to_csv(r'%s'%saveLoc, index = None, header=True)
 
 
+def makeScores3( scorePtr, tImg, mImgs, inVal ):
+
+    n = len( mImgs )
+    scores = np.zeros( n )
+
+    tAr = tImg.flatten()
+
+    print("Getting Scores" )
+    for i in range(n):
+
+        scores[i] = scorePtr( tAr, mImgs[i], inVal )
+        print( '%.1f - %d / %d' % ( 100*((i+1)/n), i, n ), end='\r' )
+
+    print('')
+
+    return scores
+
+
+
+
 def makeScores2( scorePtr, tImg, mImgs ):
 
     n = len( mImgs )
@@ -243,6 +288,32 @@ def makeScores2( scorePtr, tImg, mImgs ):
 
     print('')
 
+    return scores
+
+
+
+
+def makeScores2pp( scorePtr, tImg, mImgs ):
+
+    n = len( mImgs )
+    scores = np.zeros( n )
+
+    print("Getting Scores Parallel" )
+
+    argList = []
+    for i in mImgs:
+        argList.append( tImg, i )
+
+    scores = pool.map( scorePtr, argList )
+
+    '''
+    for i in range(n):
+
+        scores[i] = scorePtr( tAr, mImgs[i] )
+        print( '%.1f - %d / %d' % ( 100*((i+1)/n), i, n ), end='\r' )
+
+    print('')
+    '''
     return scores
 
 
@@ -279,7 +350,7 @@ def makePerturbedness( scorePtr, mImgs, uImgs ):
 
 
 
-def getImgsSdss(keyWord ):
+def getImgsSdss( keyWord ):
 
     gDir = sdssDir + 'gen000/'
     runDirList = listdir( gDir )
@@ -733,8 +804,8 @@ def filterScores( hScores, mScores, pScores, lowFilter, highFilter ):
 def binImg( imgIn, threshold ):
 
     cpImg = np.copy( imgIn )
-    cpImg[cpImg > threshold ] = 255
-    cpImg[cpImg <= threshold] = 0
+    cpImg[ cpImg > threshold ] = 255
+    cpImg[ cpImg <= threshold] = 0
 
     return cpImg
 # end binary image creator
@@ -1066,7 +1137,7 @@ def getHumanScores():
 
 def readArg():
 
-    global printAll, imgDir, everyN, plotDir, scoreDir, sdssDir, newSdss
+    global printAll, imgDir, everyN, plotDir, scoreDir, sdssDir, newSdss, nProc
 
     argList = argv
     endEarly = False
@@ -1104,6 +1175,9 @@ def readArg():
 
         elif arg == '-new':
             newSdss = True
+
+        elif arg == '-pp':
+            nProc = int( argList[i+1] )
 
     # Check if input arguments were valid
     if sdssDir == '':
@@ -1172,6 +1246,9 @@ if __name__=='__main__':
         print("scoreDir: %s" % scoreDir )
 
     if endEarly: exit(-1)
+
+    global pool
+    pool = Pool( nProc )
 
     if newSdss:
         initSdss()

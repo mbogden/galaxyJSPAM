@@ -31,25 +31,30 @@ def scoreCorrelation( img1, img2 ):
     return score
 
 
-def createBinaryCorrMScores( mImgs, tImg ):
+def binImg( imgIn, threshold ):
 
-    for i,mImg in enumerate(mImgs):
+    cpImg = np.copy( imgIn )
+    cpImg[ cpImg >= threshold] = 255
+    cpImg[ cpImg < threshold] = 0
 
-        mImg = binImg( mImg, 45 )
+    return cpImg
 
-        # Resize image to quicken computation speed
-        mImg = scaleImg( mImg )
 
-        # flatten to 1d for correlation
-        mAr = mImg.flatten()
 
-        mVal = np.corrcoef( mAr, tAr )[0,1]
+def scoreBinaryCorrelation( img1, img2, threshold ):
 
-        mScores[i] = mVal
+    score = -1
+    
+    img1 = binImg( img1, threshold )
 
-    return mScores
+    score = scoreCorrelation( img1, img2 )
 
-# end createMScores()
+    return score
+
+
+
+# end createBinaryCorrelation()
+
 
 def createBinaryCorrPScores( mImgs, iImgs ):
 
