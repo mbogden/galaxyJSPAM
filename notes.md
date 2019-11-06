@@ -23,22 +23,31 @@ IRB course?
 
 ## Matt's To-Do
 
-- Get images for 
-  - 3101
-  - 2756
-  - 8612
-  - 2970
-  - 2775
+- Auto create images for all 62 pairs.
+  - Initial target image parameter only
 
-- Optimize things
-  - 
+Weighted Masks
+
+- Optimize a random weighted mask for human vs machine score correlation.
+  - pixel diff
+  - correlation
+  - Binary correlation
+
+- Analyze image, where is the highly weighted regions?
+  - radial distance from galaxy?
+  - Edges of galaxy?
+  - Random? Dependent on galaxy pair?  
+- Can we recreate this mask? 
+  - Analyze it wiht 1614, recreate with results and apply to rest.
+
+- Bin
+  - Bin image in 10x10, etc. And apply weighted mask to them, then average together
 
 - Comparison methods
-  - Check that new target info files are actual target centers
-  - ALL comparison methods only return a machine score!
-	- Seperate function will return difference images!
-	- Will they all only take 2 images though?  No.... 
-  - Make 1 method name variable instead of boolean for each method?
+  -MachiceMethod class
+	- Seperate function will return difference images
+	- Seperate function for writing/appending score to csv file
+	  - will need to pass run directory
 
 
 ## Future Things To-Do
