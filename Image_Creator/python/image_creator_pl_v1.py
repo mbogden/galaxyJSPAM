@@ -246,7 +246,10 @@ def addGalaxy( pts, ir, imgParam, rConst ):
         
         if  x > 0 and x < imgParam.nCol \
         and y > 0 and y < imgParam.nRow:
-            img[imgParam.nRow - y, x] += np.exp( -rConst * ir[i] / rMax )
+            try:
+                img[imgParam.nRow - y, x] += np.exp( -rConst * ir[i] / rMax )
+            except:
+                continue
 
     return img
 
