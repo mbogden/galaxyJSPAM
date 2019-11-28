@@ -1,151 +1,154 @@
-#!/usr/bin/env python
-# coding: utf-8
+'''
+    Author:     Matthew Ogden and Richa
+    Created:    29 Oct 2019
+    Altered:    15 Nov 2019
+Description:    For quick implementation of testing nueral network model filter
+Ex Execution:   python3 baseFilter.py -imgLoc path/to/img.png -modelJsonLoc model2.json -modelH5Loc model2.h5
+'''
 
-# In[14]:
+from sys import exit, argv
+from os import  path, listdir
 
+import numpy as np
+import matplotlib.pyplot as plt
 
 import keras
 from keras import backend as K
-import numpy as np
 from keras.preprocessing import image
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import axes3d
-get_ipython().magic(u'matplotlib inline')
-from IPython.display import display
-
-import os, sys, csv
-
-'''
-    Author:     Matthew Ogden
-    Created:    29 Oct 2019
-    Altered:    29 Oct 2019
-Description:    For quick implementation of testing nueral network model filter
-Ex Execution:   python3 baseFilter.py -imageLoc path/to/img.png -modelJsonLoc model2.json -modelH5Loc model2.h5
-'''
-
-from sys import         exit,         argv
-
-from os import         path,         listdir
+from keras.models import model_from_json
 
 
-# In[27]:
-
-
+# Global Variables
 printAll = True
+imageSize = ( 128, 128 )
+
+imgLoc = ''
+modelJsonLoc = ''
+modelH5Loc = ''
+modelDir = ''
+
+'''
 imageLoc = './587727222471131318_bad_test/587727222471131318_223_init_diff.png'
 modelJsonLoc = './model2.json'
 modelH5Loc = './model2.h5'
+'''
 
 
-# In[3]:
 
-
-def main(argList):
-
-    endEarly = readArg(argList)
+def main():
 
     if printAll:
-        print("Image Loc: %s" % imageLoc)
-        print("Model Loc: %s" % modelLoc)
-
-    if endEarly:
-        print("Exiting...")
-        exit(-1)
+        print("Image Loc: %s" % imgLoc)
+        print("Model Json Loc: %s" % modelJsonLoc)
+        print("Model H5 Loc: %s" % modelH5Loc)
 
     # load the Keras model
-    loadedModel = loadModelFunc(modelLoc)
+    loadedModel = loadModelFunc(modelJsonLoc, modelH5Loc)
 
     # Load the image
-    image = loadImage( imageLoc )
+    image = loadImage( imgLoc )
 
     # Get prediction
     prediction = predictImg( image, loadedModel )
 
-    # do something with prediction
-    doSomething( prediction )
+    if printAll: print( prediction )
 
 # End main
 
 
-# In[16]:
+def convertCV2Img( imgIn ):
 
+    import cv2
 
-def loadModelFunc( modelLoc ):
+    if type(imgIn) is not list:
+ 
+        img = cv2.resize( img, imageSize )
+        img = image.img_to_array( img )
+        img = np.expand_dims( img, axis=0)
+        return img
     
-    from keras.models import model_from_json
+    else:
+    
+        newImgs = []
+
+        for img in imgIn:
+
+            img = cv2.resize( img, imageSize )
+            img = image.img_to_array( img )
+            img = np.expand_dims( img, axis=0)
+
+            newImgs.append( img )
+
+        return newImgs
+
+        
+
+def loadFilterDir( fDir ):
+    
+    fList = listdir( fDir )
+
+    jsonLoc = ''
+    h5Loc = ''
+
+    for f in fList:
+        if '.json' in f:
+            jsonLoc = fDir + f
+
+        elif '.h5' in f:
+            h5Loc = fDir + f
+    # end going through dir
+
+    return loadModelFunc( jsonLoc, h5Loc )
+
+
+def loadModelFunc( modelJsonLoc, modelH5Loc ):
+    
     
     # load json and create model
-    json_file = open('model2.json', 'r')
-    loaded_model_json = json_file.read()
-    json_file.close()
-    loaded_model = model_from_json(loaded_model_json)
+    jsonIn = open(modelJsonLoc, 'r')
+
+    loaded_model = model_from_json( jsonIn.read() )
+
+
     # load weights into new model
-    loaded_model.load_weights("model2.h5")
-    print("Loaded model from disk")
+    loaded_model.load_weights(modelH5Loc)
+    if printAll: print("Loading Keras model")
 
     # evaluate loaded model on test data
     loaded_model.compile(loss=keras.losses.categorical_crossentropy,
                   optimizer=keras.optimizers.Adam(),
                   metrics=['accuracy'])
-    #score = model.evaluate(data_test, data_test_labels, verbose=1)
-    #print('Test loss:', score[0])
-    #print('Test accuracy:', score[1])
 
+    if printAll: print("Loaded model from disk")
 
-    print("Loading Keras model")
-    
     return loaded_model
-
-    #return 'keras model class thing'
-
-
-# In[17]:
+# End loading model
 
 
 def loadImage( imageLoc ):
     
-    from keras.preprocessing import image
-
-    print("Loading image")
+    if printAll: print("Loading image")
     
-    img = image.load_img(imageLoc, target_size=(128, 128), color_mode = "grayscale")
+    img = image.load_img(imageLoc, target_size=imageSize, color_mode = "grayscale")
     x = image.img_to_array(img)
     x = np.expand_dims(x, axis=0)
     return x
 
-    # return "image in needed format for model prediction"
 
+def predictImg( imgs, loadedModel ):
 
-# In[18]:
-
-
-def predictImg( image, loadedModel ):
-    print("Making prediction")
+    if type(imgs) is not list:
+        return loadedModel.predict_classes( imgs )[0] 
     
-    prediction = loadedModel.predict(image)
-
-    # Take image and get prediction from keras model
-    
-    return prediction
-
-    #return 'keras prediction'
-
-
-# In[7]:
-
-
-def doSomething( prediction ):
-
-    # Just print the prediction contents for now to check if working
-    print(prediction)
-
-
-# In[19]:
-
+    else:
+        pList = []
+        for img in imgs:
+            pList.append( loadedModel.predict_classes( img )[0] )
+        return pList
 
 def readArg(argList):
 
-    global printAll, imageLoc, modelLoc
+    global printAll, imgLoc, modelJsonLoc, modelH5Loc
 
     endEarly = False
 
@@ -154,202 +157,42 @@ def readArg(argList):
         if arg[0] != '-':
             continue
 
-        elif arg == '-argFile':
-            argFileLoc = argList[i+1]
-            argList = readArgFile( argList, argFileLoc ) 
-
         elif arg == '-noprint':
             printAll = False
 
-        elif arg == '-imageLoc':
-            imageLoc = arglist[i+1]
+        elif arg == '-imgLoc':
+            imgLoc = argList[i+1]
 
-        elif arg == '-modelLoc':
-            modelLoc = arglist[i+1]
+        elif arg == '-jsonLoc':
+            modelJsonLoc = argList[i+1]
+
+        elif arg == '-h5Loc':
+            modelH5Loc = argList[i+1]
 
     # Check if input arguments are valid
-
-    if not path.exists(imageLoc):
-        print("Image does not exist: %s" % imageLoc)
+    
+    if imgLoc == '' or not path.exists( imgLoc ):
+        print( "Image not found: %s" % imgLoc )
         endEarly = True
 
-    if not path.exists(modelLoc):
-        print("Keras model does not exist: %s" % modelLoc)
+    if modelJsonLoc == '' or not path.exists( modelJsonLoc ):
+        print( "Image not found: %s" % modelJsonLoc )
+        endEarly = True
+
+    if modelH5Loc == '' or not path.exists( modelH5Loc ):
+        print( "Image not found: %s" % modelH5Loc )
         endEarly = True
 
     return endEarly
 
 # End reading command line arguments
 
+if __name__=='__main__':
 
-# In[20]:
+    endEarly = readArg(argv)
+    if endEarly:
+        print("Exiting....")
+        exit()
 
-
-def readArgFile(argList, argFileLoc):
-
-    try:
-        argFile = open( argFileLoc, 'r')
-    except:
-        print("Failed to open/read argument file '%s'" % argFileLoc)
-    else:
-
-        for l in argFile:
-            l = l.strip()
-
-            # Skip line if empty
-            if len(l) == 0:
-                continue
-
-            # Skip line if comment
-            if l[0] == '#':
-                continue
-
-            lineItems = l.split()
-            for item in lineItems:
-                argList.append(item)
-
-        # End going through file
-
-    return argList
-# end read argument file
-
-
-# In[21]:
-
-
-def readFile( fileLoc ):
-
-    if not path.isfile( fileLoc ):
-        print("File does not exist: %s" % fileLoc)
-        return False, []
-    
-    try:
-        inFile = open( fileLoc, 'r' )
-
-    except:
-        print('Failed to open/read file at \'%s\'' % fileLoc)
-        return False, []
-
-    else:
-        inList = list(inFile)
-        inFile.close()
-        return True, inList
-
-# End simple read file
-
-
-# In[21]:
-
-
-# Run main after declaring functions
-
-imageLoc = './587727222471131318_bad_test/587727222471131318_223_init_diff.png'
-modelJsonLoc = './model2.json'
-modelH5Loc = './model2.h5'
-
-import keras
-from keras import backend as K
-import numpy as np
-from keras.preprocessing import image
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import axes3d
-get_ipython().magic(u'matplotlib inline')
-from IPython.display import display
-
-import os, sys, csv
-def main():
-
-    print('hi')
-
-    print("Image Loc: %s" % imageLoc)
-    print("Model Json Loc: %s" % modelJsonLoc)
-    print("Model H5 Loc: %s" % modelH5Loc)
-
-    # load the Keras model
-    loadedModel = loadModelFunc(modelJsonLoc, modelH5Loc)
-
-    # Load the image
-    image = loadImage( imageLoc )
-
-    # Get prediction
-    prediction = predictImg( image, loadedModel )
-
-    # do something with prediction
-    doSomething( prediction )
-
-# End main
-
-def loadModelFunc( modelJsonLoc, modelH5Loc ):
-    
-    from keras.models import model_from_json
-    
-    # load json and create model
-    json_file = open(modelJsonLoc, 'r')
-    loaded_model_json = json_file.read()
-    json_file.close()
-    loaded_model = model_from_json(loaded_model_json)
-    # load weights into new model
-    loaded_model.load_weights(modelH5Loc)
-    print("Loaded model from disk")
-
-    # evaluate loaded model on test data
-    loaded_model.compile(loss=keras.losses.categorical_crossentropy,
-                  optimizer=keras.optimizers.Adam(),
-                  metrics=['accuracy'])
-    #score = model.evaluate(data_test, data_test_labels, verbose=1)
-    #print('Test loss:', score[0])
-    #print('Test accuracy:', score[1])
-
-
-    print("Loading Keras model")
-    
-    return loaded_model
-
-    #return 'keras model class thing'
-
-
-
-def loadImage( imageLoc ):
-    
-    from keras.preprocessing import image
-
-    print("Loading image")
-    
-    img = image.load_img(imageLoc, target_size=(128, 128), color_mode = "grayscale")
-    x = image.img_to_array(img)
-    x = np.expand_dims(x, axis=0)
-    return x
-
-    # return "image in needed format for model prediction"
-
-
-def predictImg( image, loadedModel ):
-    print("Making prediction")
-    
-    prediction = loadedModel.predict(image)
-
-    # Take image and get prediction from keras model
-    
-    return prediction
-
-    #return 'keras prediction'
-
-def doSomething( prediction ):
-
-    # Just print the prediction contents for now to check if working
-    print(prediction)
-
-main()
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
+    main()
 

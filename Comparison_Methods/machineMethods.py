@@ -11,6 +11,31 @@ import cv2
 def test():
     print("Inside machineMethods.py")
 
+def scoreOverLap( img1, img2, h ):
+
+    score = -1
+
+    i1 = np.copy( img1 )
+    i2 = np.copy( img2 )
+
+    i1[ i1 <  h ] = 0
+    i1[ i1 >= h ] = 1
+
+    i2[ i2 <  h ] = 0
+    i2[ i2 >= h ] = 1
+
+    bImg = i1 + i2
+    bImg[ bImg <  2 ] = 0
+    bImg[ bImg >= 2 ] = 1
+
+    x = np.sum( i1 )
+    y = np.sum( i2 )
+    z = np.sum( bImg )
+
+    score = ( z / ( x + y - 1.0*z ) )
+
+    return score
+
 
 def scoreCorrelation( img1, img2 ):
 
@@ -146,16 +171,6 @@ def createCorrPScores( mImgs, iImgs ):
     return pScores
 
 # end createPScores()
-def recreateData(tImg):
-
-    mImgs, iImgs = getImgs()
-
-    pScores = createPScores( mImgs, iImgs )
-    mScores = createMScores( mImgs, tImg )
-
-    saveScores( pScores, 'pScores.txt' )
-    saveScores( mScores, 'pixelDiffScores.txt' )
-
 
 
 def readScores( fileName ):
@@ -195,32 +210,54 @@ def saveScores( scores, fileName ):
     oFile.close()
 
 
-def createMScores( mImgs, tImg ):
+def scoreAbsDiff( img1, img2 ):
 
-    mScores = np.zeros( len( mImgs ))
+    score = -1
 
-    tB = np.sum( tImg )
+    # adjust so mean brightness matches
 
-    for i,mImg in enumerate(mImgs):
+    dImg = np.abs( img1 - img2 )
+    score = np.sum( dImg ) / dImg.size / 255
+    score = 1 - score
+    return score
+# End absDiff
 
-        # adjust so mean brightness matches
-        mB = np.sum( mImg )
-        mImg = mImg * ( tB / mB )
 
-        dImg = np.abs( mImg - tImg )
-        mVal = np.sum( dImg ) / dImg.size / 255
-        mVal = 1 - mVal
 
-        # arbitrary adjustment to make score more human readable
-        mVal = 10* (mVal - 0.9)
 
-        if mVal < 0.0: mVal = 0.0
+def scoreAbsDiff2( img1, img2 ):
 
-        mScores[i] = mVal
+    score = -1
 
-    return mScores
+    dImg = np.abs( img1 - img2 )
+    score = np.sum( dImg ) / dImg.size / 255
+    score = 1 - score
+
+    # arbitrary adjustment to make score more human readable 
+    score = 10 * (score - 0.9)
+    if score < 0.0: score = 0.0
+
+    return score
 
 # end createMScores()
+
+
+def scoreAbsDiff3( img1, img2 ):
+
+    score = -1
+
+    dImg = np.abs( img1 - img2 )
+    score = np.sum( dImg ) / dImg.size / 255
+    score = 1 - score
+
+    # arbitrary adjustment to make score more human readable 
+    score = 5 * (score - 0.8)
+    if score < 0.0: score = 0.0
+
+    return score
+
+# end createMScores()
+
 
 
 def createPScores( mImgs, iImgs ):

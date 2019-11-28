@@ -15,17 +15,14 @@ from os import \
         path, \
         system
 
-from multiprocessing import Pool
-
 import numpy as np
 import cv2
 import pandas as pd
 
 import matplotlib.pyplot as plt
 import machineMethods as ms
-from filters import filter as ft
 
-#print( path.abspath( path.join( __file__ , "../../Useful_Bin/" ) ) )
+print( path.abspath( path.join( __file__ , "../../Useful_Bin/" ) ) )
 sysPath.append( path.abspath( path.join( __file__ , "../../Useful_Bin/" ) ) )
 import ppModule as pm
 
@@ -37,208 +34,8 @@ scoreDir = ''
 sdssDir = ''
 sdssName = ''
 targetLoc = ''
-filterDir = ''
 newSdss = False
 
-imgDir = ''
-
-nProc = 1
-everyN = 1
-
-
-def newMain():
-
-    if imgDir != '':
-        prepImgDir()
-
-    elif sdssDir != '':
-        prepSdss()
-
-    '''
-    getTrainingImages( 0.3 )
-    exit()
-    '''
-
-    #newSdss = True
-
-    if newSdss:
-        initSdss()
-
-    loadImgs = False
-    loadImgs = True
-
-    if loadImgs:
-
-        tImg = cv2.imread( targetLoc, 0 )
-
-        if imgDir != '':
-            mImgs, uImgs = getImgs( imgDir )
-
-        else:
-            mImgs = getImgsSdss( 'model.png' )
-            uImgs = getImgsSdss( 'init.png' )
-
-    pModel = ft.loadFilterDir( filterDir )
-
-    mImgs = ft.convertCV2Img( mImgs )
-    mPred = ft.predictImg( mImgs, pModel )
-
-    allScores = getScores()
-    hScores = allScores.human_scores
-    #mScores = allScores.target_pixel_difference
-    mScores = allScores.target_correlation
-    printCol( allScores )
-
-
-    h = 0.3
-
-    q1File = open( 'q1.txt' , 'w' )
-    q4File = open( 'q4.txt' , 'w' )
-
-    n = len( hScores )
-    
-    for i in range( n ):
-
-        if hScores[i] < 0.3 and mPred[i] == 0:
-            q1File.write( '%d\n' % i )
-
-        if hScores[i] > 0.3 and mPred[i] == 1:
-            q4File.write( '%d\n' % i )
-
-    q1File.close()
-    q4File.close()
-    
-
-    '''
-    classPlot( hScores, mScores, mPred, plotDir + 'Neural_Disk_plot_1.png', 'Neural Network Disk Classification' )
-    classFilterPlot( hScores, mScores, mPred, plotDir + 'Neural_Disk_plot_2.png', 'Neural Network Disk Classification' )
-    '''
-
-def printCol( allScores ):
-
-    colNames = allScores.columns
-    for c in colNames:
-        print(c)
-
-
-def exampleFilter():
-
-
-    imgsLoc = 'Comparison_Methods/filters/'
-    gImg = cv2.imread( imgsLoc + 'good.png', 0 )
-    bImg = cv2.imread( imgsLoc + 'bad.png', 0 )
-
-    imgs = ft.convertCV2Img( [ gImg, bImg ] )
-
-    pModel = ft.loadFilterDir( filterDir )
-
-    print( "Predictions!: ", ft.predictImg( imgs, pModel ) )
-
-
-
-    exit()
-
-def getTrainingImages(h):
-
-    allScores = getScores()
-    hScores = allScores.human_scores
-    pScores = allScores.perturbedness_correlation
-
-    for i,row in allScores.iterrows():
-
-        rNum = int ( row.run )
-
-        fromLoc = imgDir + '%04d_model.png' % rNum
-
-        if row.human_scores < h:
-            toLoc = path.abspath( filterDir + 'badImgs/' ) + '/.'
-        else:
-            toLoc = path.abspath( filterDir + 'goodImgs/' ) + '/.'
-
-        cmd = 'cp %s %s' % ( fromLoc, toLoc )
-        system( cmd ) 
-        
-
-def old():
-
-    #createScoreCSV()
-    #makeAllPlots()
-
-
-    allScores = getScores()
-    hScores = allScores.human_scores
-    pScores = allScores.perturbedness_correlation
-    colNames = allScores.columns
-
-    h = 0.90
-    uVal = allScores[ allScores['perturbedness_correlation'] > h ]
-    pVal = allScores[ allScores['perturbedness_correlation'] <= h ]
-
-    print( len( uVal ) , len( pVal ) )
-
-
-    '''
-
-    for i,row in allScores.iterrows():
-
-        print(i, row)
-
-        rNum = int ( row.run )
-        print(i, row.perturbedness_correlation)
-
-        fromLoc = imgDir + '%04d_model.png' % rNum
-
-        if row.perturbedness_correlation > h:
-            toLoc = path.abspath( imgDir + '../badImgs/' ) + '/.'
-        else:
-            toLoc = path.abspath( imgDir + '../goodImgs/' ) + '/.'
-
-        cmd = 'cp %s %s' % ( fromLoc, toLoc )
-        print( cmd )
-        system( cmd ) 
-        
-    '''
-
-
-    for c in colNames:
-        #print(c)
-        pass
-
-
-    plt.clf()
-    plt.hist( pScores, 25 )
-
-    plt.title( "Perturbedness" )
-    plt.savefig( plotDir + 'perturbedness_histogram.png' )
-
-   
-
-    print("About to filter")
-    #newScores = filterScores3( allScores, 'target_overlap', 0.7, 0.85 )
-    print("Filtered")
-
-    newScores = allScores[ allScores[ 'perturbedness_correlation' ] < 0.85 ] 
-    newScores = newScores[ newScores[ 'perturbedness_correlation' ] > 0.7 ] 
-
-
-    '''
-    hScores = newScores.human_scores
-    pScores = newScores.perturbedness_correlation
-    mScores = newScores.target_overlap
-    col = 'overlap'
-
-    createHeatPlot( hScores, mScores, pScores , plotDir + '%s_%s_filtered2_plot.png'% ( sdssName, col ), '%s_%s_Filtered' % ( sdssName, col ) )
-    '''
-    
-
-
-def prepImgDir():
-    global plotDir, scoreDir, targetLoc, sdssName
-
-    scoreDir = path.abspath( imgDir + '../newScores/' ) + '/'
-    plotDir = scoreDir
-    targetLoc = imgDir + 'target.png'
-    sdssName = 'sdss'
 
 def prepSdss():
     global plotDir, scoreDir, targetLoc, sdssName
@@ -258,141 +55,101 @@ def prepSdss():
     if targetLoc == '':
         targetLoc = sdssDir + 'sdssParameters/target_zoo.png'
 
+    return sName
 
-def binTargets(tImg):
+def adjTarget():
 
-    tbImg = ms.binImg( tImg, 55 )
-    cv2.imwrite( sdssDir + 'sdssParameters/target_zoo_binary.png', tbImg )
-    exit()
+    sName = prepSdss()
 
-    binDir = sdssDir + 'sdssParameters/binTargets/'
-    system( 'mkdir %s' % binDir )
+    tImg = cv2.imread( targetLoc, 0 )
 
+    btImg = ms.binImg( tImg, 100 )
+
+    cv2.imwrite( sdssDir + 'sdssParameters/target_zoo_binary.png' , btImg )
 
 
 
 def initSdss():
+    
+    sName = prepSdss()
 
-    if sdssDir != '':
-        prepSdss()
-    else:
-        prepImgDir()
-
-    global scoreDir, plotDir
-    scoreDir = path.abspath( imgDir + '../newScores/' ) + '/'
-    plotDir = scoreDir
-
-    tImg = cv2.imread( imgDir + 'target.png', 0 )
-    mImgs, uImgs = getImgs( imgDir )
-
-
-    '''
     tImg = cv2.imread( targetLoc, 0 )
-    #binTargets(tImg)
-
-    mImgs = getImgsSdss( 'v3_test_param_model.png' )
-    uImgs = getImgsSdss( 'v3_test_param_init.png' )
-    '''
-
-    mImgs = adjModelImgs( tImg, mImgs )
-    uImgs = adjModelImgs( tImg, uImgs )
-    tB = np.sum( tImg )
+    mImgs = getImgsSdss( 'model' )
+    uImgs = getImgsSdss( 'init' )
 
     # Gather Human Scores
-    '''
     hScores = gatherHumanScores()
     comment = 'human_scores'
     saveScores2( hScores, comment, scoreDir + 'humanScores.txt' )
-    '''
 
     # Make score for perturbedness between model image and unperturbed image
     pScores = makePerturbedness( ms.scoreCorrelation, mImgs, uImgs )
     comment = 'perturbedness_correlation' 
     saveScores2( pScores, comment, scoreDir + 'perturbedScores.txt' )
 
-
-    # Make pixel difference scores for target and model images
-    cScores = makeScores2( ms.scoreAbsDiff, tImg, mImgs )
-    comment = 'target_pixel_difference'
-    saveScores2( cScores, comment, scoreDir + 'absPixelDifferenceScores.txt' )
-
-    # Make correlation scores for target and model images
+    # Make scores for target and model images
     cScores = makeScores2( ms.scoreCorrelation, tImg, mImgs )
     comment = 'target_correlation'
     saveScores2( cScores, comment, scoreDir + 'correlationScores.txt' )
 
-    # Make Binary correlation scores for target and model images
-    cScores = makeScores3( ms.scoreBinaryCorrelation, tImg, mImgs, 1 )
+    # Make scores for target and model images
+    cScores = makeScores3( ms.scoreCorrelation, tImg, mImgs, 10 )
     comment = 'target_correlation_binary'
     saveScores2( cScores, comment, scoreDir + 'correlationBinaryScores.txt' )
 
-    # Make Binary correlation scores for target and model images
-    cScores = makeScores3( ms.scoreOverLap, tImg, mImgs, 1 )
-    comment = 'target_overlap'
-    saveScores2( cScores, comment, scoreDir + 'overlapScores.txt' )
+    createScoreCSV()
+
+    allScores = getScores()
+    
+    colNames = allScores.columns
+    print("Column Names")
+    for c in colNames:
+        print("\t%s"%c)
+
+    hScores = allScores.human_scores
+    mScores = allScores.target_correlation
+    pScores = allScores.perturbedness_correlation
+
+    createHeatPlot( hScores, mScores, pScores, plotDir + '%s_correlation_plot.png'% sName, 'Perturbness' )
+
+    e, f = findExpFuncMax( mScores, pScores, hScores )
+    nScores = expFunc( mScores, pScores, e, f )
+
+    createHeatPlot( hScores, nScores, pScores, plotDir + '%s_corr_perturb_plot.png' % sName, 'Perturbness' )
+
+
+
+def newMain():
+
+    prepSdss()
+    #newSdss = True
+
+    if newSdss:
+        initSdss()
+
+    if False:
+        tImg = cv2.imread( imgDir + 'target.png', 0 )
+        mImgs = getImgs2( 'model' )
+        uImgs = getImgs2( 'init' )
 
 
     createScoreCSV()
-
-    makeAllPlots()
-
-
-def makeAllPlots():
-
-    print("Making all Plots")
-
     allScores = getScores()
+    
+    colNames = allScores.columns
+    print("Column Names")
+    for c in colNames:
+        print("\t%s"%c)
 
     hScores = allScores.human_scores
+    mScores = allScores.target_correlation
     pScores = allScores.perturbedness_correlation
 
-    colNames = allScores.columns
-   
-    for col in colNames:
-        # skip if not a machine score
-        if 'target' not in col: continue
+    e, f = findExpFuncMax( mScores, pScores, hScores )
+    nScores = expFunc( mScores, pScores, e, f )
 
-        mScores = allScores[col]
-        createHeatPlot( hScores, mScores, pScores, plotDir + '%s_%s_plot.png'% ( sdssName, col ), '%s_%s' % ( sdssName, col ) )
+    createHeatPlot( hScores, nScores, pScores, plotDir + 'corr_perturb_plot.png', 'Perturbness' )
 
-
-
-
-def adjModelImgs( tImg, mImgs ):
-
-    tB = np.sum( tImg )
-    n = len( mImgs )
-
-    print("Adjusting image brightness")
-    for i,m in enumerate(mImgs):
-        mB = np.sum( m )
-        nImg = mImgs[i] * tB/mB
-        nImg[ nImg >= 255 ] = 255
-        mImgs[i] = np.uint8( nImg )
-
-
-        print( '%.1f - %d / %d' % ( 100*((i+1)/n), i, n ), end='\r' )
-
-    print("Adjusting image brightness - Done")
-    return mImgs
-
-def adjInitImgs( tImg, mImgs ):
-
-    tB = np.sum( tImg )
-    n = len( mImgs )
-
-    print("Adjusting image brightness")
-    for i,m in enumerate(mImgs):
-        mB = np.sum( m )
-        nImg = mImgs[i] * tB/mB
-        nImg[ nImg >= 255 ] = 255
-        mImgs[i] = np.uint8( nImg )
-
-
-        print( '%.1f - %d / %d' % ( 100*((i+1)/n), i, n ), end='\r' )
-
-    print("Adjusting image brightness - Done")
-    return mImgs
 
 def findExpFuncMax( mScores, pScores, hScores ):
 
@@ -493,10 +250,12 @@ def makeScores3( scorePtr, tImg, mImgs, inVal ):
     n = len( mImgs )
     scores = np.zeros( n )
 
+    tAr = tImg.flatten()
+
     print("Getting Scores" )
     for i in range(n):
 
-        scores[i] = scorePtr( tImg, mImgs[i], inVal )
+        scores[i] = scorePtr( tAr, mImgs[i], inVal )
         print( '%.1f - %d / %d' % ( 100*((i+1)/n), i, n ), end='\r' )
 
     print('')
@@ -511,41 +270,18 @@ def makeScores2( scorePtr, tImg, mImgs ):
     n = len( mImgs )
     scores = np.zeros( n )
 
+    tAr = tImg.flatten()
+
     print("Getting Scores" )
-    for i in range(n):
-
-        scores[i] = scorePtr( tImg, mImgs[i] )
-        print( '%.1f - %d / %d' % ( 100*((i+1)/n), i, n ), end='\r' )
-
-    print('')
-
-    return scores
-
-
-
-
-def makeScores2pp( scorePtr, tImg, mImgs ):
-
-    n = len( mImgs )
-    scores = np.zeros( n )
-
-    print("Getting Scores Parallel" )
-
-    argList = []
-    for i in mImgs:
-        argList.append( ( tImg, i ) )
-
-    scores = pool.map( scorePtr, argList )
-
-    '''
     for i in range(n):
 
         scores[i] = scorePtr( tAr, mImgs[i] )
         print( '%.1f - %d / %d' % ( 100*((i+1)/n), i, n ), end='\r' )
 
     print('')
-    '''
+
     return scores
+
 
 
 
@@ -576,6 +312,7 @@ def makePerturbedness( scorePtr, mImgs, uImgs ):
     print('')
 
     return scores
+
 
 
 
@@ -618,10 +355,163 @@ def getImgsSdss(keyWord ):
 
     print("Gathered %s images" % keyWord)
     return imgs
+
+def getImgs2( keyWord ):
+
+    allFiles = listdir( imgDir )
+
+    imgNames = [ m for m in allFiles if keyWord in m ]
+    imgNames.sort()
+
+    n = len( imgNames )
+
+    imgs = []
+
+    print("Getting %s images" % keyWord)
+
+    for i,name in enumerate(imgNames):
+        imgLoc = imgDir + name
+        imgs.append( cv2.imread( imgLoc, 0 ) )
+
+        print( '%.1f - %d / %d - %s' % ( 100*((i+1)/n), i, n, name ), end='\r' )
+
+    print("Gathered %s images" % keyWord)
+    return imgs
+
+
+def runSpread():
+    # goal is to print out a spread of the run#'s for the "perturbed" values 
+
+    pScores = readScores( 'pCorrScores.txt' )
+
+    printVal = 1.0
+    nData = len( pScores )
+
+    for i, p in enumerate( np.flip(pScores) ):
+
+        if p < printVal and p > printVal -.1: 
+            print(nData - i -1,p)
+            printVal -= 0.1
+
         
+
+def make_plots2():
+    print("Making plots")
+    tImg = cv2.imread( imgDir + 'target.png' )
+
+    # read all files
+    allScores = []
+    allScores.append( readScores( 'scoreFile.txt' ))        # 0 Human scores
+    allScores.append( readScores( 'pCorrScores.txt' ))      # 1 correlation with unperturbed pts
+    allScores.append( readScores( 'pixelDiffScores.txt' ))  # 2 Pixel difference with target img
+    allScores.append( readScores( 'mCorrScores.txt' ))      # 3 correlation with target img
+    allScores.append( readScores( 'mBinaryCorrScores.txt')) # 4 correlation between binary b/w images
+
+    w1 = 0.22
+    w2 = 0.38
+    w3 = 0.41
+
+    allScores.append( w1*allScores[3] +  w2*allScores[4] + w3*allScores[2] )
+
+    #pVal, allScores = filterScores2( allScores, allScores[1], 0, 0.75 )
+
+    hScores = allScores[0]
+    pScores = allScores[1]
+    mScores = allScores[4]
+
+
+    eVal = np.linspace( 1, 100, 100 )
+    fVal = np.linspace( 0, 1.0, 100 )
+    
+    eImg = np.zeros((100,100))
+    fImg = np.zeros((100,100))
+    cImg = np.zeros((100,100))
+
+    for i,e in enumerate( eVal ):
+
+        for j, f in enumerate( fVal ):
+
+            nScores = expFunc( mScores, pScores, e, f )
+
+            cImg[i,j] = np.corrcoef( hScores, nScores)[0,1]
+            eImg[i,j] = e
+            fImg[i,j] = f
+
+    cPlot = cImg.flatten()
+    ePlot = eImg.flatten()
+    fPlot = fImg.flatten()
+
+    cMax = np.amax( cPlot )
+    iMax = np.argmax( cPlot )
+    fMax = fPlot[iMax]
+    eMax = ePlot[iMax]
+
+    nScores = expFunc( mScores, pScores, eMax, fMax )
+
+    createHeatPlot( hScores, nScores, pScores, plotDir + 'ps_plot_scaled_1.png', 'Max Perturbed Scaled' )
+
+    cHeatPlot( ePlot, fPlot, cPlot, plotDir + 'ps_finding_ef.png', 'Perturbed Scale:\ncorr: %f,  filter: %f,  eVal: %f' % ( cMax, fMax, eMax ), eMax, fMax  )
+
+
+        
+
+def make_plots():
+
+    # read all files
+    allScores = []
+    allScores.append( readScores( 'scoreFile.txt' ))        # 0 Human scores
+    allScores.append( readScores( 'pCorrScores.txt' ))      # 1 correlation with unperturbed pts
+    allScores.append( readScores( 'pixelDiffScores.txt' ))  # 2 Pixel difference with target img
+    allScores.append( readScores( 'mCorrScores.txt' ))      # 3 correlation with target img
+    allScores.append( readScores( 'mBinaryCorrScores.txt')) # 4 correlation between binary b/w images
+
+    w1 = 0.22
+    w2 = 0.38
+    w3 = 0.41
+
+    allScores.append( w1*allScores[3] +  w2*allScores[4] + w3*allScores[2] )
+
+    pVal, allScores = filterScores2( allScores, allScores[1], 0, 0.75 )
+
+    pVal = int(pVal)
+
+    print(pVal)
+
+    createHeatPlot( allScores[0], allScores[2], allScores[1], plotDir + 'diff_f.png', 'Pixel Difference: %d %s filtered' % (pVal, '%') )
+    createHeatPlot( allScores[0], allScores[3], allScores[1], plotDir +'corr_f.png', 'Brightness Correlation: %d %s filtered' % (pVal, '%'))
+    createHeatPlot( allScores[0], allScores[4], allScores[1], plotDir +'binCorr_f.png', 'Binary Correlation: %d %s filtered' % (pVal,'%'))
+    createHeatPlot( allScores[0], allScores[5], allScores[1], plotDir + 'weighted_f.png', 'Weighted Comparison Methods: %d %s filtered' % (pVal,'%') )
+
+# end make plots
+
 def expFunc( inScores, fScores, eVal, fVal ):
     nScores = inScores * ( np.exp( - eVal * np.abs( fVal - fScores )**2 ) )
     return nScores
+
+def cHeatPlot( eVals, fVals, cVals, saveLoc, titleName, eMax, fMax ):
+
+    plt.clf()
+
+    pMin = np.amin( cVals )
+    pMax = np.amax( cVals )
+
+    cMap = plt.cm.get_cmap('RdYlBu_r')
+    plot = plt.scatter( eVals, fVals, c=cVals, vmin = pMin, vmax = 1.0, s=10, cmap=cMap)
+    plt.plot( eMax, fMax, 'kd')
+
+    cBar = plt.colorbar(plot)
+    cBar.set_label("Correlation for Human vs Machine Scores")
+    
+    plt.title( titleName )
+    plt.xlabel("Exponential Constant")
+    plt.ylabel("Center Filter Value")
+
+    ax = plt.gca()
+    ax.set_facecolor("xkcd:grey")
+
+    plt.savefig( saveLoc )
+
+# End plot creation
 
 
 def createHeatPlot( hScores, mScores, pScores, saveLoc, titleName ):
@@ -633,7 +523,7 @@ def createHeatPlot( hScores, mScores, pScores, saveLoc, titleName ):
     pMax = np.amax( pScores )
 
     cMap = plt.cm.get_cmap('RdYlBu_r')
-    plot = plt.scatter( hScores, mScores, c=pScores, vmin = pMin, vmax = 1.0, s=5, cmap=cMap)
+    plot = plt.scatter( hScores, mScores, c=pScores, vmin = pMin, vmax = 1.0, s=10, cmap=cMap)
 
     cBar = plt.colorbar(plot)
     cBar.set_label("Correlation with Unperturbed model image")
@@ -644,121 +534,6 @@ def createHeatPlot( hScores, mScores, pScores, saveLoc, titleName ):
     plt.title( titleName + "\nCorrelation: %f" % corrVal )
     plt.xlabel("Human Scores")
     plt.ylabel("Machine Score")
-
-    ax = plt.gca()
-    ax.set_facecolor("xkcd:grey")
-
-    plt.savefig( saveLoc )
-
-# End plot creation
-
-
-
-def classPlot( hScores, mScores, classList, saveLoc, titleName ):
-
-    corrVal = np.corrcoef(hScores,mScores)[0,1]
-
-    h1 = []
-    m1 = []
-
-    h2 = []
-    m2 = []
-
-    q = [0, 0, 0, 0]
-
-    for i in range( len( classList ) ):
-        
-        if classList[i] == 1:
-            h2.append( hScores[ i ] )
-            m2.append( mScores[ i ] )
-
-        else:
-            h1.append( hScores[ i ] )
-            m1.append( mScores[ i ] )
-
-        if hscores[i] < 0.3 and classlist[i] == 0:
-            q[0] += 1
-
-        if hscores[i] > 0.3 and classlist[i] == 0:
-            q[1] += 1
-
-        if hscores[i] < 0.3 and classlist[i] == 1:
-            q[2] += 1
-
-        if hscores[i] > 0.3 and classlist[i] == 1:
-            q[3] += 1
-
-    print("LOOK AT ME##################")
-    print(q)
-    print("LOOK AT ME##################")
-
-
-    h1 = np.array( h1 )
-    m1 = np.array( m1 )
-    h2 = np.array( h2 )
-    m2 = np.array( m2 )
-
-    plt.clf()
-
-    plt.title( titleName + "\nCorrelation: %f" % corrVal )
-
-    plot = plt.scatter( h1, m1, s=5, marker='o', color='blue' )
-    plot = plt.scatter( h2, m2, s=5, marker='d', color='red' )
-
-    n = len( hScores )
-    n1 = len( h1 )
-    n2 = len( h2 )
-
-    l1 = '%2.1f' % float(n1/n*100) + '%: Non-Disk'
-    l2 = '%2.1f' % float(n2/n*100) + '%: Disk'
-
-    plt.legend( [ l1, l2 ] )
-
-    plt.xlabel("Human Scores")
-    plt.ylabel("Machine Score")
-    plt.xlim(0,1)
-    plt.ylim(0.35,1)
-
-    ax = plt.gca()
-    ax.set_facecolor("xkcd:grey")
-
-    plt.savefig( saveLoc )
-
-# End plot creation
-
-
-
-def classFilterPlot( hScores, mScores, classList, saveLoc, titleName ):
-
-
-    h1 = []
-    m1 = []
-
-
-    for i in range( len( classList ) ):
-        
-        if classList[i] == 0:
-
-            h1.append( hScores[ i ] )
-            m1.append( mScores[ i ] )
-
-    h1 = np.array( h1 )
-    m1 = np.array( m1 )
-
-    corrVal = np.corrcoef( h1, m1)[0,1]
-
-    plt.clf()
-
-    plt.title( titleName + "\nCorrelation: %f" % corrVal )
-
-    plot = plt.scatter( h1, m1, s=5, marker='o', color='blue' )
-
-    plt.legend( [ 'Non-Disk' ] )
-
-    plt.xlabel("Human Scores")
-    plt.ylabel("Machine Score")
-    plt.xlim(0,1)
-    plt.ylim(0.35,1)
 
     ax = plt.gca()
     ax.set_facecolor("xkcd:grey")
@@ -860,22 +635,72 @@ def main_old():
 
 # End main
 
-def filterScores3( allScores, colName, lowFilter, highFilter ):
+def getEigenStuff( hScores, cScores, bScores, dScores ):
 
-    print( colName, lowFilter, highFilter )
-    newScores = allScores[ allScores[ colName ] > lowFilter ]
+    nData = len(hScores)
 
-    newScores = newScores[ newScores[ colName ] < highFilter]
+    allData = np.zeros((4,nData))
 
-    print( len( newScores) )
+    allData[0,:] = hScores
+    allData[1,:] = cScores
+    allData[2,:] = bScores
+    allData[3,:] = dScores
 
-    print( 'Before: ', len( allScores ) )
-    print( 'After : ', len( newScores ) )
+    C = np.cov(allData)
 
-    return newScores
+    w,v = np.linalg.eig( C )
 
-# End filter scores
+    print(w)
+    print(v)
 
+    return w, v
+
+
+def findBestWeights2( hScores, cScores, bScores, dScores ):
+
+    nw = 100
+
+    w1List = np.linspace( 0.01, 0.99, nw)
+
+    pltList = np.zeros( ( nw, nw, 4 ))
+
+    wImg = np.zeros(( nw, nw ))
+
+    for i,w1 in enumerate( w1List ):
+        w2List = np.linspace( 0.01, 1 - w1, nw )
+        
+        for j,w2 in enumerate( w2List ):
+            w3 = 1 - w1 - w2
+
+            #print( w1 + w2 + w3 )
+            pltList[i,j,0] = np.corrcoef( hScores, w1*cScores + w2*bScores + w3*dScores )[0,1]
+            pltList[i,j,1] = w1
+            pltList[i,j,2] = w2
+            pltList[i,j,3] = w3
+
+    return pltList
+# End find best weights
+
+
+
+def findBestWeights( hScores, dScores, cScores ):
+
+    nw = 100
+
+    w1List = np.linspace( 0.1, 1, nw)
+
+    aW = np.zeros( nw )
+
+    for i,w1 in enumerate(w1List):
+        w2 = 1 - w1
+        aW[i] = np.corrcoef( hScores, w1*cScores + w2*dScores )[0,1]
+
+    plt.plot( w1List, aW )
+    plt.title( "CorrCoef = %f with Weight: %f" % ( np.amax( aW ), w1List[np.argmax( aW )] ) )
+    plt.savefig('weights.png')
+
+    return w1, w2
+# End find best weights
 
 
 def filterScores2( allScores, fScores, lowFilter, highFilter ):
@@ -913,11 +738,40 @@ def filterScores2( allScores, fScores, lowFilter, highFilter ):
 # End filter scores
 
 
+def filterScores( hScores, mScores, pScores, lowFilter, highFilter ):
+
+    nH = []
+    nP = []
+    nM = []
+
+    nBefore = len( hScores )
+
+    # Filter out lowly perturbed
+    for i in range( len( hScores )):
+
+        if pScores[i] > highFilter or pScores[i] < lowFilter:
+            continue
+
+        nH.append( hScores[i] )
+        nP.append( pScores[i] )
+        nM.append( mScores[i] )
+
+    hScores = np.array( nH )
+    mScores = np.array( nM )
+    pScores = np.array( nP )
+
+    nAfter = len( hScores )
+    print("Filtering...\n\tBefore: %d   \n\tAfter: %d" % ( nBefore, nAfter )) 
+
+    return hScores, mScores, pScores
+# End filter scores
+
+
 def binImg( imgIn, threshold ):
 
     cpImg = np.copy( imgIn )
-    cpImg[ cpImg > threshold ] = 255
-    cpImg[ cpImg <= threshold] = 0
+    cpImg[cpImg > threshold ] = 255
+    cpImg[cpImg <= threshold] = 0
 
     return cpImg
 # end binary image creator
@@ -1155,16 +1009,14 @@ def createPScores( mImgs, iImgs ):
 
 # end createPScores()
 
-def getImgs( iDir ):
+def getImgs():
     mImgs = []
     iImgs = []
 
-    allFiles = listdir( iDir )
+    allFiles = listdir( imgDir )
     allFiles.sort()
 
-    n = len( allFiles )
-
-    for i,f in enumerate(allFiles):
+    for f in allFiles:
 
         try:
             rNum = int( f.split('_')[0] )
@@ -1176,17 +1028,11 @@ def getImgs( iDir ):
             f = imgDir + f
 
             if 'model' in f:
-                mImgs.append( cv2.imread( f, 0 ) )
+                mImgs.append( cv2.imread( f ) )
 
-            '''
             if 'init' in f:
-                iImgs.append( cv2.imread( f, 0 ) )
-            '''
+                iImgs.append( cv2.imread( f ) )
 
-        print( '%.1f - %d / %d ' % ( 100*((i+1)/n), i, n ), end='\r' )
-
-
-    '''
     if len(mImgs) == 0 or len(iImgs) == 0:
         print("# of model and init images 0")
         exit(0)
@@ -1194,7 +1040,6 @@ def getImgs( iDir ):
     if len(mImgs) != len(iImgs):
         print("# of model and init images different")
         exit(0)
-    '''
 
     return mImgs, iImgs
 
@@ -1258,7 +1103,7 @@ def getHumanScores():
 
 def readArg():
 
-    global printAll, imgDir, everyN, plotDir, scoreDir, sdssDir, newSdss, nProc, targetLoc, filterDir
+    global printAll, imgDir, everyN, plotDir, scoreDir, sdssDir, newSdss
 
     argList = argv
     endEarly = False
@@ -1294,18 +1139,11 @@ def readArg():
             scoreDir = argList[i+1]
             if scoreDir[-1] != '/': scoreDir += '/'
 
-        elif arg == '-filterDir':
-            filterDir = argList[i+1]
-            if filterDir[-1] != '/': filterDir += '/'
-
         elif arg == '-new':
             newSdss = True
 
-        elif arg == '-pp':
-            nProc = int( argList[i+1] )
-
     # Check if input arguments were valid
-    if sdssDir == '' and imgDir == '':
+    if sdssDir == '':
         print("Please specify sdss directory")
         endEarly = True
 
@@ -1365,7 +1203,17 @@ if __name__=='__main__':
 
     endEarly = readArg()
 
+    if printAll: 
+        print("ImgDir  : %s" % imgDir )
+        print("plotDir : %s" % plotDir )
+        print("scoreDir: %s" % scoreDir )
+
     if endEarly: exit(-1)
+
+    adjTarget()
+    exit()
+
+
 
     if newSdss:
         initSdss()

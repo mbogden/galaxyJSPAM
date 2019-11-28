@@ -35,40 +35,94 @@ def filter_trainer():
     badDir = filterDir + 'badImgs/'
     bArTrain, bArTest = getImgs( badDir )
 
-    trainImgs, trainLabels = orgImgsLabels( gArTrain, bArTrain )
-    testImgs, testLabels = orgImgsLabels( gArTest, bArTest )
-
-    nTrain = len( trainImgs )
-    nTest = len( testImgs )
-
-    print("number of train: %d - test: %d" % ( nTrain, nTest ) )
-
-    model = trainModel( trainImgs, trainLabels )
-
-    # Evaluate score 
-
-    score = model.evaluate(testImgs, testLabels, verbose=1)
-    print('Test accuracy:', score[1])
+    trainImgs, trainLabels = orgImgLabel( gArTrain, bArTrain )
 
 
-    # Save model to JSON
-    model_json = model.to_json()
-    with open( filterDir + "filter_model.json", "w") as json_file:
-        json_file.write(model_json)
-    # serialize weights to HDF5
-    model.save_weights(filterDir + "filter_model.h5")
-    print("Saved model to disk")
-     
+def orgImgLabel( gImgs, bImgs ):
+
+    print( len( gImgs ), len( bImgs ) )
+
+    exit()
+# End
+
+    training = np.concatenate((gArTrain, bArTrain))
+    testing = np.concatenate((gArTest, bArTest))
+
+    goodCSVData = ['0']
+    badCSVData = ['1']
+
+    with open('labels2.csv', 'w') as csvFile:
+        writer = csv.writer(csvFile)
+        for i in trainingGood: #goodtrain
+            writer.writerows(goodCSVData)
+        for i in trainingBad: #badtrain
+            writer.writerows(badCSVData)
+        for i in testingGood:
+            writer.writerows(goodCSVData)
+        for i in testingBad:
+            writer.writerows(badCSVData)
+    csvFile.close()
+
+
+
 # End main
 
-def trainModel( trainImgs, trainLabels ):
- 
+def old():
+
+    # In[26]:
+
+
+    labels = []
+    with open('labels2.csv') as csvfile:
+        readCSV = csv.reader(csvfile, delimiter='\n')
+        for row in readCSV:
+            labels.append(row[0])
+
+
+    # In[27]:
+
+
+    Y = keras.utils.to_categorical(labels)
+    Y.shape
+
+
+    # In[28]:
+
+
+    n = 0
+    m = 0
+    for f in trainingGood:
+        n += 1
+    for f in trainingBad:
+        n += 1
+    for f in testingGood:
+        m += 1
+    for f in testingBad:
+        m += 1
+    print(n)
+    print(m)
+
+
+    # In[29]:
+
+
+    train_labels = Y[ : n]
+    test_labels = Y[n :]
+    print(training.shape)
+    print(testing.shape)
+    print(train_labels.shape)
+    print(test_labels.shape)
+
+
+    # In[30]:
+
+
     model = keras.Sequential()
     model.add(keras.layers.Conv2D(64, kernel_size=(3,3),
                                   activation='relu',
-                                  input_shape=[trainImgs.shape[1],
-                                               trainImgs.shape[2],
-                                               trainImgs.shape[3]]))
+                                  input_shape=[training.shape[1],
+                                               training.shape[2],
+                                               training.shape[3]]))
     model.add(keras.layers.MaxPooling2D(pool_size=(2, 2)))
     model.add(keras.layers.Conv2D(64, (3, 3), activation='relu', input_shape=(128,128,1)))
     model.add(keras.layers.ELU())
@@ -86,20 +140,40 @@ def trainModel( trainImgs, trainLabels ):
                   metrics=['accuracy'])
     model.summary()
 
+
+    # In[35]:
+
+
     batch_size = 5
     epochs = 10
-    history = model.fit(trainImgs, trainLabels,
+    history = model.fit(training, train_labels,
               batch_size=batch_size,
               epochs=epochs,
               verbose=1,
               validation_split = 0.2)
 
-    return model
+
+    # In[36]:
 
 
-def old():
-    pass
+    score = model.evaluate(testing, test_labels, verbose=1)
+    print('Test loss:', score[0])
+    print('Test accuracy:', score[1])
 
+
+    # In[38]:
+
+
+    from keras.models import model_from_json
+
+    # serialize model to JSON
+    model_json = model.to_json()
+    with open("model3.json", "w") as json_file:
+        json_file.write(model_json)
+    # serialize weights to HDF5
+    model.save_weights("model3.h5")
+    print("Saved model to disk")
+     
     # later...
      
     # load json and create model
@@ -134,28 +208,6 @@ def old():
     #for f in b:
     #    i = grab_image('./training_image_set_2/badImgs/'+f)
     #    print('File name:', f, ' Prediction:', model.predict(i))
-
-
-def orgImgsLabels( gImgs, bImgs ):
-
-    labelList = []
-
-    for g in gImgs:
-        labelList.append( 0 )
-
-    for b in bImgs:
-        labelList.append( 1 ) 
-    
-    labels = keras.utils.to_categorical(labelList)
-
-    imgs = np.concatenate(( gImgs, bImgs))
-
-    if len( imgs ) != len( labelList ):
-        print("BAD!")
-        exit()
-
-    return imgs, labels
-
 
 
 def getImgs( imgDir ):
