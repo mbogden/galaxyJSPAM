@@ -34,8 +34,6 @@ def main():
 
     print("Going through dirs:")
 
-    pl_sdss_dir(fromDir)
-
 # End main
 
 def pl_sdss_dir( fSdssDir ):

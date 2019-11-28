@@ -45,6 +45,7 @@ def sdssImageCreator(argList):
     paramFolder = sdssDir + 'sdssParameters/'
 
     imgParam = readSdssParams( paramFolder )
+    #imgParam = readSdssParams2( paramFolder )
     imgParam.printVal()
 
     genFolder = sdssDir + 'gen000/'
@@ -79,6 +80,7 @@ def sdssImageCreator(argList):
 
         imgCreator.printAll = False
         imgCreator.paramGiven = True
+        imgCreator.overWriteImg = True
         imgCreator.wrapperImgParam = imgParam
 
         pClass = pm.ppClass(nProc)
@@ -89,6 +91,16 @@ def sdssImageCreator(argList):
 
 # End sdss_dir
 
+def readSdssParams2( paramFolder ):
+
+    dirContents = listdir( paramFolder)
+    sdssParams = ''
+
+    imgParam = imgCreator.imageParameterClass_v3(paramFolder + 'param_2.txt')
+
+    return imgParam
+
+ 
 def readSdssParams( paramFolder ):
 
     dirContents = listdir( paramFolder)

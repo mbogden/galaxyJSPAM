@@ -73,24 +73,27 @@ def image_creator_pl_v1(argList):
     # Finally get particle information and create images
 
     pts = getParticles( runData )
+
     makeImages( runData, imgParam, pts )
+
 
 # end image_creator_v3
 
 def makeImages( runData, imgParam, pts ):
 
     # Create and save model image
-    pts.g1fPart, pts.g2fPart, pts.fCenters2 = shiftPoints_v2( pts.g1fPart, pts.g2fPart, pts.fCenters, imgParam.gCenter )
+    pts.g1fPart, pts.g2fPart, pts.fCenters2 = shiftPoints( pts.g1fPart, pts.g2fPart, pts.fCenters, imgParam.gCenter )
 
     modelImg = createImg( pts.g1fPart, pts.g2fPart, pts.ir1, pts.ir2, imgParam )
     cv2.imwrite( runData.modelLoc, modelImg )
+    print( runData.modelLoc )
 
 
     # Create and save unperterbed image from initial points moved to final location
     dC = pts.fCenters - pts.iCenters
     pts.g2iPart[:,0:2] += dC[1,0:2]
 
-    pts.g1iPart, pts.g2iPart, pts.iCenters2 = shiftPoints_v2( pts.g1iPart, pts.g2iPart, pts.fCenters, imgParam.gCenter)
+    pts.g1iPart, pts.g2iPart, pts.iCenters2 = shiftPoints( pts.g1iPart, pts.g2iPart, pts.fCenters, imgParam.gCenter)
 
     initImg = createImg( pts.g1iPart, pts.g2iPart, pts.ir1, pts.ir2, imgParam )
     cv2.imwrite( runData.initLoc, initImg )
@@ -410,12 +413,10 @@ def shiftPoints( g1P, g2P, gC_in, imgParam ):
 
     gC = np.copy(gC_in)
 
-
-
     # Calculate pixel points I want the galaxy centers to land on
     toC = np.zeros((2,2))
-    toC[0,:] = imgParam.gCenter[:,0]
-    toC[1,:] = imgParam.gCenter[:,1]
+    toC[0,:] = [ nCols/3, nRows/2 ]
+    toC[1,:] = [ 2*nCols/3, nRows/2 ]
 
     # Calculate amount needed to rotate points to land galaxy centers horizontal
     theta = - np.arctan( ( gC[1,1] - gC[0,1] ) / ( gC[1,0] - gC[0,0] ) ) 

@@ -261,7 +261,7 @@ def run_dir(tDir, fDir):
     ptsFiles = listdir( toPtsDir )
     print(ptsFiles)
 
-    zipCmd = 'zip %s100000_pts.zip %s100000_pts.000 %s100000_pts.101' % ( toPtsDir, toPtsDir, toPtsDir)
+    zipCmd = 'zip -j -q %s100000_pts.zip %s100000_pts.000 %s100000_pts.101' % ( toPtsDir, toPtsDir, toPtsDir)
     print(zipCmd)
     system(zipCmd)
 
