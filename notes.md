@@ -7,11 +7,20 @@ IRB course?
 
 ## Matt's To-Do
 
+- Get targets ready for pipeline
+  - gather targets all together
+  - create default param file
+	- modify galaxy centers and img size to best match galaxy
+
+- Get Master and other branches merged together
+
 - Create automatic pipeline for all 62 pairs
   - (DONE) Generate points.  
   - (Working) Generate Images
 	- Found bug with rotating galaxy centers.... working
   - Generate machine scores.
+
+- Particle files were zipped with entire directory path saved....  Fix that.
 
 - Optimize a random weighted mask for human vs machine score correlation.
   - pixel diff
@@ -24,7 +33,6 @@ IRB course?
   - Random? Dependent on galaxy pair?  
 - Can we recreate this mask? 
   - Analyze it wiht 1614, recreate with results and apply to rest.
-
 
 - Comparison methods
   -MachiceMethod class
