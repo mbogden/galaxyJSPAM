@@ -1,15 +1,16 @@
+# NEURAL NETWORKS!
 
-# Create Nueral Networks
+## General Purpose Classificatier
 
-## Tidal Distortion filter  
+### (DONE) Inital Training of classifier
+
 - Input 
-  1. model image 
-  2. inital image
+  1. Image
 
 - Output classification
-  - "good" or "bad" tidal distortion
+  - "good" or "bad" classification
 
-- Training process
+- Inital Training process
 
   - First training set can be found at '/nsfhome/mbo2d/Public/training_image_set_1.zip'.  Upzip
 	- Two directories.
@@ -22,6 +23,24 @@
 
   - I can create better training sets later.
 
+
+### Inital Code that uses trained classifier
+
+- Input 
+  1. Single image
+
+- Output
+  1. Print good or bad classification
+
+### Advanced Training
+
+- Input 
+  1. good Images
+  2. bad Images
+
+
+
+## Tidal Distortion filter  
 ## Jumpled Mess Filter
 - Very similar to above
 - Read in two images and identify if they are "too jumbled"

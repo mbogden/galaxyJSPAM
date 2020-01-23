@@ -78,3 +78,14 @@ def diffNonZero( img1, img2 ):
     return score, methodName, diffImg*255
 
 
+def absDiff_scale1( img1, img2 ):
+    
+    score = 0
+    return score
+
+
+def absDiff_scale1( img1, img2 ):
+
+    
+    score = 0
+    return score

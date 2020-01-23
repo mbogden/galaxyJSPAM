@@ -1,0 +1,79 @@
+primaryName=primary
+primaryX=511.0
+primaryY=511.0
+primaryRA=241 20 41.67
+primaryDEC=+17 45 18.18
+primaryType=
+primaryVelocity=9571.773599023998
+primaryMagnitude=15.2
+primaryDistance=127.62364798698664
+primaryAbsoluteMagnitude=-20.329655771560972
+primaryLuminosity=1.3753778832623793E10
+# mass in solar masses
+primaryMass=1.3753778832623793E10
+primaryMassMin=0.3753778832623792E10
+primaryMassMax=3.75377883262379E10
+primaryA=133.7368149043118
+primaryB=92.05834847809166
+primaryAngle=-14.0
+
+secondaryName=secondary
+secondaryX=776.0
+secondaryY=515.0
+secondaryRA=16 05 22.20
+secondaryDEC=+17 45 15.08
+secondaryType=
+secondaryVelocity=11127.096871128
+secondaryMagnitude=16.3
+secondaryDistance=148.36129161504002
+secondaryAbsoluteMagnitude=-19.22965577156097
+# mass in solar masses
+secondaryLuminosity=8.89747684521096E9
+secondaryMass=8.89747684521096E9
+secondaryMassMin=2.897476845210961E9
+secondaryMassMax=1.89747684521096E10
+secondaryA=83.00920404342624
+secondaryB=40.956079627647015
+secondaryAngle=58.0
+
+imageWidth=1024.0
+imageHeight=1024.0
+usePixelCoords=true
+
+rxRA=0.0
+rxDEC=0.0
+rxMpc=59.310501834826766
+ryMpc=-261.00485764033175
+vzKms=-1555.3232721040022
+diameter=0.040795605150106426
+scaleX=3.8284147888996314
+scaleY=3.8284147888996314
+sdssObjId=Arp 272
+displayName=Arp 272
+pu=0.0
+pg=0.0
+pr=0.0
+pi=0.0
+pz=0.0
+predshift=0.0
+su=0.0
+sg=0.0
+sr=0.0
+si=0.0
+sz=0.0
+sredshift=0.0
+
+# the following values are in simulation units
+useRanges=true
+rzMin=-0.298535050035476
+rzMax=0.298535050035476
+vxMin=-0.7965608172921457
+vxMax=0.7965608172921457
+vyMin=-0.7965608172921457
+vyMax=0.7965608172921457
+vzMin=-0.36971997519653
+vzMax=0.36971997519653
+r1Min=1.6399833270342783
+r1Max=2.6863905991345085
+r2Min=0.8447237317001359
+r2Max=1.758575034969258

@@ -36,7 +36,7 @@ genName = ''
 runName = ''
 zooModel = ''
 humanScore = ''
-userComment = 'Sample Data for Score Analysis. Sep. 18, 2019'
+userComment = 'Sample Data for Score Analysis. Oct 1, 2019'
 
 imageLoc = ''
 imgInfoLoc = ''
@@ -123,6 +123,8 @@ def main():
 
     # Rotate and translate images to overlap
     image, target = overLapTarget( image, imgCenters, target, targetCenters) 
+    cv2.imwrite( 'target.png' , target)
+
 
     # Final check to see if images are the same size
     if image.size != target.size:
@@ -133,7 +135,11 @@ def main():
 
     if methodName == 'diffSqNonZero':
         methodFunc = pixMod.diffSquaredNonZero
-    elif diffMethod:
+    elif methodName == 'diff':
+        methodFunc = pixMod.pixel_difference
+
+    '''
+    if diffMethod:
         methodFunc = pixMod.pixel_difference
     elif diffSqMethod:
         methodFunc = pixMod.pixel_difference_squared
@@ -141,6 +147,7 @@ def main():
         methodFunc = pixMod.diffSquaredNonZero
     elif diffNonZeroMethod:
         methodFunc = pixMod.diffNonZero
+    '''
 
     score, methodFullName, diffImg = methodFunc( image, target )
 
