@@ -1,0 +1,79 @@
+primaryName=758874299603222717
+primaryX=512.0
+primaryY=517.0
+primaryRA=00 01 26.75
+primaryDEC=+31 26 00.29
+primaryType=
+primaryVelocity=4811.069365984
+primaryMagnitude=14.2
+primaryDistance=64.14759154645333
+primaryAbsoluteMagnitude=-19.83590177606285
+primaryLuminosity=1.1337934220648739E10
+# mass in solar masses
+primaryMass=1.1337934220648739E10
+primaryMassMin=1.133793422064874E9
+primaryMassMax=1.133793422064874E11
+primaryA=53.5
+primaryB=43.282409199059686
+primaryAngle=84.5
+
+secondaryName=758874299603222635
+secondaryX=308.0
+secondaryY=367.0
+secondaryRA=00 01 29.15
+secondaryDEC=+31 26 31.06
+secondaryType=
+secondaryVelocity=4767.899252032
+secondaryMagnitude=14.31
+secondaryDistance=63.57199002709333
+secondaryAbsoluteMagnitude=-19.725901776062848
+# mass in solar masses
+secondaryLuminosity=1.0854812064498674E10
+secondaryMass=1.0854812064498674E10
+secondaryMassMin=1.0854812064498675E9
+secondaryMassMax=1.0854812064498674E11
+secondaryA=60.12499272717689
+secondaryB=33.18520722774744
+secondaryAngle=8.0
+
+imageWidth=1024.0
+imageHeight=1024.0
+usePixelCoords=false
+
+rxRA=0.024766101380885888
+rxDEC=31.433416839270834
+rxMpc=-0.009472240702243149
+ryMpc=0.009566780710408805
+vzKms=43.170113952000065
+diameter=0.006824303573431314
+scaleX=9.570093457943925
+scaleY=9.570093457943925
+sdssObjId=758874299603222717
+displayName=SDSS 758874299603222717
+pu=24.437088
+pg=22.767052
+pr=13.098188
+pi=12.72359
+pz=12.421151
+predshift=0.0
+su=16.252953
+sg=14.104347
+sr=13.249253
+si=12.860888
+sz=12.575994
+sredshift=0.0
+
+# the following values are in simulation units
+useRanges=true
+rzMin=-2.274767857810438
+rzMax=2.274767857810438
+vxMin=-2.2238150350521972
+vxMax=2.2238150350521972
+vyMin=-2.2238150350521972
+vyMax=2.2238150350521972
+vzMin=-0.5098765760270434
+vzMax=0.5098765760270434
+r1Min=0.1969494011292277
+r1Max=0.4186710242300111
+r2Min=0.19234775634079954
+r2Max=0.4498084493376352

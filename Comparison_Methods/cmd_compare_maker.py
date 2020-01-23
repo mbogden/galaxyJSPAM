@@ -20,6 +20,7 @@ printAll = True
 
 # For cmds
 cmdPrint = False
+argFileLoc = ''
 
 sdssDir = ''
 sdssZooFile = ''
@@ -60,8 +61,7 @@ def main():
         cmd = 'python3'
         cmd += ' Comparison_Methods/compare_v1.py'
         cmd += ' -runDir %s' % sdssDir + runDir + '/'
-        cmd += ' -argFile Input_Data/comparison_methods/arg_compare_test.txt'
-        cmd += ' -methodName %s' % methodName
+        cmd += ' -argFile %s' % argFileLoc
 
         if not cmdPrint:
             cmd += ' -noprint'
@@ -80,7 +80,7 @@ def main():
 
 def readArg():
 
-    global printAll, sdssDir, writeLoc, sdssZooFile, nLines, cmdPrint
+    global printAll, sdssDir, writeLoc, sdssZooFile, nLines, cmdPrint, argFileLoc
     endEarly = False
 
     argList = argv
@@ -92,7 +92,7 @@ def readArg():
 
         elif arg == '-argFile':
             argFileLoc = argList[i+1]
-            argList = readArgFile( argList, argFileLoc ) 
+            #argList = readArgFile( argList, argFileLoc ) 
 
         elif arg == '-noprint':
             printAll = False

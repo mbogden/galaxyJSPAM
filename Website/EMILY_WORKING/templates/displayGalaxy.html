@@ -1,0 +1,20 @@
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>{{ galaxyName }}</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    </head>
+    <body>
+        <p> Image Loc = {{ imgLoc }} </p>
+        <img src= "/static/{{ imgLoc }}" alt="Failed image load for: " {{ imgName }} style="width:300px;height:200px">
+        <p>-	 	sdss name:  {{ sdss }} </p>
+        <p>-	 	gen#:  {{ genNumber }} </p>
+        <p>- 		run#:  {{ runNumber }} </p>
+        <p>- 		human score:  {{ humanScore }} </p> <br/>
+	<p> <br/> </p>
+	<p> <br/> </p>
+	<p> <br/> </p>
+    </body>
+{% include "jumbled.html" %}
+</html>

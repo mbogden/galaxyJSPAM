@@ -1,0 +1,79 @@
+primaryName=NGC 6786
+primaryX=512.0
+primaryY=512.0
+primaryRA=287 43 28.65
+primaryDEC=+73 24 36.61
+primaryType=
+primaryVelocity=7499.907921786
+primaryMagnitude=13.8
+primaryDistance=99.99877229048
+primaryAbsoluteMagnitude=-21.199973340462854
+primaryLuminosity=1.9162573167414307E10
+# mass in solar masses
+primaryMass=1.9162573167414307E10
+primaryMassMin=5.916257316741431E9
+primaryMassMax=5.1625731674143074E10
+primaryA=99.61664267777932
+primaryB=91.69760306953337
+primaryAngle=76.0
+
+secondaryName=UGC 11415
+secondaryX=215.0
+secondaryY=581.0
+secondaryRA=19 11 04.49
+secondaryDEC=+73 25 35.99
+secondaryType=
+secondaryVelocity=7555.069734058
+secondaryMagnitude=14.9
+secondaryDistance=100.73426312077333
+secondaryAbsoluteMagnitude=-20.099973340462853
+# mass in solar masses
+secondaryLuminosity=1.2577687159703146E10
+secondaryMass=1.2577687159703146E10
+secondaryMassMin=5.257768715970314E9
+secondaryMassMax=5.257768715970315E10
+secondaryA=82.23452981251393
+secondaryB=60.142527779294085
+secondaryAngle=97.0
+
+imageWidth=1024.0
+imageHeight=1024.0
+usePixelCoords=true
+
+rxRA=0.0
+rxDEC=0.0
+rxMpc=-128.20071830899252
+ryMpc=-148.36187213330922
+vzKms=-55.161812272000134
+diameter=0.01771130412017049
+scaleX=5.139703429437175
+scaleY=5.139703429437175
+sdssObjId=
+displayName=HST NGC 6786
+pu=0.0
+pg=0.0
+pr=0.0
+pi=0.0
+pz=0.0
+predshift=0.0
+su=0.0
+sg=0.0
+sr=0.0
+si=0.0
+sz=0.0
+sredshift=0.0
+
+# the following values are in simulation units
+useRanges=true
+rzMin=-5.903768040056829
+rzMax=5.903768040056829
+vxMin=-1.8742859080052994
+vxMax=1.8742859080052994
+vyMin=-1.8742859080052994
+vyMax=1.8742859080052994
+vzMin=-0.6515089582567781
+vzMax=0.6515089582567781
+r1Min=0.42624222189354035
+r1Max=0.8315457284420044
+r2Min=0.23510339335675906
+r2Max=0.6759089212538872
