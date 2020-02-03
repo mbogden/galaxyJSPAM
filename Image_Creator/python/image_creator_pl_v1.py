@@ -72,14 +72,13 @@ def image_creator_pl_v1(argList):
 
     # Finally get particle information and create images
 
-    pts = getParticles( runData )
+    pts = getParticles_pl( runData )
 
-    makeImages( runData, imgParam, pts )
-
+    makeImages_pl( runData, imgParam, pts )
 
 # end image_creator_v3
 
-def makeImages( runData, imgParam, pts ):
+def makeImages_pl( runData, imgParam, pts ):
 
     # Create and save model image
     pts.g1fPart, pts.g2fPart, pts.fCenters2 = shiftPoints( pts.g1fPart, pts.g2fPart, pts.fCenters, imgParam.gCenter )
@@ -102,7 +101,7 @@ def makeImages( runData, imgParam, pts ):
 
 # End making images
 
-def getParticles( runData ):
+def getParticles_pl( runData ):
 
     pts = particleClass()
 
@@ -121,6 +120,65 @@ def getParticles( runData ):
     return pts
 
 # end get particles
+
+
+
+def from_wrapper( paramLoc, pts1Loc, pts2Loc, imgLoc ):
+
+    '''
+    runData = runDataClass(runDir, nPart)
+    runGood = runData.checkRun()
+    '''
+    
+    # Get image parameters from file
+    imgParam = imageParameterClass_v3(paramLoc)
+
+    # Finally get particle information and create images
+    pts = getParticles( pts1Loc, pts2Loc )
+
+    mImg = makeImage( imgParam, pts )
+    mImg = addCircles( mImg, imgParam )
+
+    cv2.imwrite( imgLoc, mImg )
+
+# end image_creator_v3
+
+# add Center circles
+def addCircles(img, imgParam):
+    g1c = ( int(imgParam.gCenter[0,0]) , int(imgParam.gCenter[1,0]) ) 
+    g2c = ( int(imgParam.gCenter[0,1]) , int(imgParam.gCenter[1,1]) ) 
+    cv2.circle( img, g1c, 10, (255, 255, 255), 2 ) 
+    cv2.circle( img, g2c, 10, (255, 255, 255), 2 ) 
+    return img
+
+
+def makeImage( imgParam, pts ):
+
+    # Create and save model image
+    pts.g1fPart, pts.g2fPart, pts.fCenters2 = shiftPoints_v2( pts.g1fPart, pts.g2fPart, pts.fCenters, imgParam.gCenter )
+
+    modelImg = createImg( pts.g1fPart, pts.g2fPart, pts.ir1, pts.ir2, imgParam )
+
+    return modelImg
+
+# End making images
+
+def getParticles( pts1Loc=None, pts2Loc=None ):
+
+    pts = particleClass()
+
+    # Read particle files
+    pts.g1iPart, pts.g2iPart, pts.iCenters = readPartFile( pts1Loc )
+    pts.g1fPart, pts.g2fPart, pts.fCenters = readPartFile( pts2Loc )
+
+    pts.ir1 = pts.g1iPart[:,3]
+    pts.ir2 = pts.g2iPart[:,3]
+    
+    return pts
+
+# end get particles
+
+
 
 
 
