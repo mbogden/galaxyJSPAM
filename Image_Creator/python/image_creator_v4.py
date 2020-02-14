@@ -1,8 +1,8 @@
 '''
     Author:     Matthew Ogden
     Created:    19 July 2019
-    Altered:    11 Oct 2019
-Description:    Image creator for use in mdoel to score pipeline. Currently in developement.
+    Altered:    07 Jan 2020
+Description:    Image creator for use in model to score pipeline. Currently in developement.
 
 '''
 
@@ -17,10 +17,10 @@ from os import \
 
 import numpy as np
 import cv2
-import subprocess
+from numba import jit
 
 # Global input variables
-printAll = True
+printAll = False
 writeDotImg = False
 overWriteImg = False
 
@@ -28,21 +28,20 @@ runDir = ''
 paramLoc = ''
 nPart = 100000
 
-paramGiven = False
-wrapperImgParam = None
-
-
-def image_creator_pl_v1(argList):
+def image_creator_v4_pl(argList, imgParam = None, ignore=False):
 
     # Read input arguments
-    endEarly = readArg( argList )
+    if imgParam == None:
+        endEarly = readArg( argList )
+    else:
+        endEarly = readArg( argList, ignore=True )
 
     if printAll:
         print('runDir       : %s' % runDir)
         print('paramLoc     : %s' % paramLoc)
         print('nPart        : %d' % nPart) 
 
-    if endEarly:
+    if endEarly and not ignore:
         print("Exiting...")
         return False
 
@@ -54,12 +53,9 @@ def image_creator_pl_v1(argList):
         return False
 
     # If this is being used by another code
-    if paramGiven:
-        global paramParam
-        imgParam = wrapperImgParam
-    else:
-        # Get image parameters from file
+    if imgParam == None:
         imgParam = imageParameterClass_v3(paramLoc)
+
 
     runData.updateImg( imgParam )
     
@@ -70,124 +66,295 @@ def image_creator_pl_v1(argList):
             if printAll: print("Run images already created")
             return True
 
-    # Finally get particle information and create images
+    # Read in particles
+    runData.unZipPts()
+    pts = readParticleFiles( runData.pts1Loc, runData.pts2Loc )
+    runData.rmPts()
 
-    pts = getParticles_pl( runData )
+    Image_Run_Pipeline( runData, imgParam, pts )
 
-    makeImages_pl( runData, imgParam, pts )
+# end image_creator_v
 
-# end image_creator_v3
 
-def makeImages_pl( runData, imgParam, pts ):
+def Image_From_Files( paramLoc, pts1Loc, pts2Loc, imgLoc=None, circles=False ):
+    
+    # Get image parameters from file
+    imgParam = imageParameterClass_v3( paramLoc )
+
+    # Read particle files
+    pts = readParticleFiles( pts1Loc, pts2Loc )
+
+    # Shift particle so they align with image coordinates
+    pts.g1fPart, pts.g2fPart, pts.fCenters2 = shiftPoints_v3( pts.g1fPart, 
+            pts.g2fPart, pts.fCenters, imgParam.gCenter, imgParam.nRow )
+
+    # Create image array
+    modelImg = Image_From_Data( pts.g1fPart, pts.g2fPart, pts.ir1, pts.ir2, imgParam )
+
+    # Add circles if desired
+    if circles:
+        modelImg = addCircles( modelImg, imgParam )
+
+    # Save if specified
+    if imgLoc != None:
+        cv2.imwrite( imgLoc, modelImg )
+
+    # Return image
+    return modelImg
+
+# End create image from files
+
+# Make images if they within the automated pipeline
+def Image_Run_Pipeline( runData, imgParam, pts ):
 
     # Create and save model image
-    pts.g1fPart, pts.g2fPart, pts.fCenters2 = shiftPoints( pts.g1fPart, pts.g2fPart, pts.fCenters, imgParam.gCenter )
 
-    modelImg = createImg( pts.g1fPart, pts.g2fPart, pts.ir1, pts.ir2, imgParam )
+    pts.g1fPart, pts.g2fPart, pts.fCenters2 = shiftPoints_v3( pts.g1fPart, 
+            pts.g2fPart, pts.fCenters, imgParam.gCenter, imgParam.nRow)
+
+    modelImg = Image_From_Data( pts.g1fPart, pts.g2fPart, pts.ir1, pts.ir2, imgParam )
     cv2.imwrite( runData.modelLoc, modelImg )
-    print( runData.modelLoc )
-
 
     # Create and save unperterbed image from initial points moved to final location
     dC = pts.fCenters - pts.iCenters
     pts.g2iPart[:,0:2] += dC[1,0:2]
 
-    pts.g1iPart, pts.g2iPart, pts.iCenters2 = shiftPoints( pts.g1iPart, pts.g2iPart, pts.fCenters, imgParam.gCenter)
+    pts.g1iPart, pts.g2iPart, pts.iCenters2 = shiftPoints_v3( pts.g1iPart, pts.g2iPart, pts.fCenters, imgParam.gCenter, imgParam.nRow)
 
-    initImg = createImg( pts.g1iPart, pts.g2iPart, pts.ir1, pts.ir2, imgParam )
+    initImg = Image_From_Data( pts.g1iPart, pts.g2iPart, pts.ir1, pts.ir2, imgParam )
     cv2.imwrite( runData.initLoc, initImg )
 
     return True
 
 # End making images
 
-def getParticles_pl( runData ):
+def Image_From_Data( g1Pts, g2Pts, ir1, ir2, imgParam ):
 
-    pts = particleClass()
+    imgGal1 = addGalaxy( g1Pts, ir1, imgParam, imgParam.rConst1 )
+    imgGal1 = cv2.GaussianBlur( imgGal1, (imgParam.gSize, imgParam.gSize), imgParam.gWeight )
 
-    runData.unZipPts()
+    imgGal2 = addGalaxy( g2Pts, ir2, imgParam, imgParam.rConst2 )
+    imgGal2 = cv2.GaussianBlur( imgGal2, (imgParam.gSize, imgParam.gSize), imgParam.gWeight )
 
-    # Read particle files
-    pts.g1iPart, pts.g2iPart, pts.iCenters = readPartFile( runData.pts1Loc )
-    pts.g1fPart, pts.g2fPart, pts.fCenters = readPartFile( runData.pts2Loc )
+    b1 = np.sum( imgGal1 )
+    b2 = np.sum( imgGal2 )
 
-    pts.ir1 = pts.g1iPart[:,3]
-    pts.ir2 = pts.g2iPart[:,3]
+    #print( imgParam.g1Lum, imgParam.g2Lum, b2, b1 )
+    bScale = ( imgParam.g1Lum / imgParam.g2Lum ) * ( b2 / b1 )
+
+    if bScale < 1:
+        imgGal1 *= bScale
+    else:
+        imgGal2 *= ( 1 / bScale )
+
+    finalImg = imgGal1 + imgGal2
+
+    #finalImg = cv2.normalize( finalImg, np.zeros( finalImg.shape ), 0, 255, cv2.NORM_MINMAX)
+
+    finalImg = normImg_v1( finalImg, imgParam.nVal )
     
-    # Remove uncompressed particles files after being read
-    runData.rmPts()
+    return finalImg
 
-    return pts
+# end create Img
 
-# end get particles
-
-
-
-def from_wrapper( paramLoc, pts1Loc, pts2Loc, imgLoc ):
-
-    '''
-    runData = runDataClass(runDir, nPart)
-    runGood = runData.checkRun()
-    '''
+#@jit( nopython = True )
+def shiftPoints_v3( g1pts, g2pts, ptsCenters, imgCenters, imgHeight, printTR=False ):
+#def shiftPoints_v3( g1pts, g2pts, ptsCenters, imgParam, printTR=False ):
     
-    # Get image parameters from file
-    imgParam = imageParameterClass_v3(paramLoc)
-
-    # Finally get particle information and create images
-    pts = getParticles( pts1Loc, pts2Loc )
-
-    mImg = makeImage( imgParam, pts )
-    mImg = addCircles( mImg, imgParam )
-
-    cv2.imwrite( imgLoc, mImg )
-
-# end image_creator_v3
-
-# add Center circles
-def addCircles(img, imgParam):
-    g1c = ( int(imgParam.gCenter[0,0]) , int(imgParam.gCenter[1,0]) ) 
-    g2c = ( int(imgParam.gCenter[0,1]) , int(imgParam.gCenter[1,1]) ) 
-    cv2.circle( img, g1c, 10, (255, 255, 255), 2 ) 
-    cv2.circle( img, g2c, 10, (255, 255, 255), 2 ) 
-    return img
-
-
-def makeImage( imgParam, pts ):
-
-    # Create and save model image
-    pts.g1fPart, pts.g2fPart, pts.fCenters2 = shiftPoints_v2( pts.g1fPart, pts.g2fPart, pts.fCenters, imgParam.gCenter )
-
-    modelImg = createImg( pts.g1fPart, pts.g2fPart, pts.ir1, pts.ir2, imgParam )
-
-    return modelImg
-
-# End making images
-
-def getParticles( pts1Loc=None, pts2Loc=None ):
-
-    pts = particleClass()
-
-    # Read particle files
-    pts.g1iPart, pts.g2iPart, pts.iCenters = readPartFile( pts1Loc )
-    pts.g1fPart, pts.g2fPart, pts.fCenters = readPartFile( pts2Loc )
-
-    pts.ir1 = pts.g1iPart[:,3]
-    pts.ir2 = pts.g2iPart[:,3]
+    #imgCenters = imgParam.gCenter
+    #imgHeight = imgParam.nRow
     
-    return pts
+    # x,y Cartesian coordinates for galaxy centers of particles
+    g1_fc = ptsCenters[0,0:2]
+    g2_fc = ptsCenters[1,0:2]
+    
+    # galaxy centers in pts format
+    gc = np.ones((3,2))
+    gc[0:2,0] = g1_fc
+    gc[0:2,1] = g2_fc  
 
-# end get particles
+    # x, y cartesian coordinates for galaxy centers on img
+    def ImgCartConv( x, y, mat_height ):    
+        return np.array( [x, mat_height - y] )
+    
+    g1_tc = ImgCartConv( imgCenters[0,0], imgCenters[1,0], imgHeight)
+    g2_tc = ImgCartConv( imgCenters[0,1], imgCenters[1,1], imgHeight)      
+    
+    # Find rotation angle between vectors.
+    
+    # Vector for centers
+    fv = g2_fc - g1_fc  # from_vector: particle centers
+    tv = g2_tc - g1_tc  # to_vector: image centers
+    
+    # signed angles vectors with (x=1,y=0)
+    fv_angle = np.arctan2( fv[1], fv[0] )
+    tv_angle = np.arctan2( tv[1], tv[0] )
+    
+    # signed angle from v1 to v2
+    theta = tv_angle - fv_angle
+    
+    # Create Rotation Matrix from theta
+    rotMat = np.eye((3))
+    rotMat[0,0:2] = [ np.cos( theta ) , -np.sin( theta ) ]
+    rotMat[1,0:2] = [ np.sin( theta ) ,  np.cos( theta ) ]
+    
+    # Create Scaling Matrix    
+    fl = np.sqrt( fv[0]**2 + fv[1]**2 ) # from center length
+    tl = np.sqrt( tv[0]**2 + tv[1]**2 ) # to center length
+    scale = tl/fl    
+    
+    scaleMat = np.eye(3)
+    scaleMat[0,0] = scale # x-scale
+    scaleMat[1,1] = scale # y-scale
+    
+    # Create Translation Matrix to overlap centers
+    t1Mat = np.eye(3)
+    t1Mat[0,2] = g1_tc[0]
+    t1Mat[1,2] = g1_tc[1]
+    
+    
+    # Create single adjustment matrix for computational effeciency        
+    adjMat = np.copy(rotMat)    # rotate particles
+    adjMat = np.dot( scaleMat, adjMat )  # Scale up values
+    adjMat = np.dot( t1Mat, adjMat )  # translate to overlap
+    
+
+    if printTR:
+
+        print('FROM:')
+        print(gc[0:2,:])
+
+        print("To:")
+        print(imgCenters)  
+
+        # Rotate points to match image
+        print("\nRotate")
+        adjMat2 = np.copy(rotMat)
+        tMat = np.dot( rotMat, gc )
+        print( np.dot( adjMat, gc ) )
+        print( tMat )  
+
+        # Scale points to match image
+        adjMat2 = np.dot( scaleMat, adjMat )
+        print("\nScale")
+        tMat = np.dot( scaleMat, tMat )
+        print( np.dot( adjMat, gc ) )
+        print( tMat )
+
+        # translate points to desired centers in cartesian
+        adjMat2 = np.dot( t1Mat, adjMat )    
+        print("\nTranslate to final centers cart")
+        tMat = np.dot( t1Mat, tMat )
+        print( np.dot( adjMat, gc ) )
+        
+        print("\nShould match")
+        print( tMat )
+        print( imgCenters )
+
+        
+    # APPLYING MATRIX TO POINTS
+    # Transpose points because I (Matthew Ogden)
+    # view "lists" of points as vertical arrays,
+    # not horizontal as most matrix operations assume.
+
+    n = g1pts.shape[0]
+
+    # Shift center points
+    gc = np.transpose( np.dot(adjMat, gc) )    
+
+    # One's are required in 3rd dimension for proper translation
+    tPts = np.ones((3,n))
+
+    # Shift galaxy 1
+    tPts[0:2,:] = g1pts[:,0:2].T    
+    g1pts[:,0:2] = np.dot( adjMat, tPts )[0:2,:].T
+
+    # Shift galaxy 2
+    tPts[0:2,:] = g2pts[:,0:2].T
+    g2pts[:,0:2] = np.dot( adjMat, tPts )[0:2,:].T    
+    
+    return g1pts, g2pts, gc
+
+# End shifting points....  I really hope this is the last time I have to write this function
 
 
-
-
-
-# Define struct-like class to hold particles information
+# Define struct-like class to hold arbitrary information
 class particleClass:
     def __init__( self ):
         self.stuff = 0
 
-# Define struct-like class to hold information about the run directory
+
+def readParticleFiles( pts1Loc, pts2Loc ):
+    
+    pts = particleClass()
+    
+    pts.g1iPart, pts.g2iPart, pts.iCenters = readPartFile( pts1Loc )
+    pts.g1fPart, pts.g2fPart, pts.fCenters = readPartFile( pts2Loc )
+    
+    pts.ir1 = pts.g1iPart[:,3]
+    pts.ir2 = pts.g2iPart[:,3]
+    
+    return pts
+# End simple read particles
+
+
+def readPartFile( pLoc, printF=False ):
+    
+    if printF:
+        print('Reading particle file: %s'%pLoc)
+
+    try:
+        pFile = open( pLoc, 'r' )
+        pList = list( pFile )
+        pFile.close()
+
+    except:
+        print('Failed to open particle file %s' % pLoc)
+        exit(-1)
+    
+    nPart = int( (len( pList ) - 1 ) /2 )
+
+    # End last line for galaxy centers
+    cLine = pList[-1].strip()
+    cVals = cLine.split()
+
+    pCenters = np.zeros((2,3))
+
+    g1Points = np.zeros((nPart,4))
+    g2Points = np.zeros((nPart,4))
+
+    # Read points
+    for i in range(3):
+        pCenters[1,i] = float(cVals[i])  # Error.  
+
+    for i in range( nPart ):
+
+        p1 = pList[i].strip().split()
+        p2 = pList[i+nPart].strip().split()
+
+        r1 = 0.0
+        r2 = 0.0
+
+        for j in range(3):
+
+                # reading from file
+                g1Points[i,j] = float( p1[j] )
+                g2Points[i,j] = float( p2[j] )
+
+                # calculating radius from center
+                r1 += g1Points[i,j]**2
+                r2 += g2Points[i,j]**2
+
+        # finish radius calculation
+        g1Points[i,3] = np.sqrt( r1 )
+        g2Points[i,3] = np.sqrt( r2 )
+
+    return g1Points, g2Points, pCenters
+    
+# end read particle file
+
+
+# Define class and process if using run directory
 class runDataClass:
     def __init__( self, runDir, nPart ):
         self.runDir = runDir
@@ -262,122 +429,16 @@ class runDataClass:
     def rmPts( self ):
         system('rm %s %s' % ( self.pts1Loc, self.pts2Loc ) ) 
     # end removing points
+# End run class
 
 
-
-
-def createImg( g1Pts, g2Pts, ir1, ir2, imgParam ):
-
-    imgGal1 = addGalaxy( g1Pts, ir1, imgParam, imgParam.rConst1 )
-    imgGal1 = cv2.GaussianBlur( imgGal1, (imgParam.gSize, imgParam.gSize), imgParam.gWeight )
-
-    imgGal2 = addGalaxy( g2Pts, ir2, imgParam, imgParam.rConst2 )
-    imgGal2 = cv2.GaussianBlur( imgGal2, (imgParam.gSize, imgParam.gSize), imgParam.gWeight )
-
-    b1 = np.sum( imgGal1 )
-    b2 = np.sum( imgGal2 )
-
-    bScale = ( imgParam.g1Lum / imgParam.g2Lum ) * ( b2 / b1 )
-
-    if bScale < 1:
-        imgGal1 *= bScale
-    else:
-        imgGal2 *= ( 1 / bScale )
-
-    finalImg = imgGal1 + imgGal2
-
-    #finalImg = cv2.normalize( finalImg, np.zeros( finalImg.shape ), 0, 255, cv2.NORM_MINMAX)
-
-    finalImg = normImg_v1( finalImg, imgParam.nVal )
-    
-    return finalImg
-
-# end create Img
-
-
-def addGalaxy( pts, ir, imgParam, rConst ):
-
-    img = np.zeros(( imgParam.nRow, imgParam.nCol ))
-    rMax = np.amax( pts[:,3] )
-
-    for i, pt in enumerate(pts):
-        x, y, z, r = pt
-        x = int(x)
-        y = int(y)
-        
-        if  x > 0 and x < imgParam.nCol \
-        and y > 0 and y < imgParam.nRow:
-            try:
-                img[imgParam.nRow - y, x] += np.exp( -rConst * ir[i] / rMax )
-            except:
-                continue
-
+# add Center circles
+def addCircles(img, imgParam):
+    g1c = ( int(imgParam.gCenter[0,0]) , int(imgParam.gCenter[1,0]) ) 
+    g2c = ( int(imgParam.gCenter[0,1]) , int(imgParam.gCenter[1,1]) ) 
+    cv2.circle( img, g1c, 10, (255, 255, 255), 2 ) 
+    cv2.circle( img, g2c, 10, (255, 255, 255), 2 )
     return img
-
-
-def readArg( argList ):
-
-    global printAll, overWriteImg, runDir, writeDotImg, nPart, paramLoc
-
-    for i,arg in enumerate(argList):
-
-        if arg[0] != '-':
-            continue
-
-        elif arg == '-argFile':
-            argFileLoc = argList[i+1]
-            argList = readArgFile( argList, argFileLoc ) 
-
-        elif arg == '-noprint':
-            printAll = False
-
-        elif arg == '-overwrite':
-            overWriteImg = True
-
-        elif arg == '-runDir':
-            runDir = argList[i+1]
-            if runDir[-1] != '/':
-                runDir = runDir + '/'
-
-        elif arg == '-paramLoc':
-            paramLoc = argList[i+1]
-
-        elif arg == '-dotImg':
-            writeDotImg = True
-
-        elif arg == '-init':
-            saveInit = True
-
-        elif arg == '-nPart':
-            nPart = argList[i+1]
-            try:
-                nPart = int( nPart)
-            except:
-                print("Number of particles not recognized as integer: %s" % nPart) 
-
-    # Check if input arguments were valid
-    endEarly = False
-    
-    if runDir == '':
-        print('No run directory given')
-        endEarly = True
-
-    elif not path.exists(runDir):
-        print('Run directory \'%s\' not found')
-        endEarly = True
-
-    if paramLoc == '' and not paramGiven:
-        print("No image parameter file given.")
-        endEarly = True
-
-    elif not path.exists(paramLoc) and not paramGiven:
-        print("Image parameter file not found: %s" % paramLoc)
-        endEarly = True
-    
-
-    return endEarly
-
-# End reading command line arguments
 
 
 def normImg_v1( img, nVal ):
@@ -409,188 +470,26 @@ def simpleWriteImg( iLoc, g1P, g2P, nRows, nCols ):
 
     cv2.imwrite( iLoc, img )
 
-# End simple write
-
-# This is to shift the points so the galaxies are horizontal
-def shiftPoints_v2( g1P, g2P, gC_in, toC ):
-
-    gC = np.copy(gC_in)
-
-    fC = np.zeros((2,2))
-    fC[:,0] = gC[0,0:2]
-    fC[:,1] = gC[1,0:2]
-
-    # Calculate angle between position vectors
-    def angToXpos( c ):
-        theta = np.arctan( ( c[1,1] - c[1,0] ) / ( c[0,1] - c[0,0] ) ) 
-        return theta
-    
-    fTheta = angToXpos( fC )
-    tTheta = angToXpos( toC )
-
-    theta = fTheta + tTheta
-
-    # Build rotation matrix
-    rotMat = np.zeros((2,2))
-    rotMat[0,:] = [ np.cos( theta ) , -np.sin( theta ) ]
-    rotMat[1,:] = [ np.sin( theta ) ,  np.cos( theta ) ]
-
-    # Rotate xy plane
-    gC[:,0:2] = np.transpose(np.matmul(rotMat, np.transpose(gC[:,0:2])))
-    g1P[:,0:2] = np.transpose(np.matmul(rotMat, np.transpose(g1P[:,0:2])))
-    g2P[:,0:2] = np.transpose(np.matmul(rotMat, np.transpose(g2P[:,0:2])))
-
-    # Calculate scale to change galaxy center distance to pixel center distance
-    sF = np.sqrt( ( fC[0,1] - fC[0,0] )**2 + ( fC[1,1] - fC[1,0] ) **2 )
-    sT = np.sqrt( ( toC[0,1] - toC[0,0] )**2 + ( toC[1,1] - toC[1,0] ) **2 )
-    scale = sT/sF
-
-    #scale up points, leave radial distance untouched
-    gC[:,0:3] *= scale
-    g1P[:,0:3] *= scale
-    g2P[:,0:3] *= scale
-
-    # Shift centers up to desired point
-    gC[:,0] = gC[:,0] + toC[0,0]
-    gC[:,1] = gC[:,1] + toC[0,1]
-    g1P[:,0] = g1P[:,0] + toC[0,0]
-    g1P[:,1] = g1P[:,1] + toC[0,1]
-    g2P[:,0] = g2P[:,0] + toC[0,0]
-    g2P[:,1] = g2P[:,1] + toC[0,1]
-
-    return g1P, g2P, gC
-
-# end shift Points
 
 
-# This is to shift the points so the galaxies are horizontal
-def shiftPoints( g1P, g2P, gC_in, imgParam ):
+def addGalaxy( pts, ir, imgParam, rConst ):
 
-    nRows = imgParam.nRow
-    nCols = imgParam.nCol
+    img = np.zeros(( imgParam.nRow, imgParam.nCol ))
+    rMax = np.amax( pts[:,3] )
 
-    gC = np.copy(gC_in)
+    for i, pt in enumerate(pts):
+        x, y, z, r = pt
+        x = int(x)
+        y = int(y)
+        
+        if  x > 0 and x < imgParam.nCol \
+        and y > 0 and y < imgParam.nRow:
+            try:
+                img[imgParam.nRow - y, x] += np.exp( -rConst * ir[i] / rMax )
+            except:
+                continue
 
-    # Calculate pixel points I want the galaxy centers to land on
-    toC = np.zeros((2,2))
-    toC[0,:] = [ nCols/3, nRows/2 ]
-    toC[1,:] = [ 2*nCols/3, nRows/2 ]
-
-    # Calculate amount needed to rotate points to land galaxy centers horizontal
-    theta = - np.arctan( ( gC[1,1] - gC[0,1] ) / ( gC[1,0] - gC[0,0] ) ) 
-
-    # Add pi if galaxy is on wrong side
-    if gC[1,0] < 0:
-        theta += np.pi
-
-
-    # Calculate scale to change galaxy center distance to pixel center distance
-    scale = np.abs( toC[1,0] - toC[0,0] ) / np.sqrt( gC[1,0]**2 + gC[1,1]**2 )
-
-    # Build rotation matrix
-    rotMat = np.zeros((2,2))
-    rotMat[0,:] = [ np.cos( theta ) , -np.sin( theta ) ]
-    rotMat[1,:] = [ np.sin( theta ) ,  np.cos( theta ) ]
-
-    # Only rotate xy plane
-    gC[:,0:2] = np.transpose(np.matmul(rotMat, np.transpose(gC[:,0:2])))
-
-    g1P[:,0:2] = np.transpose(np.matmul(rotMat, np.transpose(g1P[:,0:2])))
-    g2P[:,0:2] = np.transpose(np.matmul(rotMat, np.transpose(g2P[:,0:2])))
-
-   #scale up points, leave radial distance untouched
-    gC[:,0:3] = scale*gC[:,0:3]
-    g1P[:,0:3] = scale*g1P[:,0:3]
-    g2P[:,0:3] = scale*g2P[:,0:3]
-
-    # Shift centers up to desired point
-    gC[:,0] = gC[:,0] + toC[0,0]
-    gC[:,1] = gC[:,1] + toC[0,1]
-    g1P[:,0] = g1P[:,0] + toC[0,0]
-    g1P[:,1] = g1P[:,1] + toC[0,1]
-    g2P[:,0] = g2P[:,0] + toC[0,0]
-    g2P[:,1] = g2P[:,1] + toC[0,1]
-
-    return g1P, g2P, gC
-
-# end shift Points
-
-def readPartFile( pLoc ):
-    
-    if printAll:
-        print('Reading particle file: %s'%pLoc)
-
-    try:
-        pFile = open( pLoc, 'r' )
-        pList = list( pFile )
-        pFile.close()
-
-    except:
-        print('Failed to open particle file %s' % pLoc)
-        exit(-1)
-    
-    nPart = int( (len( pList ) - 1 ) /2 )
-
-    # End last line for galaxy centers
-    cLine = pList[-1].strip()
-    cVals = cLine.split()
-
-    pCenters = np.zeros((2,3))
-
-    g1Points = np.zeros((nPart,4))
-    g2Points = np.zeros((nPart,4))
-
-    # Read points
-    for i in range(3):
-        pCenters[1,i] = float(cVals[i])  # Error.  
-
-    for i in range( nPart ):
-
-        p1 = pList[i].strip().split()
-        p2 = pList[i+nPart].strip().split()
-
-        r1 = 0.0
-        r2 = 0.0
-
-        for j in range(3):
-
-                # reading from file
-                g1Points[i,j] = float( p1[j] )
-                g2Points[i,j] = float( p2[j] )
-
-                # calculating radius from center
-                r1 += g1Points[i,j]**2
-                r2 += g2Points[i,j]**2
-
-        # finish radius calculation
-        g1Points[i,3] = np.sqrt( r1 )
-        g2Points[i,3] = np.sqrt( r2 )
-
-
-    return g1Points,g2Points,pCenters
-    
-# end read particle file    
-
-
-def readFile( fileLoc ):
-
-    if not path.isfile( fileLoc ):
-        print("File does not exist: %s" % fileLoc)
-        return []
-    
-    try:
-        inFile = open( fileLoc, 'r' )
-
-    except:
-        print('Failed to open/read file at \'%s\'' % fileLoc)
-        return []
-
-    else:
-        inList = list(inFile)
-        inFile.close()
-        return inList
-
-# End simple read file
+    return img
 
 
 # Define image parameter class
@@ -744,17 +643,105 @@ class imageParameterClass_v3:
             return False
 
         # Return good if nothing bad found
-        return True
-        
+        return True       
 
 # End parameter class
 
+
+def readArg( argList, ignore=False ):
+
+    global printAll, overWriteImg, runDir, writeDotImg, nPart, paramLoc
+
+    for i,arg in enumerate(argList):
+
+        if arg[0] != '-':
+            continue
+
+        elif arg == '-argFile':
+            argFileLoc = argList[i+1]
+            argList = readArgFile( argList, argFileLoc ) 
+
+        elif arg == '-noprint':
+            printAll = False
+
+        elif arg == '-overwrite':
+            overWriteImg = True
+
+        elif arg == '-runDir':
+            runDir = argList[i+1]
+            if runDir[-1] != '/':
+                runDir = runDir + '/'
+
+        elif arg == '-paramLoc':
+            paramLoc = argList[i+1]
+
+        elif arg == '-dotImg':
+            writeDotImg = True
+
+        elif arg == '-init':
+            saveInit = True
+
+        elif arg == '-nPart':
+            nPart = argList[i+1]
+            try:
+                nPart = int( nPart)
+            except:
+                print("Number of particles not recognized as integer: %s" % nPart) 
+
+    # Check if input arguments were valid
+    endEarly = False
+    
+    if runDir == '':
+        print('No run directory given')
+        endEarly = True
+
+    elif not path.exists(runDir):
+        print('Run directory \'%s\' not found')
+        endEarly = True
+
+    if paramLoc == '' and not ignore:
+        print("No image parameter file given.")
+        print("Example: \tpython image_creator.py -paramLoc path/to/param.txt")
+        endEarly = True
+
+    elif not path.exists(paramLoc) and not ignore:
+        print("Image parameter file not found: %s" % paramLoc)
+        endEarly = True
+    
+
+    return endEarly
+
+# End reading command line arguments
+
+
+# End simple read file
+
+def readFile( fileLoc ):
+
+    if not path.isfile( fileLoc ):
+        print("File does not exist: %s" % fileLoc)
+        return []
+    
+    try:
+        inFile = open( fileLoc, 'r' )
+
+    except:
+        print('Failed to open/read file at \'%s\'' % fileLoc)
+        return []
+
+    else:
+        inList = list(inFile)
+        inFile.close()
+        return inList
+
+# End simple read file function
+
 def test():
-    print("In image creator pl v1")
+    print("In image creator version 4. 2020 Feb 3.")
 
 # Run main after declaring functions
 if __name__ == "__main__":
     argList = argv
-    image_creator_pl_v1( argList )
+    image_creator_v4_pl(argList)
 
 

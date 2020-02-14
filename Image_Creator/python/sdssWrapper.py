@@ -2,7 +2,7 @@
     Author:     Matthew Ogden
     Created:    27 Oct 2019
     Altered:    
-Description:    This program is designed to run image_creator_pl for an entire sdss Galaxy pipeline version 1.
+Description:    This program is designed to run image_creator_v4 for an entire sdss Galaxy pipeline version 1.
 '''
 
 from sys import \
@@ -15,14 +15,16 @@ from os import \
         listdir, \
         system
 
-import multiprocessing as mp
-import image_creator_pl_v1 as imgCreator
+from multiprocessing import cpu_count
+
+#import image_creator_pl_v1 as imgCreator
+import image_creator_v4 as ic
 
 # For loading in Matt's general purpose python libraries
-
 print( path.abspath( path.join( __file__ , "../../../Useful_Bin/" ) ) )
 sysPath.append( path.abspath( path.join( __file__ , "../../../Useful_Bin/" ) ) )
 import ppModule as pm
+
 
 printAll = True
 nProc = 1
@@ -42,11 +44,16 @@ def sdssImageCreator(argList):
 
     sdssFolders = listdir( sdssDir )
 
-    paramFolder = sdssDir + 'sdssParameters/'
+    paramFolder = sdssDir + 'information/'
 
     imgParam = readSdssParams( paramFolder )
-    #imgParam = readSdssParams2( paramFolder )
-    imgParam.printVal()
+    if imgParam == None:
+        print("Uh Oh")
+        return
+
+    p = imgParam.printVal()
+    for l in p:
+        print(l.strip())
 
     genFolder = sdssDir + 'gen000/'
 
@@ -67,46 +74,42 @@ def sdssImageCreator(argList):
             print("run not in dir: %s" % runDir)
             continue
         
-        toArg = [ '-runDir', runDir ]
+        icArg = [ '-runDir', runDir ]
+        toArg = dict( argList = icArg, imgParam=imgParam, ignore=True )
 
         if nProc == 1:
-            imgCreator.image_creator_pl_v1( toArg )
-        else:
-            argList.append( ( toArg ) )
+            # Run function
+            ic.image_creator_v4_pl( **toArg )
 
+        else:
+            # append for a job queue
+            argList.append( toArg )
+
+    # If running a job queue
     if nProc > 1:
         print("About to start parallel")
         print('len: %d' % len( argList) )
 
-        imgCreator.printAll = False
-        imgCreator.paramGiven = True
-        imgCreator.overWriteImg = True
-        imgCreator.wrapperImgParam = imgParam
-
         pClass = pm.ppClass(nProc)
         pClass.printProgBar()
-        pClass.loadQueue( imgCreator.image_creator_pl_v1, argList )
+        pClass.loadQueue( ic.image_creator_v4_pl, argList )
         pClass.runCores()
 
 
 # End sdss_dir
-
-def readSdssParams2( paramFolder ):
-
-    dirContents = listdir( paramFolder)
-    sdssParams = ''
-
-    imgParam = imgCreator.imageParameterClass_v3(paramFolder + 'param_2.txt')
-
-    return imgParam
-
  
 def readSdssParams( paramFolder ):
 
-    dirContents = listdir( paramFolder)
+    if not path.exists( paramFolder ):
+        print("Could not find paramFolder: %s" % paramFolder )
+        return None
+
+    print("Reading %s" % paramFolder )
+
+    dirContents = listdir( paramFolder )
     sdssParams = ''
 
-    imgParam = imgCreator.imageParameterClass_v3(paramFolder + 'param_v3_default.txt')
+    imgParam = ic.imageParameterClass_v3( paramFolder + 'zoo_default_param.txt')
 
     return imgParam
 
@@ -130,7 +133,6 @@ def readArg(argList):
                 sdssDir += '/'
  
         elif arg == '-pp':
-            parProc = True
             nProc = argList[i+1]
 
     # Check if input arguments were valid
@@ -147,7 +149,7 @@ def readArg(argList):
         endEarly = True
 
     else:
-        max_CPU_cores = int(mp.cpu_count())
+        max_CPU_cores = int(cpu_count())
 
         if nProc > max_CPU_cores:
             print('WARNING:  Number of cores requested is greater than the number of cores available.')

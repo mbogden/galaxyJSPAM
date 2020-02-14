@@ -7,6 +7,8 @@ Description:    This is my attempt at making a general purpose parallel processi
 
 import multiprocessing as mp
 
+from time import sleep
+
 # Global input arguments
 
 class ppClass:
@@ -45,13 +47,12 @@ class ppClass:
 
         if self.nCores == 1:
             print("Why use parallel processing with 1 core?")
-            return1
 
         coreList = []
 
         # Start all processes
         for i in range( self.nCores ):
-            p = mp.Process( target=self.coreFunc1 )
+            p = mp.Process( target=self.coreFunc2 )
             coreList.append( p )
             p.start()
 
@@ -61,6 +62,8 @@ class ppClass:
 
     
     def coreFunc1( self ):
+
+        
 
         # Keep core running until shared queue is empty
         while True:
@@ -91,6 +94,9 @@ class ppClass:
  
     def coreFunc2( self ):
 
+        myNum = int( mp.current_process().name.split('-')[1] )
+        sleep( myNum )
+
         # Keep core running until shared queue is empty
         while True:
 
@@ -108,7 +114,7 @@ class ppClass:
                 print("%.1f - %d / %d" % ( perc, p, self.nQueue ), end='\r' )
 
             # Run desired function on core
-            self.funcPtr(*funcArgs)
+            self.funcPtr(**funcArgs)
 
     # End exectute function
 
@@ -117,9 +123,9 @@ class ppClass:
 def testPrint():
     print("Inside parallel processing python Module.  Written by Matthew Ogden")
 
-def printVal( n1, n2 ):
+def printVal( n1, n2=1 ):
     import time
-    #print("Val: %d %d" % ( n1, n2))
+    #print("Val: %d %d" % ( n1, n2) )
     time.sleep(1)
 
 
@@ -135,9 +141,13 @@ if __name__ == '__main__':
 
     for i in range( 4 ): 
         argList.append(( i, i ))
+        argList.append((i,))
 
     pHolder.loadQueue( printVal, argList )
 
-    pHolder.runCores()
+    #args = dict( n1=1, n2=3)
+    #printVal(**args)
+
+    pHolder.coreFunc2()
 
 

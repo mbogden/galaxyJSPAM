@@ -749,7 +749,7 @@ class imageParameterClass_v3:
 
 # End parameter class
 
-def testFunc():
+def test():
     print("In image creator pl v1")
 
 # Run main after declaring functions
