@@ -1,6 +1,0 @@
-python3 Image_Creator/python/image_creator_v2.py -runDir /nfshome/mbo2d/tSpamDir/hst_Arp_273/run_0_0/ -paramLoc Input_Data/image_parameters/test_param.txt -argFile Input_Data/image_creator/arg_v2_test.txt
-python3 Image_Creator/python/image_creator_v2.py -runDir /nfshome/mbo2d/tSpamDir/hst_Arp_273/run_0_1/ -paramLoc Input_Data/image_parameters/test_param.txt -argFile Input_Data/image_creator/arg_v2_test.txt
-python3 Image_Creator/python/image_creator_v2.py -runDir /nfshome/mbo2d/tSpamDir/hst_Arp_273/run_0_2/ -paramLoc Input_Data/image_parameters/test_param.txt -argFile Input_Data/image_creator/arg_v2_test.txt
-python3 Image_Creator/python/image_creator_v2.py -runDir /nfshome/mbo2d/tSpamDir/hst_Arp_273/run_0_3/ -paramLoc Input_Data/image_parameters/test_param.txt -argFile Input_Data/image_creator/arg_v2_test.txt
-python3 Image_Creator/python/image_creator_v2.py -runDir /nfshome/mbo2d/tSpamDir/hst_Arp_273/run_0_4/ -paramLoc Input_Data/image_parameters/test_param.txt -argFile Input_Data/image_creator/arg_v2_test.txt
-python3 Image_Creator/python/image_creator_v2.py -runDir /nfshome/mbo2d/tSpamDir/hst_Arp_273/run_0_5/ -paramLoc Input_Data/image_parameters/test_param.txt -argFile Input_Data/image_creator/arg_v2_test.txt
