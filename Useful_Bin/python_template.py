@@ -1,6 +1,6 @@
 '''
     Author:     Matthew Ogden
-    Created:    19 July 2019
+    Created:    21 Feb 2020
     Altered:    29 Oct 2019
 Description:    This is my python template for how I've been making my python programs
 '''
@@ -14,6 +14,7 @@ from os import \
         listdir
 
 printAll = True
+sdssDir = None
 
 def main(argList):
 
@@ -22,11 +23,44 @@ def main(argList):
     if endEarly:
         exit(-1)
 
+    if sdssDir != None:
+        procSdss( sdssDir )
+
 # End main
+
+def procSdss( sDir ):
+    iDir = sDir + 'information/'
+    gDir = sDir + 'gen000/'
+    pDir = sDir + 'plots/'
+    scoreDir = sDir + 'scores/'
+
+    if not path.exists( iDir ) or not path.exists( gDir ):
+        print("Somethings wrong with sdss dir")
+
+    runDirs = listdir( gDir )
+    runDirs.sort()
+
+    for run in runDirs:
+        rDir = gDir + run + '/'
+        procRun( rDir )
+# End processing sdss dir
+
+def procRun( rDir ):
+    modelDir = rDir + 'model_images/'
+    miscDir = rDir + 'misc_images/'
+    ptsDir = rDir + 'particle_files/'
+    infoLoc = rDir + 'info.txt'
+
+    if not path.exists( modelDir ) or not path.exists( ptsDir ) or not path.exists( infoLoc):
+        print("Somethings wrong with run dir")
+
+
+# end processing run dir
+
 
 def readArg(argList):
 
-    global printAll
+    global printAll, sdssDir
 
     endEarly = False
 
@@ -35,66 +69,39 @@ def readArg(argList):
         if arg[0] != '-':
             continue
 
-        elif arg == '-argFile':
-            argFileLoc = argList[i+1]
-            argList = readArgFile( argList, argFileLoc ) 
-
         elif arg == '-noprint':
             printAll = False
 
+        elif arg == '-sdssDir':
+            sdssDir = argList[i+1]
+            if sdssDir[-1] != '/': sdssDir += '/'
+
     # Check if input arguments are valid
+    if sdssDir != None and not path.exists( sdssDir ):
+        print("Sdss dir is not a path: %s" % sdssDir )
 
     return endEarly
 
 # End reading command line arguments
 
 
-def readArgFile(argList, argFileLoc):
-
-    try:
-        argFile = open( argFileLoc, 'r')
-    except:
-        print("Failed to open/read argument file '%s'" % argFileLoc)
-    else:
-
-        for l in argFile:
-            l = l.strip()
-
-            # Skip line if empty
-            if len(l) == 0:
-                continue
-
-            # Skip line if comment
-            if l[0] == '#':
-                continue
-
-            lineItems = l.split()
-            for item in lineItems:
-                argList.append(item)
-
-        # End going through file
-
-    return argList
-# end read argument file
-
-
 def readFile( fileLoc ):
 
     if not path.isfile( fileLoc ):
         print("File does not exist: %s" % fileLoc)
-        return False, []
+        return None
     
     try:
         inFile = open( fileLoc, 'r' )
 
     except:
         print('Failed to open/read file at \'%s\'' % fileLoc)
-        return False, []
+        return None
 
     else:
         inList = list(inFile)
         inFile.close()
-        return True, inList
+        return inList
 
 # End simple read file
 
