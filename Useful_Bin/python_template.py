@@ -16,6 +16,8 @@ from os import \
 printAll = True
 sdssDir = None
 
+
+
 def main(argList):
 
     endEarly = readArg(argList)
@@ -104,6 +106,57 @@ def readFile( fileLoc ):
         return inList
 
 # End simple read file
+
+
+class inArgClass:
+
+    def __init__( self, inArg=None ):
+        self.test = 'test val'
+        self.dataDir = None
+        self.sdssDir = None
+        self.runDir = None
+        
+        if inArg != None:
+            self.updateArg( inArg )
+
+    def updateArg( self, inArg ):
+
+        n = len( inArg )
+
+        # Loop through given arguments
+        for i, arg in enumerate( inArg ):
+
+            # Ignore unless handle provided
+            if arg[0] != '-':
+                continue
+
+            argName = arg[1:]
+
+            # Check if last arg
+            if i+1 == n:
+                argVal = True
+
+            # Check if suplimentary info provided
+            elif inArg[i+1][0] != '-':
+                argVal = inArg[i+1]
+
+            # If no supplimentary arg given, assume True
+            else:
+                argVal = True
+
+            setattr( self, argName, argVal )
+
+    # End update input arguments
+
+    def printAllVar(self):
+
+        allAttrs = vars( self )
+
+        print("All attributes of " , self)
+        for a in allAttrs:
+            print('\t- %s :' % a, getattr(self, a ) )
+
+
 
 # Run main after declaring functions
 if __name__ == '__main__':
