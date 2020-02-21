@@ -21,8 +21,8 @@ from multiprocessing import cpu_count
 import image_creator_v4 as ic
 
 # For loading in Matt's general purpose python libraries
-print( path.abspath( path.join( __file__ , "../../../Useful_Bin/" ) ) )
-sysPath.append( path.abspath( path.join( __file__ , "../../../Useful_Bin/" ) ) )
+print( path.abspath( path.join( __file__ , "../../Useful_Bin/" ) ) )
+sysPath.append( path.abspath( path.join( __file__ , "../../Useful_Bin/" ) ) )
 import ppModule as pm
 
 
@@ -30,17 +30,24 @@ printAll = True
 nProc = 1
 
 sdssDir = ''
+dataDir = ''
 
-def sdssImageCreator(argList):
+def dataProc():
 
-    endEarly = readArg(argList)
+    print("HI")
 
-    if printAll:
-        print("sdssDir: %s" % sdssDir)
+    sdssDirs = listdir( dataDir )
+    print(sdssDirs)
 
-    if endEarly:
-        print('Exiting...')
-        exit(-1)
+    for s in sdssDirs:
+        sDir = dataDir + s + '/'
+        sdssImageCreator( sIn=sDir )
+
+
+def sdssImageCreator(sIn=None):
+
+    if sIn != None:
+        sdssDir = sIn
 
     sdssFolders = listdir( sdssDir )
 
@@ -115,7 +122,7 @@ def readSdssParams( paramFolder ):
 
  
 def readArg(argList):
-    global printAll, sdssDir, nProc
+    global printAll, sdssDir, nProc, dataDir
     endEarly = False
 
 
@@ -129,15 +136,18 @@ def readArg(argList):
 
         elif arg == '-sdssDir':
             sdssDir = argList[i+1]
-            if sdssDir[-1] != '/':
-                sdssDir += '/'
+            if sdssDir[-1] != '/':  sdssDir += '/'
+ 
+        elif arg == '-dataDir':
+            dataDir = argList[i+1]
+            if dataDir[-1] != '/':  dataDir += '/'
  
         elif arg == '-pp':
             nProc = argList[i+1]
 
     # Check if input arguments were valid
 
-    if not path.exists(sdssDir):
+    if not path.exists(sdssDir) and not path.exists(dataDir):
         print('\tsdssDir not found: \'%s\'' % sdssDir)
         endEarly = True
 
@@ -185,5 +195,19 @@ def readFile( fileLoc ):
 if __name__=='__main__':
 
     argList = argv
-    sdssImageCreator(argList)
+
+    endEarly = readArg(argList)
+
+    if printAll:
+        print("dataDir: %s" % dataDir)
+        print("sdssDir: %s" % sdssDir)
+
+    if endEarly:
+        print('Exiting...')
+        exit(-1)
+
+    if dataDir != None:
+        dataProc()
+    else:
+        sdssImageCreator()
 

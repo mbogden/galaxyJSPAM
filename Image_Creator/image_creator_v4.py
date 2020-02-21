@@ -49,7 +49,7 @@ def image_creator_v4_pl(argList, imgParam = None, ignore=False):
     runGood = runData.checkRun()
     
     if not runGood:
-        print("Run failed intialization")
+        print("Run failed intialization: %s" % runDir)
         return False
 
     # If this is being used by another code
