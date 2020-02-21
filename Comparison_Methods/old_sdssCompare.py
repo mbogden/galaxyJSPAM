@@ -23,7 +23,7 @@ import pandas as pd
 
 import matplotlib.pyplot as plt
 import machineMethods as ms
-from filters import filter as ft
+#from filters import filter as ft
 
 #print( path.abspath( path.join( __file__ , "../../Useful_Bin/" ) ) )
 sysPath.append( path.abspath( path.join( __file__ , "../../Useful_Bin/" ) ) )
@@ -1369,6 +1369,7 @@ if __name__=='__main__':
 
     if newSdss:
         initSdss()
+
     else:
         newMain()
 
