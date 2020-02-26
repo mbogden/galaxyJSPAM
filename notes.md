@@ -7,6 +7,10 @@ IRB course?
 
 ## Matt's To-Do
 
+Image Creator
+
+- Use np.histogram to autobin giant list of points optimially.
+
 - Get targets ready for pipeline
   - gather targets all together
   - create default param file
