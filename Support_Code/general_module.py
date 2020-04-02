@@ -14,20 +14,20 @@ sysPath.append( supportPath )
 import general_module as gm
 
 def test():
-    print("Hi!  You're in Matthew's module for generally useful functions and classes")
+    print("GM: Hi!  You're in Matthew's module for generally useful functions and classes")
 
 
 def readFile( fileLoc ):
 
     if not path.isfile( fileLoc ):
-        print("File does not exist: %s" % fileLoc)
+        print("Error: GM: File does not exist: %s" % fileLoc)
         return None
     
     try:
         inFile = open( fileLoc, 'r' )
 
     except:
-        print('Failed to open/read file at \'%s\'' % fileLoc)
+        print('Error: GM: Failed to open/read file at \'%s\'' % fileLoc)
         return None
 
     else:
@@ -41,9 +41,11 @@ class inArgClass:
 
     def __init__( self, inArg=None ):
         self.printAll = False
-        self.dataDir = None
-        self.sdssDir = None
+        self.simple = False
+
         self.runDir = None
+        self.sdssDir = None
+        self.dataDir = None
         
         if inArg != None:
             self.updateArg( inArg )
