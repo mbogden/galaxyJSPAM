@@ -1,7 +1,7 @@
 '''
     Author:     Matthew Ogden
-    Created:    21 Feb 2020
-Description:    This is my python template for how I've been making my python programs
+    Created:    02 Apr 2020
+Description:    This is my code for checking the status of spam data/models/images/etc
 '''
 
 from os import path, listdir
@@ -11,11 +11,21 @@ from sys import exit, argv, path as sysPath
 supportPath = path.abspath( path.join( __file__ , "../../Suuport_Code/" ) )
 sysPath.append( supportPath )
 import general_module as gm
-import info_module as gm
+import info_module as im
 
+def test():
+    print("ST: Hi!  In Matthew's python template for creating new SPAM related code.")
+    gm.test()
+    im.test()
 
-def main(argList):
-    print("Hi!  In Matthew's python template for creating new SPAM related code.")
+def main(argClass):
+    print("ST: Hi!  In Matthew's python template for creating new SPAM related code.")
+    argClass.printArg()
+
+    if argClass.runDir != None:
+        print('cool')
+
+        im.updateRunInfo( runLoc )
 
 # End main
 

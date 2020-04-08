@@ -1,29 +1,99 @@
 '''
     Author:     Matthew Ogden
     Created:    21 Feb 2020
-Description:    For all things scores related
+    Altered:    02 Apr 2020
+Description:    For all things misc information related
 '''
 
 from os import path, listdir
-from sys import exit, argv, path as sysPath
+from sys import argv
 import json
+from copy import deepcopy
+from pprint import PrettyPrinter
+
+pp = PrettyPrinter( indent = 2 )
 
 # For loading in Matt's general purpose python libraries
-supportPath = path.abspath( path.join( __file__ , "../../Suuport_Code/" ) )
-sysPath.append( supportPath )
 import general_module as gm
 
 def test():
-    print("SM: Hi!  You're in Matthew Ogden's Module for score files")
+    print("IM: Hi!  You're in Matthew Ogden's information module for SPAM")
 # End test print
 
-class run_score_class: 
 
-    rDict = None
-    sDict = None
-    status = False
+class target_info_class:
 
-    runHeaders = ( 'run_identifier', 'model_data', 'human_scores', 'model_images', 'perturbedness', 'machine_fitness_scores', )
+    tDict = None    # Primary dict of information contained in target_info.json
+    sDict = None    # State of json upon initial reading.
+    status = False  # State of this class.  For initiating.
+    printAll = False
+
+    # For user to see headers.
+    targetHeaders = ( 'target_identifier', 'target_images', 'model_image_parameters', 'runs', 'progress', )
+
+    def __init__( self, printAll = False, targetDataDir = None, targetDict=None ):
+
+        # Tell class if it should print progress
+        self.printAll = printAll
+
+        if targetDict != None:
+            self.tDict = deepcopy( targetDict )
+            if self.printAll: print("IM: Target: copied input dict")
+
+        if targetDataDir != None:
+            print("IM: Target:")
+
+        else:
+            print("IM: Target: Target_info_class without input not implemented yet!")
+            
+    # deconstructor
+    def __del__( self ):
+
+        if self.tDict != self.sDict:
+            print("IM: WARNING: target_info.json updated but not saved!")
+    # End deconstructor
+
+    def printMe( self ):
+        pp.pprint( self.tDict )
+
+    # For appending new information to a list in target info module
+    def appendList( self, keyName, aList ):
+
+        if self.printAll: print("IM: Extending %s list" % keyName)
+
+        if type( aList ) != type( [] ):
+            print("ERROR: IM: Given non-list in appendList: %s" % type(aList))
+            return None
+
+        keyGood = keyName in self.tDict
+
+        if not keyGood: 
+            print("IM: WARNING: key %s does not exist in info module")
+            return None
+
+        # Check if key is list
+        if type( self.tDict[keyName] ) != type( [] ):
+            print("ERROR: IM: Key value not a list in appendList: %s" )
+            print("\t- key: %s" % keyName)
+            print("\t- Type: %s" % type( self.tDict[keyName] ) )
+            return None
+
+        # All is good. 
+        self.tDict[keyName].extend( aList ) 
+        return self.tDict[keyName]
+
+    # end append list
+        
+
+
+
+class run_info_class: 
+
+    rDict = None    # Primary dict of information contained in info.json
+    sDict = None    # State of json upon initial reading.
+    status = False  # State of this class.  For initiating.
+
+    runHeaders = ( 'run_identifier', 'model_data', 'human_scores', 'model_images', 'misc_images', 'perturbedness', 'machine_scores', )
 
     modelImgHeaders = ( 'image_name', 'image_parameter_name' )
 
@@ -31,38 +101,38 @@ class run_score_class:
 
     machineScoreHeaders = ( 'image_parameter_name', 'scores' )
 
-    def __init__( self, scoreLoc=None, infoLoc=None, printAll=False ):
+    def __init__( self, printAll=False, rDict=rDict, infoLoc=None, runDir=None ):
 
         self.printAll = printAll
-        if self.printAll: print("SC: Initailizing run score class")
+        if self.printAll: print("IM: Initailizing run score class")
 
         # Get data
-        if scoreLoc != None:
+        if infoLoc != None:
 
-            self.scoreLoc = scoreLoc
+            self.infoLoc = infoLoc
 
             # Read score data file if it exists
-            if path.exists( self.scoreLoc ):
+            if path.exists( self.infoLoc ):
 
                 try: 
-                    with open( self.scoreLoc, 'r' ) as sFile:
+                    with open( self.infoLoc, 'r' ) as sFile:
                         self.rDict = json.load( sFile )
+                        self.sDict = deepcopy( self.rDict )
                     if self.printAll: 
                         print("\t- Read score file")
-                        print('\t- ', self.rDict )
                     self.status = True
 
                 # Print error if not opened for some reason
                 except:
                     print("Error: Could not read score file.  Expecting .json")
-                    print("\tscoreLoc: %s" % self.scoreLoc )
+                    print("\tinfoLoc: %s" % self.infoLoc )
                     self.status = False
                     return
 
             # Create new run json from info file if it does not exist
-            if not path.exists( self.scoreLoc ):
+            if not path.exists( self.infoLoc ):
 
-                self.info2Dict( infoLoc )
+                self.txt2Json( runDir )
 
                 if type(self.rDict) == type(None):
                     print("Error: Failed to initialize score data file..." )
@@ -72,33 +142,75 @@ class run_score_class:
                     print("\t- Initialized run score file")
                     print( self.rDict )
 
-                self.saveScoreData( )
+                self.saveInfoFile( )
 
                 self.status = True
             # end if not path exists
-            
+
         # End if score loc not given 
-        
+
         else: 
-            print("ERROR: SM: Score data without info or score file not implemented")
+            print("ERROR: IM: info.json without info file not implemented")
             return
             
-        print("\t- Initalized score file.")
+        if self.printAll: print("\t- Initalized info module.")
 
     # end __init__
 
-    def info2Dict( self, infoLoc ):
-        
-        if self.printAll: print("SC: Initalizing new score data file...")
+    # deconstructor
+    def __del__( self ):
 
-        # Check if info locational given
-        if infoLoc == None:
-            print("Error: SC: Please give info file when creating new score file")
+        if self.rDict != self.sDict:
+            print("IM: WARNING: info.json updated but not save!")
+    # End deconstructor
+
+    def printMe( self ):
+        pp.pprint( self.rDict )
+
+    # For appending new information to a list in run info module
+    def appendList( self, keyName, aList ):
+
+        if self.printAll: print("IM: Extending %s list" % keyName)
+
+        if type( aList ) != type( [] ):
+            print("ERROR: IM: Given non-list in appendList: %s" % type(aList))
             return None
 
+        keyGood = keyName in self.rDict
+
+        if not keyGood: 
+            print("IM: WARNING: key %s does not exist in info module")
+            return None
+
+        # Check if key is list
+        if type( self.rDict[keyName] ) != type( [] ):
+            print("ERROR: IM: Key value not a list in appendList: %s" )
+            print("\t- key: %s" % keyName)
+            print("\t- Type: %s" % type( self.rDict[keyName] ) )
+            return None
+
+        # All is good. 
+        self.rDict[keyName].extend( aList ) 
+        return self.rDict[keyName]
+        
+
+    def txt2Json( self, runDir ):
+        
+        if self.printAll: print("IM: Initalizing new info.json file...")
+
+        # Check if info locational given
+        if runDir == None:
+            print("Error: IM: Please give runDir when creating new info.json file")
+            return None
+        
+        if runDir[-1] != '/':
+            runDir += '/'
+
+        infoLoc = runDir + 'info.txt'
+
         # Check if info location have a file
-        elif not path.exists( infoLoc ):
-            print("Error: SC: Info file not found to create new score file")
+        if not path.exists( infoLoc ):
+            print("Error: IM: info.txt file not found to create new info.json file")
             print("\t infoLoc: %s" % infoLoc)
             return None
 
@@ -106,13 +218,13 @@ class run_score_class:
 
         # Check if retrieved info
         if infoData == None:
-            print("Error: SC: Info file not found to create new score file")
+            print("Error: IM: Info.txt file not found to create new info.json file")
             print("\t infoLoc: %s" % infoLoc)
             return None
         
         # Go through info file and add appropriate information to json
         
-        if self.printAll: print("SC: Creating new score json from info file")
+        if self.printAll: print("\t- Reading info.txt")
 
         tid = None
         rNum = None
@@ -146,7 +258,7 @@ class run_score_class:
 
         # check if all infor information found
         if ( tid == None or rNum == None or mData == None or wins == None or hScore == None ):
-            print("Error: SC: Needed information not found in info.txt")
+            print("Error: IM: Needed information not found in info.txt")
             print("\t infoLoc: %s" % infoLoc)
             return None
        
@@ -166,54 +278,90 @@ class run_score_class:
 
             }
 
+        # created initial info.json file from info.txt
+
+        # grab model images
+
+        imgDir = runDir + 'model_images/'
+
+        imgNames = [ img for img in listdir( imgDir ) if '.png' in img ]
+
+        mImgList = []
+        iImgList = []
+
+        for name in imgNames:
+            param = name.split('_')[0]
+
+            iDict = { 
+                    'image_name' : name,
+                    'image_parameter_name' : param
+                    }
+
+            if 'model' in name:
+                mImgList.append( iDict )
+
+            elif 'init' in name:
+                iImgList.append( iDict )
+
+            else:
+                print("WARNING: IM: Found unusual image in 'model_images'\n\t- %s" % name )
+
+        # done creating img dicts
+
+        self.rDict['model_images'] = mImgList
+        self.rDict['misc_images'] = iImgList
+
+        # Create blank arrays for perturbedness and fitness scores
+
+        self.rDict['perturbedness'] = []
+        self.rDict['machine_scores'] = []
+
+        self.sDict = deepcopy( self.rDict )
+
 
     # end info2Dict
 
-    def saveScoreData( self ):
+    def saveInfoFile( self, saveLoc = None ):
 
-        if self.printAll: print("SM: Saving score data file...")
+        if self.printAll: print("IM: Saving score data file...")
 
-        if self.scoreLoc == None:
-            print("ERROR: SM: No score location given to save score file")
+        if self.infoLoc == None and saveLoc == None:
+            print("ERROR: IM: No score location given to save score file")
             return False
 
-        else: 
-            with open( self.scoreLoc, 'w' ) as sFile:
-               json.dump( self.rDict, sFile, indent=4 )
+        if self.rDict == self.sDict:
+            if self.printAll: print("No changes detected, not saving")
+            return True
 
-        return True
+        retVal = False
+        if self.infoLoc != None:
+            with open( self.infoLoc, 'w' ) as infoFile:
+                json.dump( self.rDict, infoFile, indent=4 )
+                retVal = True
+
+        if saveLoc != None:
+            with open( saveLoc, 'w' ) as infoFile:
+               json.dump( self.rDict, infoFile, indent=4 )
+               retVal = True
+
+        if retVal:
+            self.sDict = deepcopy( self.rDict )
+
+        return retVal
     
-    def getModelImgsNames():
-
-        
+    def getModelImgNames( self ):
 
         modelImgDicts = self.rDict.get( 'model_images', None )
 
         if modelImgDicts == None:
-            if self.printAll: print("WARNING: SM: No model images found in data")
+            if self.printAll: print("WARNING: IM: No model images found in data")
             return None
 
         for md in modelImgDicts:
             print(md)
+            pass
+    # end getModelImgsNames
 
-
-
-
-class score_class:
-
-    status = True
-    scoreLoc = None
-    printAll = False
-
-    # Data
-    allData = None
-    sData = None
-
-    t1Header = ( 'target_identifier', )
-
-    t2Header = ( 'generation_identifier', )
-
-    t3Header = ( 'run_identifier', )
 
 def main(argList):
     print("Hi!  In main python template")

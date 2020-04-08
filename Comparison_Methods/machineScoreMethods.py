@@ -6,7 +6,6 @@ Description:    Created so comparison methods are simply maintained
 '''
 
 import cv2
-import json
 import numpy as np
 
 def test():
@@ -34,9 +33,7 @@ def score_absolute_difference( img1, img2, simple=True ):
         'comparison_name': 'absolute_difference'
     }
 
-    cJson = json.dumps( cInfo )
-
-    return score, cJson
+    return score, cInfo
 # End absDiff
 
 def score_absolute_difference_lower_scale( img1, img2, l = 0.9, simple=True  ):
@@ -60,19 +57,17 @@ def score_absolute_difference_lower_scale( img1, img2, l = 0.9, simple=True  ):
         'score' : score,
         'comparison_name': 'absolute_difference_lower_scale', 
         'comparison_info': {
-            'lower_scale' : l
+            'l' : l
         }
     }
 
-    cJson = json.dumps( cInfo )
-
-    return score, cJson
+    return score, cInfo
 
 # end createMScores()
 
 # All basic scoring methods
 
-def score_overlap_fraction( img1, img2, h=100, simple=True ):
+def score_overlap_fraction( img1, img2, h=80, simple=True ):
 
     score = None
 
@@ -108,8 +103,7 @@ def score_overlap_fraction( img1, img2, h=100, simple=True ):
         }
     }
 
-    cJson = json.dumps( cInfo )
-    return score, cJson
+    return score, cInfo
 
 
 def score_correlation( img1, img2, simple=True  ):
@@ -138,8 +132,7 @@ def score_correlation( img1, img2, simple=True  ):
         'comparison_name': 'correlation'
     }
 
-    cJson = json.dumps( cInfo )
-    return score, cJson
+    return score, cInfo
 
 def binImg( imgIn, threshold ):
 
@@ -150,7 +143,7 @@ def binImg( imgIn, threshold ):
     return cpImg
 
 
-def score_binary_correlation( img1, img2, t1=155, t2=None, bin1=True, bin2=True, simple=True  ):
+def score_binary_correlation( img1, img2, t1=80, t2=None, bin1=True, bin2=True, simple=True  ):
 
     score = None
     
@@ -175,9 +168,8 @@ def score_binary_correlation( img1, img2, t1=155, t2=None, bin1=True, bin2=True,
             't2' : "%s" % t2, 
         }
     }
-    cJson = json.dumps( cInfo )
 
-    return score, cJson
+    return score, cInfo
 
 # end createBinaryCorrelation()
 
@@ -201,13 +193,12 @@ def allScores( img1, img2, printAll = False ):
 
         fName, func = l
 
-        score, cJson = func( img1, img2, simple=False )
+        score, cInfo = func( img1, img2, simple=False )
 
         sList.append( score )
-        cList.append( cJson )
+        cList.append( cInfo )
 
     return sList, cList 
-
 
 
 # Run main after declaring functions

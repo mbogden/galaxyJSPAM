@@ -41,8 +41,9 @@ class inArgClass:
 
     def __init__( self, inArg=None ):
         self.printAll = False
-        self.simple = False
+        self.nProc = 1
 
+        self.simple = False
         self.runDir = None
         self.sdssDir = None
         self.dataDir = None
@@ -109,9 +110,10 @@ class inArgClass:
     # End check for booleans
 
 
-    def printAllArg(self):
+    def printArg(self):
 
         allAttrs = vars( self )
+        print('GM: Printing Input arguments')
         for a in allAttrs:
             print('\t- %s :' % a, getattr(self, a ), type(getattr(self,a)) )
     # End print all arguments
