@@ -46,6 +46,7 @@ class inArgClass:
         self.simple = False
         self.runDir = None
         self.sdssDir = None
+        self.targetDir = None
         self.dataDir = None
         
         if inArg != None:
@@ -136,9 +137,10 @@ class ppClass:
 
     funcPtr = None
 
-    def __init__(self, nCore):
+    def __init__(self, nCore, printProg=False):
 
         self.nCores = nCore
+        self.printProg = printProg
         print(self.nCores)
 
     def printProgBar(self):
