@@ -18,13 +18,16 @@ sysPath.append( supportPath )
 
 import general_module as gm
 import info_module as im
-import machineScoreMethods as ms
+import machine_score_methods as ms
 
-gm.test()
-im.test()
-ms.test()
+#gm.test()
+#im.test()
+#ms.test()
 
 # compare global variables
+
+def test():
+    print("MC: You are in main_compare.py")
 
 def main(argList):
 

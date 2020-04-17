@@ -181,6 +181,35 @@ def getScoreFunctions():
     
     return scoreFunctions
 
+def getScoreFunc( funcName, printAll = False ):
+
+    allFunctions = getScoreFunctions()
+
+    funcFound = False
+    funcPtr = None
+
+    for name, ptr in allFunctions:
+
+        if name == funcName:
+
+            funcFound = True
+            funcPtr = ptr
+    
+    if funcFound:
+
+        if printAll:
+            print("Found score function: %s", funcName)
+
+        return funcPtr
+
+    else:
+
+        if printAll:
+            print("MS: WARNING: Did not find score function: %s", funcName)
+
+        return None
+    
+
 
 def allScores( img1, img2, printAll = False ):
 
