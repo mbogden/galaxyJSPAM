@@ -198,14 +198,14 @@ def getScoreFunc( funcName, printAll = False ):
     if funcFound:
 
         if printAll:
-            print("Found score function: %s", funcName)
+            print("Found score function: %s" % funcName)
 
         return funcPtr
 
     else:
 
         if printAll:
-            print("MS: WARNING: Did not find score function: %s", funcName)
+            print("MS: WARNING: Did not find score function: %s" % funcName)
 
         return None
     
