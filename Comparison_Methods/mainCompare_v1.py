@@ -28,6 +28,9 @@ ms.test()
 
 def main(argList):
 
+    # Prepare needed arguments
+    if not hasattr( arg, 'new'): setattr( arg, 'new', False )
+
     if arg.printAll:
         print( "MC: Printing Main Compare input arguments")
         arg.printArg()
@@ -78,23 +81,43 @@ def main(argList):
             print("\t -targetLoc /path/to/img.png.")
             return False
 
-        pipelineRun( arg.runDir, tLoc = arg.targetLoc, printAll = arg.printAll )
-        #pipelineRun( arg.runDir, arg.targetLoc, paramName='other', printAll=True )
-        #pipelineRun( arg.runDir, arg.targetLoc, paramName='test' )
+        
+
+        pipelineRun( arg.runDir, tLoc = arg.targetLoc, printAll = arg.printAll, rmInfo=arg.new )
 
     elif arg.sdssDir != None:
-        print("MC: WARNING: sdss dir in prog.")
-
         if arg.printAll: print("MC: Processing sdds dir: %s" % arg.sdssDir )
 
-        pipelineSdss( arg.sdssDir, printAll = arg.printAll )
+        pipelineSdss( arg.sdssDir, printAll = arg.printAll, rmInfo=arg.new, nProcs=int(arg.nProc) )
 
+
+    elif arg.dataDir != None:
+        print("MC: WARNING: data dir in prog.")
+        if arg.printAll: print("MC: Processing data dir: %s" % arg.sdssDir )
+
+        pipelineAllData( arg.dataDir, printAll = arg.printAll, rmInfo=arg.new, nProcs=int(arg.nProc) )
 
 # End main
- 
-def pipelineSdss( sDir, printAll = False, n=0, nProc=1 ):
 
-    if printAll: print("CM: pipelineSdss:")
+def pipelineAllData( dataDir, printAll = False, nProcs=1, rmInfo=False ):
+
+    sdssDirs = listdir( dataDir )
+    nDirs = len( sdssDirs )
+
+    for i,sDir in enumerate(sdssDirs):
+        if printAll: print("CM: ***** TARGET DIR %d / %d *****" % ( i, nDirs ) )
+        sdssDir = dataDir + sDir + '/'
+        pipelineSdss( sdssDir, printAll = False, rmInfo=rmInfo, nProcs=nProcs )
+
+
+    #print("TEST: Found %d dirs" % len( sdssDirs ) )
+
+
+ 
+def pipelineSdss( sDir, printAll = False, n=0, nProcs=1, rmInfo=False ):
+
+    if sDir[-1] != '/': sDir += '/'
+    if printAll: print("CM: pipelineSdss: %s" % sDir)
 
     iDir = sDir + 'information/'
     gDir = sDir + 'gen000/'
@@ -103,6 +126,8 @@ def pipelineSdss( sDir, printAll = False, n=0, nProc=1 ):
     if not path.exists( iDir ) or not path.exists( gDir ):
         print("ERROR: sdssDir:", sDir)
         return False 
+
+    tInfo = im.target_info_class( targetDir = sDir, printAll = printAll, rmInfo=rmInfo )
 
     runDirs = listdir( gDir )
     runDirs.sort()
@@ -115,9 +140,6 @@ def pipelineSdss( sDir, printAll = False, n=0, nProc=1 ):
     # Find target images
     sInfoContents = listdir( iDir )
 
-    for s in sInfoContents:
-        print("\tTEST: %s" % s )
-    
     print("CM: SDSS: Hard coded to use 'target_zoo.png'")
     tImgLoc = iDir + 'target_zoo.png'
 
@@ -129,24 +151,50 @@ def pipelineSdss( sDir, printAll = False, n=0, nProc=1 ):
     try:
         tImg = cv2.imread( tImgLoc, 0 )
         if printAll: print("CM: SDSS: read target img")
+        tName = tImgLoc.split('/')[-1].split('.')[0]
+        if printAll: print("CM: SDSS: Target name: %s" % tName)
     except:
         print("CM: ERROR: Failed to read target img")
         return False
 
-    print("CM: TESTING: sdss n set to 10")
-    #n = 10
+    # for troubleshooting
+    #n = 200
     if n != 0:
         runDirs = runDirs[:n] 
         print( "CM: TESTING: ", len( runDirs ), runDirs )
 
     # if single core
-    if nProc == 1:
+    if nProcs == 1:
 
         for i,run in enumerate(runDirs):
-            print('TEST: ', i)
+            if printAll: print('IM: runs: ', i, end='\r')
             rDir = gDir + run + '/'
-            pipelineRun( rDir, tImg=tImg, printAll=False, )
+            pipelineRun( rDir, tImg=tImg, tName=tName, printAll=False, rmInfo=rmInfo )
+        if printAll: print('')
 
+    else:
+ 
+        print("IM: using pp") 
+        pClass = gm.ppClass( nProcs, printProg=printAll )
+
+        runArgList = []
+
+        for i,run in enumerate(runDirs):
+            if printAll: print('IM: runs: ', i, end='\r')
+            rDir = gDir + run + '/'
+            
+            runArg = dict( rDir=rDir, tImg=tImg, tName=tName, printAll=False, rmInfo=rmInfo )
+            runArgList.append( runArg )
+
+            #pipelineRun( rDir, tImg=tImg, tName=tName, printAll=False, rmInfo=rmInfo )
+
+        pClass.loadQueue( pipelineRun, runArgList )
+
+        pClass.runCores()
+
+
+    tInfo.gatherRunInfos()
+    tInfo.saveInfoFile()
 
 # End processing sdss dir
 
@@ -181,14 +229,7 @@ def pipelineRun( rDir, printAll=False, rmInfo=False, tLoc=None, tImg=None, tName
     # Read/create run Info file
     if printAll: print("\t- Initizing info class for run.")
     
-    # remove info file.  mostly for initial creation of code and troubleshooting.
-    if rmInfo and path.exists( infoLoc ):
-        from os import system
-
-        if printAll: print("\t- Removing info.json from run...")
-        system( 'rm %s' % infoLoc )
-
-    rInfo = im.run_info_class( infoLoc=infoLoc, runDir=rDir, printAll=printAll )
+    rInfo = im.run_info_class( infoLoc=infoLoc, runDir=rDir, printAll=printAll, rmInfo=rmInfo )
 
     # Check if successfully read info data
     if rInfo.status == False:
@@ -197,6 +238,7 @@ def pipelineRun( rDir, printAll=False, rmInfo=False, tLoc=None, tImg=None, tName
 
     if printAll: print("MC: Obtained run info.")
 
+    rId = rInfo.rDict.get( 'run_identifier', None )
     mDictList = rInfo.rDict.get( 'model_images', None )
     iDictList = rInfo.rDict.get( 'misc_images', None )
     pScores = rInfo.rDict.get( 'perturbedness', None )
@@ -311,7 +353,7 @@ def pipelineRun( rDir, printAll=False, rmInfo=False, tLoc=None, tImg=None, tName
             iL = [ iD['image_name'] for iD in iDictList if iD['image_parameter_name'] == mParam ]
             if len( iL ) == 0:
                 print("MC: WARNING: Found no matching initial images for model image")
-                print("\t- %s" % mD)
+                print("\t- rID: %s - %s" % (rId, mD) )
                 continue
 
             iName = iL[0]
