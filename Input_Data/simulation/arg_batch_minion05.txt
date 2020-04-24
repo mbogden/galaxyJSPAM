@@ -1,7 +1,0 @@
--i Input_Data/spam_input/target_zoo_exec_list.txt
--record rec2_minion05.txt
--uID
--offset 100
--pp 4
--r
--shuffle
