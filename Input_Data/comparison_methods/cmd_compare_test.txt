@@ -1,1 +1,0 @@
-python3 Comparison_Methods/compare_v1.py -runDir /nfshome/mbo2d/localstorage/587722984435351614/run_0_0/ -argFile Input_Data/comparison_methods/arg_compare_test.txt -methodName  -noprint

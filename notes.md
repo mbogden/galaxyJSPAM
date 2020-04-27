@@ -7,6 +7,10 @@ IRB course?
 
 ## Matt's To-Do
 
+Image Creator
+
+- Use np.histogram to autobin giant list of points optimially.
+
 - Get targets ready for pipeline
   - gather targets all together
   - create default param file
@@ -40,12 +44,8 @@ IRB course?
 	- Seperate function for writing/appending score to csv file
 	  - will need to pass run directory
 
-## Modify image_creator_v3.py
-- Complete simulator_v2.py modification first.
+## Modify image_creator_v4.py
 - Tasks
-  - read info.txt for most information
-  - check for proper image_parameter_verion#. Exit if not compatible
-  - Check if model image of that image_parameter exists.  Exit if already present.
   - Save model image and init image in 'model_images' folder.  All other images go to 'misc_images' folder.
 
 
@@ -78,15 +78,8 @@ IRB course?
   - image creator
   - Image refinement
   - comparison methods
-
-- General purpose simulated annealing program.
-  - Build special modules that contain
-	- cost function
-	- List of things to change
-	- list of size for changes
-	- plot function
-
-- General purose 2d and 3d plot
+  - sdss wrapper for everything
+- General purpose 2d and 3d plot
   - Allows users to select axis values from dropdown. 
   - Clicking a point shows image and data about that run.
   - View runs from 3d? 
@@ -95,7 +88,6 @@ IRB course?
   - Consider making both pure white before comparing
   - Try radial brightness correlation
 
-
 - Target Images
   - Not all target info files are there
 	- Manually get from site?
@@ -103,8 +95,6 @@ IRB course?
 	- Do they need to be 'calibrated' like the others?
 
 - Image_Creator
-  - currently views galaxy points as [[x1,y1],[x2,y2]]
-	- needs to be transposed
   - Do Total variation denoising on Model images!
   - look into different normalization options
 	- Add original normalization 
@@ -172,14 +162,23 @@ IRB course?
   - Save all the scores in a single csv file.
 	- Change code to either read from this big file or a directory containing sdss dir
 
-  - New graphs
-	- comparing different comparison methods
-	- Comparing same comparison method between different galaxy pairs
-	- Come up with correlation statistics
+- New graphs
+  - comparing different comparison methods
+  - Comparing same comparison method between different galaxy pairs
+  - Come up with correlation statistics
 
-  - Gather images with same human score and different tiered machine scores
-	- Save them in unique folder and write file explaining what comparison, sdss, etc
+- Gather images with same human score and different tiered machine scores
+  - Save them in unique folder and write file explaining what comparison, sdss, etc
+
+- SVD on images and see which show most variance>? 
 
 
+- General purpose simulated annealing program.
+  - Build special modules that contain
+	- cost function
+	- List of things to change
+	- list of size for changes
+	- plot function
 
-
+## sdss directories with no particle zip file in first run
+Found 11k run directories missing particle files.  Will need to generate at some point.
