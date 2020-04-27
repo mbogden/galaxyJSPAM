@@ -30,6 +30,7 @@ from math import sin
 from math import cos
 
 
+
 ##############
 #    MAIN    #
 ##############
@@ -40,19 +41,30 @@ def main():
 	###   VARIABLES   ###
 	#####################
 	
-	toPlot = 8
+	toPlot = 3
 	
+	nParam = 14
 	pFile = "587722984435351614_combined.txt"
 	targetInd = 0
-	fileInd   = "47"
 	
-	shrink = 1.0
+	fileInd = "21"
+	
+	shrink = 0.5
+	
+	nHist = 35
+	
+	nBin = 80
+	bound = np.array([	# bin window
+#		[-0.6,0.6],
+#		[-0.4,0.8]])
+		[-19.0, 11.0],
+		[-18.0, 12.0]])
 	
 	# read zoo file
 	data, nModel, nCol = ReadAndCleanupData( pFile )
 	
-	pReal = data[targetInd,0:-1]
-	nParam = len(pReal)
+	pReal = np.zeros(nParam+7)
+	pReal[0:nParam] = data[targetInd,0:-1]
 	
 	# get parameter stats
 	mins = np.min( data, axis=0 )
@@ -65,42 +77,126 @@ def main():
 		xLim[i,1] = shrink*(maxs[i] - pReal[i]) + pReal[i]
 	# end
 	
+	nKeep = 100
+	orbitR1 = solveOrb( pReal, nParam )
+	nStep, xxx = orbitR1.shape
+	inds1 = map( int, np.linspace(0,nStep-1,nKeep) )
+	orbitR1 = orbitR1[inds1,:]
+	
+	pTrans = deepcopy(pReal)
+	pTrans[2] = -pTrans[2]
+	pTrans[5] = -pTrans[5]
+	nKeep = 100
+	orbitR2 = solveOrb( pTrans, nParam )
+	nStep, xxx = orbitR2.shape
+	inds2 = map( int, np.linspace(0,nStep-1,nKeep) )
+	orbitR2 = orbitR2[inds2,:]
+	
+	print pReal
+	print pTrans
+	
+	chain  = pickle.load( open("solutions_" + fileInd + ".txt", "rb") )
+	scores = pickle.load( open("scores_"    + fileInd + ".txt", "rb") )
+#	Ms     = pickle.load( open("models_"    + fileInd + ".txt", "rb") )
+	
+	nGen, nPop, nParam = chain.shape
+	print chain.shape
+	
+	indBest = np.unravel_index( np.argmax(scores, axis=None), scores.shape )
+	pBest   = chain[indBest[0],indBest[1],:]
+	pNew = deepcopy(pBest)
+	pNew[2] = -pNew[2]
+	pNew[5] = -pNew[5]
 	
 	
 	###############################
 	###   DATA/INITIALIZATION   ###
 	###############################
 	
-	chain  = pickle.load( open("solutions_" + fileInd + ".txt", "rb") )
-#	scores = pickle.load( open("scores_"    + fileInd + ".txt", "rb") )
-#	Ms     = pickle.load( open("models_"    + fileInd + ".txt", "rb") )
+#	RVm1, RVu1, MR, U1 = solve( pReal,  nParam, nBin, bound )
+	RVm2, RVu2, MT, U2 = solve( pTrans, nParam, nBin, bound )
 	
-	nGen, nPop, nParam = chain.shape
 	
-	orbitals = np.zeros((nGen,nPop,7))
-	for i in range(nGen):
-		for j in range(nPop):
-			tmin, dmin, vmin, rmin = solveMod( chain[i,j,:], nParam )
-			inc, argPer, longAN = getOrbitalElements( chain[i,j,:], rmin )
+	nPts, xxx = RVm2.shape
 	
-			orbitals[i,j,0] = tmin
-			orbitals[i,j,1] = dmin
-			orbitals[i,j,2] = vmin
-			orbitals[i,j,3] = (chain[i,j,6]+chain[i,j,7])/(vmin*dmin**2)
-			orbitals[i,j,4] = inc
-			orbitals[i,j,5] = argPer
-			orbitals[i,j,6] = longAN
-		# end
-		print str(i+1) + "/" + str(nGen)
-	# end
+	print nPts
 	
-	pickle.dump( orbitals,   open("elements_" + fileInd + ".txt", "wb") )
 	
+	####################
+	###   PLOTTING   ###
+	####################
+	
+	labels = [ 'x', 'y', 'z', 'vx', 'vy', 'vz', 'mr', 'mt', 'rp', 'rs', 'pp', 'ps', 'tp', 'ts', 'tmin', 'dmin', 'vmin', 'beta', 'inc', 'argPer', 'longAN']
+	
+	if(   toPlot == 1 ):
+		fig, axes = plt.subplots(nrows=1, ncols=3)
+		ax = axes.flatten()
+		fig.set_size_inches(12,8)
+		
+		ax[0].plot( RVm1[0:nPts/2,0], RVm1[0:nPts/2,1], 'b.' )
+		ax[0].plot( RVm1[nPts/2:-1,0], RVm1[nPts/2:-1,1], 'r.' )
+		
+		ax[1].plot( RVm2[0:nPts/2,0], RVm2[0:nPts/2,1], 'b.' )
+		ax[1].plot( RVm2[nPts/2:-1,0], RVm2[nPts/2:-1,1], 'r.' )
+		
+		ax[2].plot( orbitR1[:,0], orbitR1[:,1], orbitR1[:,2], 'k', linewidth=5 )
+		ax[2].plot( orbitR2[:,0], orbitR2[:,1], orbitR2[:,2], 'm', linewidth=5 )
+		ax[2].plot( [0], [0], [0], 'kX', markersize=14 )
+	elif( toPlot == 2 ):
+		fig = plt.figure()
+		
+		fig, axes = plt.subplots(nrows=1, ncols=3)
+		ax = axes.flatten()
+		fig.set_size_inches(12,8)
+		
+		ax[0].plot( RVm1[0:nPts/2,0], RVm1[0:nPts/2,1], 'b.' )
+		ax[0].plot( RVm1[nPts/2:-1,0], RVm1[nPts/2:-1,1], 'r.' )
+		
+		ax[1].plot( RVm2[0:nPts/2,0], RVm2[0:nPts/2,1], 'b.' )
+		ax[1].plot( RVm2[nPts/2:-1,0], RVm2[nPts/2:-1,1], 'r.' )
+		
+		ax[2].plot( orbitR1[:,0], orbitR1[:,1], orbitR1[:,2], 'k', linewidth=5 )
+		ax[2].plot( orbitR2[:,0], orbitR2[:,1], orbitR2[:,2], 'm', linewidth=5 )
+		ax[2].plot( [0], [0], [0], 'kX', markersize=14 )
+	elif( toPlot == 3 ):
+		fig, ax = plt.subplots(nrows=1, ncols=2)
+		ax = ax.flatten()
+		fig.set_size_inches(12,8)
+		
+		ax[0].imshow( np.log(1+MT), cmap='gray', interpolation='none' )
+		ax[0].set_title( "Image using modified target parameters" )
+		
+	# end	
+	
+	plt.tight_layout(w_pad=0.0, h_pad=0.0)
+	plt.show()
 	
 	
 ##############
 #  END MAIN  #
 ##############
+
+def solveOrb( param, nParam ):
+	
+	p = deepcopy(param)
+	
+	# convert mass units
+	r    = p[6]
+	t    = p[7]
+	p[7] = t/(r+1)
+	p[6] = r*p[7]
+	
+#	p[2] = 1000
+	
+	paramStr = ','.join( map(str, p[0:nParam]) )
+	
+	call("./orb_run " + paramStr + " > SolveMetro.out", shell=True)
+	
+	orbit = np.loadtxt( "orbit.txt" )
+	
+	return orbit
+	
+# end
 
 def getOrbitalElements( pReal, rmin ):
 	
@@ -441,7 +537,8 @@ def solve( param, nParam, nBin, bound ):
 	binC   = BinField( nBin, RV,   bound )
 	binC_u = BinField( nBin, RV_u, bound )
 	
-	return binC, binC_u
+#	return binC, binC_u
+	return RV, RV_u, binC, binC_u
 	
 # end
 

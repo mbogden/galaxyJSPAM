@@ -41,6 +41,8 @@ def main():
 #	pFile = "587729227151704160_combined.txt"
 	
 	toPlot    = 1
+	targetInd = 0
+	fileInd   = "43"
 	
 	nProc     = 2**3
 	shift     = 0*nProc
@@ -49,38 +51,40 @@ def main():
 	scrMU     = 8		# which machine score
 	
 	nGen      = 2**5	# number of generations
-	nPop      = 2**4	# size of population at each step
-	nBin      = 60		# bin resolution
+	nPop      = 2**3	# size of population at each step
+	nBin      = 40		# bin resolution
 	nParam    = 14		# number of SPAM parameters
-	sigScale  = 0.03		# scale param stddev for prop width
-	initScale = 10.0	# scale param limits
+	sigScale  = 0.04		# scale param stddev for prop width
 	bound = np.array([	# bin window
 #		[-0.6,0.6],
 #		[-0.4,0.8]])
 		[-19.0, 11.0],
 		[-18.0, 12.0]])
 	
-	targetInd = 0
-	
-	fileInd = "31"
-	
-#	pFit = range(2,14)
+	pFit = range(2,14)
 #	pFit = [ 3, 4, 5 ]
-#	pFit = [ 2, 3, 4, 5, 6, 7, 8, 9, 12, 13 ]
-	pFit = [ 2, 5 ]
+#	pFit = [ 2, 5, 6, 7 ]
+#	pFit = [ 2, 5, 12, 13 ]
+#	pFit = [ 3, 4, 5, 7, 8, 9 ]
+	pFit = [ 6, 7 ]
+	
+	shrink   = 1.00
+	
+	toFlip   = 0
+	nFlip    = 2
+	flipProb = 0.5
+	
+	toMix    = 1
+	mixProb  = np.array( [ 1.0/3.0, 1.0/3.0, 1.0/3.0 ] )
+	mixAmp   = [ 1.0/2.0, 2.0 ]
+	
+	burn     = nGen/2**-1
+	beta     = 0.001
+	
+	b        = 0.15
 	
 	initSeed = 234329	# random seed for initial params
-	np.random.seed(initSeed)
-	
-	shrink = 1.00
-	
-	toMix = 1
-	
-	burn = nGen/2**-2
-	beta = 0.001
-	
-	mixProb = np.array( [ 1.0/3.0, 1.0/3.0, 1.0/3.0 ] )
-	mixAmp  = [ 1.0/3.0, 3.0 ]
+#	np.random.seed(initSeed)
 	
 	
 	
@@ -90,63 +94,51 @@ def main():
 	
 	# read zoo file
 	data, nModel, nCol = ReadAndCleanupData( pFile )
+	pReal = data[targetInd,0:-1]
+	r = pReal[6]
+	t = pReal[7]
+	m2 = t/(r+1.0)
+	m1 = r*m2
+	pReal[6] = m1/t
 	print " "
 	
-	pReal = data[targetInd,0:-1]
+	print pReal
 	
 	# get parameter stats
 	mins = np.min( data, axis=0 )[0:-1]
 	maxs = np.max( data, axis=0 )[0:-1]
 #	stds = np.std( data, axis=0 )[0:-1]
+	mmm = [ mins, maxs ]
+	mmm = np.transpose(np.array(mmm))
+	
+	mmm[2,:]  = np.array([ -10.0, 10.0 ])
+	mmm[3,:]  = np.array([ -5.0, 5.0 ])
+	mmm[4,:]  = np.array([ -5.0, 5.0 ])
+	mmm[5,:]  = np.array([ -10.0, 10.0 ])
+	mmm[6,:]  = np.array([ 0.0, 1.0 ])
+	mmm[7,:]  = np.array([ 0.0, 60.0 ])
+	mmm[8,:]  = np.array([ 2.0, 6.0 ])
+	mmm[9,:]  = np.array([ 3.0, 7.0 ])
+	mmm[10,:] = np.array([ 0.0, 360.0 ])
+	mmm[11,:] = np.array([ 0.0, 360.0 ])
+	mmm[12,:] = np.array([ 0.0, 360.0 ])
+	mmm[13,:] = np.array([ 0.0, 360.0 ])
 	
 	xLim = np.zeros((nParam,2))
 	for i in range(nParam):
-		xLim[i,0] = pReal[i] - shrink*(pReal[i] - mins[i])
-		xLim[i,1] = shrink*(maxs[i] - pReal[i]) + pReal[i]
-		"""
-		xLim[i,0] = pReal[i] - initScale*stds[i]
-		if( i >= 6 and xLim[i,0] < 0 ):
-			xLim[i,0] = 10**-3
-		# end
-		xLim[i,1] = pReal[i] + initScale*stds[i]
-		"""
+		xLim[i,0] = pReal[i] - shrink*(pReal[i] - mmm[i,0])
+		xLim[i,1] = shrink*(mmm[i,1] - pReal[i]) + pReal[i]
 	# end
-	
-	"""
-	# manually set
-	# position
-	stds[0]  = 0.0001
-	stds[1]  = 0.0001
-	stds[2]  = 0.7
-	# velocity
-	stds[3]  = 0.1
-	stds[4]  = 0.1
-	stds[5]  = 0.7
-	# mass
-	stds[6]  = 0.1
-	stds[7]  = 0.7
-	# radii
-	stds[8]  = 0.1
-	stds[9]  = 0.1
-	# angles
-	stds[10] = 1.3
-	stds[11] = 1.3
-	stds[12] = 1.3
-	stds[13] = 1.3
-	"""
 	
 	# std is a fraction of width
 	stds = np.zeros(nParam)
 	for i in range(nParam):
 		if i in pFit:
-#			stds[i] = (xLim[i,1]-xLim[i,0])/30.0
-			stds[i] = (xLim[i,1]-xLim[i,0])/1.0
-#			stds[i] = (maxs[i]-mins[i])/1.0
+			stds[i] = xLim[i,1]-xLim[i,0]
 		else:
 			stds[i] = 0.0001
 		# end
 	# end
-	
 	pWidth = stds*sigScale
 	
 	print "min                 real       max           pWidth"
@@ -157,14 +149,11 @@ def main():
 	
 	# get simulated target
 	T, V, RVt, RVv = solve( pReal, nParam, nBin, bound, "00" )
-	
 	nPts, xxx = RVt.shape
 	
 	# find target perturbedness
 	muScore = MachineScore( nBin, T, V, scrMU )
-	
 	a = muScore
-	b = 0.15
 	
 	
 	
@@ -173,7 +162,7 @@ def main():
 	##############
 	
 	# RUN GA -------------
-	chain, scores, M = GA( nProc, nGen, nPop, nParam, pFit, pReal, xLim, pWidth, nBin, bound, T, toMix, burn, beta, mixAmp, mixProb, scrTM, scrMU, a, b, shift )
+	chain, scores, M = GA( nProc, nGen, nPop, nParam, pFit, pReal, xLim, pWidth, nBin, bound, T, nFlip, flipProb,toFlip, toMix, burn, beta, mixAmp, mixProb, scrTM, scrMU, a, b, shift )
 	
 	pickle.dump( chain,   open("solutions_" + fileInd + ".txt", "wb") )
 	pickle.dump( scores,  open("scores_"    + fileInd + ".txt", "wb") )
@@ -190,32 +179,6 @@ def main():
 	indBest = np.unravel_index( np.argmax(scores, axis=None), scores.shape )
 	pBest   = chain[indBest[0],indBest[1],:]
 	print scores[indBest[0],indBest[1]]
-	
-	print M.shape
-	
-	h       = 0
-	M[M>h]  = 1
-	M[M<=h] = 0
-	
-	"""
-	X = np.zeros((nBin,nBin))
-	for i in range(nBin):
-		for j in range(nBin):
-			X[j,i] = np.sum(M[:,:,j,i])/(1.0*nPop*nGen)
-		# end
-	# end
-	print X
-	"""
-	
-	X = np.zeros((nBin,nBin))
-	for i in range(nBin):
-		for j in range(nBin):
-			X[j,i] = np.sum(M[:,:,j,i])/(1.0*nPop*nGen)
-		# end
-	# end
-	print X
-	
-	
 	
 	
 	
@@ -580,10 +543,10 @@ def solve( param, nParam, nBin, bound, fileInd ):
 	p = deepcopy(param)
 	
 	# convert mass units
-	r    = p[6]
+	f    = p[6]
 	t    = p[7]
-	p[7] = t/(r+1)
-	p[6] = r*p[7]
+	p[6] = f*p[7]
+	p[7] = (1.0-f)*p[7]
 	
 #	p[2] = 1000
 	
@@ -627,10 +590,10 @@ def solve_parallel( XXX, nParam, nBin, bound, scrTM, scrMU, a, b, fileInd, qOut 
 	p = deepcopy(param)
 	
 	# convert mass units
-	r    = p[6]
+	f    = p[6]
 	t    = p[7]
-	p[7] = t/(r+1)
-	p[6] = r*p[7]
+	p[6] = f*p[7]
+	p[7] = (1.0-f)*p[7]
 	
 #	p[2] = 1000
 	
@@ -803,7 +766,8 @@ def Selection( nPop, popSol, popFit ):
 	
 	selectType = 0
 	
-	parents = []
+	parSol = []
+	parFit = []
 	
 	if( selectType == 0 ):
 		# get selection probabilities
@@ -830,7 +794,8 @@ def Selection( nPop, popSol, popFit ):
 			ind1 = np.argmax( r1 <= popProb )
 			ind2 = np.argmax( r2 <= popProb )
 			
-			parents.append( [ popSol[ind1], popSol[ind2] ] )
+			parSol.append( [ popSol[ind1], popSol[ind2] ] )
+			parFit.append( [ popFit[ind1], popFit[ind2] ] )
 		# end
 	else:
 		# get selection probabilities
@@ -852,22 +817,43 @@ def Selection( nPop, popSol, popFit ):
 		# end
 
 	# end
-	parents = np.array(parents)
+	parSol = np.array(parSol)
+	parFit = np.array(parFit)
 	
-	return parents
+	return parSol, parFit
 # end
 
-def Crossover( nPop, nParam, parents ):
-	
-	crossType = 0
+def Crossover( nPop, nParam, parSol, parFit ):
 	
 	popSol = np.zeros((nPop,nParam))
 	
+	for i in range(nPop):
+		for j in range(nParam):
+			if( j in [2,3,4,5,10,11,12,13] ):
+				r0 = parFit[i,0]/(parFit[i,0]+parFit[i,1])
+				r  = np.random.uniform(0,1)
+				
+				if( r < r0 ):
+					popSol[i,j] = parSol[i,0,j]
+				else:
+					popSol[i,j] = parSol[i,1,j]
+				# end
+			else:
+				r0 = parFit[i,0]/(parFit[i,0]+parFit[i,1])
+				r1 = parFit[i,1]/(parFit[i,0]+parFit[i,1])
+				popSol[i,j] = parSol[i,0,j]*r0 + parSol[i,1,j]*r1
+			# end
+		# end
+	# end
+	popSol = np.array(popSol)
+	
+	"""
 	if(   crossType == 0 ):
 		for i in range(nPop):
-			r  = 0.5
-			c1 = parents[i,0]*r + parents[i,1]*(1-r)
-			popSol[i,:] = c1
+			r0 = parFit[i,0]/(parFit[i,0]+parFit[i,1])
+			r1 = parFit[i,1]/(parFit[i,0]+parFit[i,1])
+			c  = parSol[i,0]*r0 + parSol[i,1]*r1
+			popSol[i,:] = c
 		# end
 	elif( crossType == 1 ):
 		for i in range(nPop):
@@ -875,21 +861,43 @@ def Crossover( nPop, nParam, parents ):
 			
 			c1 = np.zeros(nParam)
 			for j in range(nParam):
-				c1[j] = parents[i,  inds[j],j]
+				c1[j] = parSol[i,inds[j],j]
 			# end
 			popSol[i,:] = c1
 		# end
 	# end
 	popSol = np.array(popSol)
+	"""
 	
 	return popSol
 # end
 
-def Mutate( nPop, nParam, popSol, cov, xLim ):
+def Mutate( step, nGen, nPop, nParam, popSol, cov, xLim, pFit, toFlip, nFlip, flipProb):
 	
 	popSol2 = np.zeros((nPop,nParam))
+	
 	for i in range(nPop):
 		x = np.random.multivariate_normal(mean=popSol[i,:],cov=cov,size=1)[0]
+		
+		if( ( step % (nGen/nFlip) ) == 0 and toFlip ):
+			r = np.random.uniform(0,1)
+			
+			if( r < flipProb ):
+				if(  2 in pFit ):
+					x[2] = -x[2]
+				if(  5 in pFit ):
+					x[5] = -x[5]
+				if( 10 in pFit ):
+					x[10] = 180 + x[10]
+				if( 11 in pFit ):
+					x[11] = 180 + x[11]
+				if( 12 in pFit ):
+					x[12] = 360 - x[12]
+				if( 13 in pFit ):
+					x[13] = 360 - x[13]
+				# end
+			# end
+		# end
 		
 		for j in range(nParam):
 			if(   xLim[j,0] > x[j] ):
@@ -901,21 +909,6 @@ def Mutate( nPop, nParam, popSol, cov, xLim ):
 			# end
 		# end
 	# end
-	
-	"""
-	popSol2 = np.zeros((nPop,nParam))
-	for i in range(nPop):
-		popSol2[i,:] = np.random.multivariate_normal(mean=popSol[i,:],cov=cov,size=1)[0]
-		
-		for j in range(nParam):
-			if(   xLim[j,0] > popSol2[i,j] ):
-				popSol2[i,j] = xLim[j,0] + np.abs(xLim[j,0] - popSol2[i,j])
-			elif( xLim[j,1] < popSol2[i,j] ):
-				popSol2[i,j] = xLim[j,1] - np.abs(xLim[j,1] - popSol2[i,j])
-			# end
-		# end
-	# end
-	"""
 	
 	return popSol2
 # end
@@ -999,7 +992,7 @@ def getCovMatrix( cov, covInit, C, mean, beta, step, burn, nPop, nParam, chainAl
 	return cov, mean, C
 # end
 
-def GA( nProc, nGen, nPop, nParam, pFit, start, xLim, pWidth, nBin, bound, T, toMix, burn, beta, mixAmp, mixProb, scrTM, scrMU, a, b, shift ):
+def GA( nProc, nGen, nPop, nParam, pFit, start, xLim, pWidth, nBin, bound, T, nFlip, flipProb, toFlip, toMix, burn, beta, mixAmp, mixProb, scrTM, scrMU, a, b, shift ):
 	
 	covInit = np.diag(pWidth**2)
 	cov     = np.diag(pWidth**2)
@@ -1036,29 +1029,34 @@ def GA( nProc, nGen, nPop, nParam, pFit, start, xLim, pWidth, nBin, bound, T, to
 	for step in range(nGen):
 		print "step: " + str(step+1) + "/" + str(nGen)
 		
-		if( step == int(0.7*nGen) ):
-			for i in range(nPop):
-				"test"
-				popSol[i,2] = -popSol[i,2]
-				popSol[i,5] = -popSol[i,5]
-#				popSol[i,10] = 180 + popSol[i,10]
-#				popSol[i,11] = 180 + popSol[i,11]
-#				popSol[i,12] = 360 - popSol[i,12]
-#				popSol[i,13] = 360 - popSol[i,13]
-			# end
-		# ened
-		
 		# get covariance matrix
 		cov, mean, C = getCovMatrix( cov, covInit, C, mean, beta, step, burn, nPop, nParam, chainF, popSol, r, scaleInit, toMix, mixProb, mixAmp )
 		
 		# perform selection
-		parents = Selection( nPop, popSol, popFit )
+		parSol, parFit = Selection( nPop, popSol, popFit )
 		
 		# perform crossover
-		popSol = Crossover( nPop, nParam, parents )
+		popSol = Crossover( nPop, nParam, parSol, parFit )
 		
 		# perform mutation
-		popSol = Mutate( nPop, nParam, popSol, cov, xLim )
+		popSol = Mutate( step, nGen, nPop, nParam, popSol, cov, xLim, pFit, toFlip, nFlip, flipProb )
+		
+		"""
+		if( ( step % (nGen/16) ) == 0 ):
+			for i in range(nPop):
+				r = np.random.uniform(0,1)
+				
+				if( r < 0.5 ):
+					popSol[i,2] = -popSol[i,2]
+					popSol[i,5] = -popSol[i,5]
+#					popSol[i,10] = 180 + popSol[i,10]
+#					popSol[i,11] = 180 + popSol[i,11]
+					popSol[i,12] = 360 - popSol[i,12]
+					popSol[i,13] = 360 - popSol[i,13]
+				# end
+			# end
+		# end
+		"""
 		
 		# calculate fits
 		popFit, X = evalPop( nProc, nPop, popSol, nParam, nBin, bound, T, scrTM, scrMU, a, b, shift )

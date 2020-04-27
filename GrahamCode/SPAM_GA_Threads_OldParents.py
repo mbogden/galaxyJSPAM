@@ -22,12 +22,6 @@ import os
 import time
 import Queue
 
-from mpl_toolkits.mplot3d import Axes3D
-
-import glob
-
-from math import sin
-from math import cos
 
 
 ##############
@@ -40,30 +34,39 @@ def main():
 	###   VARIABLES   ###
 	#####################
 	
-	toPlot = 8
+	
+	# overlap threshold acts weird when set high relative to particles/bin
 	
 	pFile = "587722984435351614_combined.txt"
+#	pFile = "587729227151704160_combined.txt"
+	
+	nProc     = 2**3
+	
+	scrTM     = 2		# which machine score
+	scrMU     = 3		# which machine score
+	
+	nGen      = 2**5	# number of generations
+	nPop      = 2**3	# size of population at each step
+	nBin      = 30		# bin resolution
+	nParam    = 14		# number of SPAM parameters
+	sigScale  = 0.05		# scale param stddev for prop width
+	initScale = 10.0	# scale param limits
+	bound = np.array([	# bin window
+#		[-0.6,0.6],
+#		[-0.4,0.8]])
+		[-19.0, 11.0],
+		[-18.0, 12.0]])
+	
 	targetInd = 0
-	fileInd   = "47"
 	
-	shrink = 1.0
+	pFit = [ 3, 4, 5 ]
 	
-	# read zoo file
-	data, nModel, nCol = ReadAndCleanupData( pFile )
+	initSeed = 234329	# random seed for initial params
+#	np.random.seed(initSeed)
 	
-	pReal = data[targetInd,0:-1]
-	nParam = len(pReal)
+	toPlot = 1
 	
-	# get parameter stats
-	mins = np.min( data, axis=0 )
-	maxs = np.max( data, axis=0 )
-	stds = np.std( data, axis=0 )
-	
-	xLim = np.zeros((nParam,2))
-	for i in range(nParam):
-		xLim[i,0] = pReal[i] - shrink*(pReal[i] - mins[i])
-		xLim[i,1] = shrink*(maxs[i] - pReal[i]) + pReal[i]
-	# end
+	shrink = 0.30
 	
 	
 	
@@ -71,106 +74,202 @@ def main():
 	###   DATA/INITIALIZATION   ###
 	###############################
 	
-	chain  = pickle.load( open("solutions_" + fileInd + ".txt", "rb") )
-#	scores = pickle.load( open("scores_"    + fileInd + ".txt", "rb") )
-#	Ms     = pickle.load( open("models_"    + fileInd + ".txt", "rb") )
+	# read zoo file
+	data, nModel, nCol = ReadAndCleanupData( pFile )
+	print " "
+	
+	pReal = data[targetInd,0:-1]
+	
+	# get parameter stats
+	mins = np.min( data, axis=0 )[0:-1]
+	maxs = np.max( data, axis=0 )[0:-1]
+#	stds = np.std( data, axis=0 )[0:-1]
+	
+	xLim = np.zeros((nParam,2))
+	for i in range(nParam):
+		xLim[i,0] = pReal[i] - shrink*(pReal[i] - mins[i])
+		xLim[i,1] = shrink*(maxs[i] - pReal[i]) + pReal[i]
+		"""
+		xLim[i,0] = pReal[i] - initScale*stds[i]
+		if( i >= 6 and xLim[i,0] < 0 ):
+			xLim[i,0] = 10**-3
+		# end
+		xLim[i,1] = pReal[i] + initScale*stds[i]
+		"""
+	# end
+	
+	"""
+	# manually set
+	# position
+	stds[0]  = 0.0001
+	stds[1]  = 0.0001
+	stds[2]  = 0.7
+	# velocity
+	stds[3]  = 0.1
+	stds[4]  = 0.1
+	stds[5]  = 0.7
+	# mass
+	stds[6]  = 0.1
+	stds[7]  = 0.7
+	# radii
+	stds[8]  = 0.1
+	stds[9]  = 0.1
+	# angles
+	stds[10] = 1.3
+	stds[11] = 1.3
+	stds[12] = 1.3
+	stds[13] = 1.3
+	"""
+	
+	# std is a fraction of width
+	stds = np.zeros(nParam)
+	for i in range(nParam):
+		if i in pFit:
+#			stds[i] = (xLim[i,1]-xLim[i,0])/30.0
+			stds[i] = (xLim[i,1]-xLim[i,0])/1.0
+#			stds[i] = (maxs[i]-mins[i])/1.0
+		else:
+			stds[i] = 0.0001
+		# end
+	# end
+	
+	pWidth = stds*sigScale
+	
+	print "min                 real       max           pWidth"
+	for i in range(nParam):
+		print xLim[i,0], pReal[i], xLim[i,1], pWidth[i]
+	# end
+	print " "
+	
+	# get simulated target
+	T, V, RVt, RVv = solve( pReal, nParam, nBin, bound, "00" )
+	
+	nPts, xxx = RVt.shape
+	
+	# find target perturbedness
+	muScore = MachineScore( nBin, T, V, scrMU )
+	
+	a = muScore
+	b = 0.13
+	
+	
+	
+	#####$$$$#####
+	###   GA   ###
+	#####$$$$#####
+	
+	toMix = 1
+	
+	burn = nGen/2**-2
+	beta = 0.001
+	
+	mixProb = np.array( [ 1.0/3.0, 1.0/3.0, 1.0/3.0 ] )
+	mixAmp  = [ 1.0/3.0, 3.0 ]
+	
+	# RUN GA -------------
+	chain, scores = GA( nProc, nGen, nPop, nParam, pFit, pReal, xLim, pWidth, nBin, bound, T, toMix, burn, beta, mixAmp, mixProb, scrTM, scrMU, a, b )
+	
+	
+	pickle.dump( chain,   open("solutions_13.txt", "wb") )
+	pickle.dump( scores,  open("scores_13.txt",    "wb") )
+	
 	
 	nGen, nPop, nParam = chain.shape
 	
-	orbitals = np.zeros((nGen,nPop,7))
-	for i in range(nGen):
-		for j in range(nPop):
-			tmin, dmin, vmin, rmin = solveMod( chain[i,j,:], nParam )
-			inc, argPer, longAN = getOrbitalElements( chain[i,j,:], rmin )
+	indBest = np.unravel_index( np.argmax(scores, axis=None), scores.shape )
+	pBest   = chain[indBest[0],indBest[1],:]
 	
-			orbitals[i,j,0] = tmin
-			orbitals[i,j,1] = dmin
-			orbitals[i,j,2] = vmin
-			orbitals[i,j,3] = (chain[i,j,6]+chain[i,j,7])/(vmin*dmin**2)
-			orbitals[i,j,4] = inc
-			orbitals[i,j,5] = argPer
-			orbitals[i,j,6] = longAN
+	
+	
+	####################
+	###   PLOTTING   ###
+	####################
+	
+	labels = [ 'x', 'y', 'z', 'vx', 'vy', 'vz', 'mr', 'mt', 'rp', 'rs', 'pp', 'ps', 'tp', 'ts' ]
+	
+	if(   toPlot == 1 ):
+		fig, axes = plt.subplots(nrows=4, ncols=4)
+		axes = axes.flatten()
+		fig.set_size_inches(12,8)
+		
+		ind = 0
+		for i in range(nParam+1):
+			if(   ind < nParam ):
+				axes[ind].plot( np.sort( chain[:,:,ind], axis=1), 'b.' )
+				axes[ind].plot(  xLim[ind,0]*np.ones(nGen+1), 'g-' )
+				axes[ind].plot(  xLim[ind,1]*np.ones(nGen+1), 'g-' )
+				axes[ind].plot( pReal[ind]*np.ones(nGen+1), 'r-' )
+				axes[ind].plot( pBest[ind]*np.ones(nGen+1), 'k-' )
+				axes[ind].set_ylabel( labels[ind] )
+			elif( ind == nParam ):
+				axes[ind].plot( np.sort( scores, axis=1), 'r.' )
+				axes[i].set_ylim( [0,       1      ] )
+			# end
+			ind += 1
 		# end
-		print str(i+1) + "/" + str(nGen)
-	# end
+	elif( toPlot == 2 ):
+		fig, axes = plt.subplots(nrows=4, ncols=4)
+		axes = axes.flatten()
+		fig.set_size_inches(12,8)
+		
+		for i in range(nParam):
+			axes[i].plot( chain[:,:,i].flatten(), scores.flatten(), 'b.' )
+			
+			axes[i].plot( [ pReal[i], pReal[i] ], [0, 1], 'r--' )
+			
+			axes[i].set_xlim( [xLim[i,0], xLim[i,1]] )
+			axes[i].set_ylim( [0,       1      ] )
+			axes[i].set_xlabel( labels[i] )
+		# end
+	elif( toPlot == 3 ):
+		fig, axes = plt.subplots(nrows=2, ncols=3)
+#		axes = axes.flatten()
+		fig.set_size_inches(12,8)
+		
+#		T, V = solve( pReal, nParam, nBin, bound, "00" )
+		axes[0,0].imshow( T,           interpolation="none", cmap="gray" )
+		axes[0,0].set_title("T")
+		
+		M, U = solve( pBest, nParam, nBin, bound, "00" )
+		axes[0,1].imshow( M,           interpolation="none", cmap="gray" )
+		axes[0,1].set_title("M")
+		
+		scrTM     = 2		# which machine score
+		scrMU     = 3		# which machine score
+		
+		tmScore = MachineScore( nBin, T, M, scrTM )
+		muScore = MachineScore( nBin, M, U, scrMU )
+		print tmScore, muScore, tmScore*muScore
+		
+		h      = 0
+		T[T>h] = 1
+		M[M>h] = 1
+		
+		axes[1,0].imshow( T, interpolation="none", cmap="gray" )
+		axes[1,1].imshow( M, interpolation="none", cmap="gray" )
+		
+		
+		axes[0,2].imshow( T-M, interpolation="none", cmap="bwr" )
+		axes[0,2].set_title("T-M")
+	elif( toPlot == 4 ):
+		fig, axes = plt.subplots(nrows=1, ncols=2)
+		axes = axes.flatten()
+		fig.set_size_inches(9,6)
+		
+		axes[0].plot( RVt[0:nPts/2,0],  RVt[0:nPts/2,1],  'b.' )
+		axes[0].plot( RVt[nPts/2:-1,0], RVt[nPts/2:-1,1], 'r.' )
+		
+		axes[1].plot( RVv[0:nPts/2,0],  RVv[0:nPts/2,1],  'b.' )
+		axes[1].plot( RVv[nPts/2:-1,0], RVv[nPts/2:-1,1], 'r.' )
+	# end	
 	
-	pickle.dump( orbitals,   open("elements_" + fileInd + ".txt", "wb") )
-	
+	plt.tight_layout(w_pad=0.0, h_pad=0.0)
+	plt.show()
 	
 	
 ##############
 #  END MAIN  #
 ##############
-
-def getOrbitalElements( pReal, rmin ):
-	
-	pp = pReal[10]*np.pi/180.0
-	sp = pReal[11]*np.pi/180.0
-	pt = pReal[12]*np.pi/180.0
-	st = pReal[13]*np.pi/180.0
-	
-	origin = np.zeros(3)
-	
-	secCen = pReal[0:3]
-#	secCen = RVt[-1,:3]
-	secVel = pReal[3:6]
-#	secVel = RVt[-1,3:]
-	secVm  = ( secVel[0]**2 + secVel[1]**2 + secVel[2]**2 )**0.5
-	secVn  = secVel/secVm
-	
-	pVec   = np.array( [ sin(pt)*cos(pp), sin(pt)*sin(pp), cos(pt) ] )
-	
-	sVec   = np.array( [ sin(st)*cos(sp), sin(st)*sin(sp), cos(st) ] )
-	
-	oVec   = np.cross( secCen, secVel )
-	oVec   = oVec/LA.norm(oVec)
-	
-	inc = math.acos( np.dot( oVec, pVec ) )/np.pi*180.0
-	
-	ascNode = np.cross( pVec, oVec )
-	ascNode = ascNode/LA.norm(ascNode)
-	
-	argPer = math.acos( np.dot( ascNode, rmin[:3]/LA.norm(rmin[:3]) ) )*180.0/np.pi
-	
-	refDir  = np.array( [ cos(pt)*cos(pp), cos(pt)*sin(pp), -sin(pt) ] )
-	
-	xxx = np.cross( refDir, ascNode )
-	yyy = np.dot( pVec, xxx )
-	if( yyy >= 0 ):
-		longAN = math.acos( np.dot( refDir, ascNode ) )*180.0/np.pi
-	else:
-		longAN = 360 - math.acos( np.dot( refDir, ascNode ) )*180.0/np.pi
-	# end
-	
-	return inc, argPer, longAN
-# end
-
-def solveMod( param, nParam ):
-	
-	p = deepcopy(param)
-	
-	# convert mass units
-	r    = p[6]
-	t    = p[7]
-	p[7] = t/(r+1)
-	p[6] = r*p[7]
-	
-#	p[2] = 1000
-	
-	paramStr = ','.join( map(str, p[0:nParam]) )
-	
-	call("./mod_run " + paramStr + " > SolveMetro.out", shell=True)
-	
-	output = np.loadtxt("rmin.txt")
-	
-	tmin = output[0]
-	dmin = output[1]
-	rmin = output[2:]
-	vmin = LA.norm(output[5:])
-	
-	return tmin, dmin, vmin, rmin
-	
-# end
 
 def MachineScore( nBin, binCt, binCm, scr ):
 	
@@ -410,7 +509,7 @@ def ReadAndCleanupData( filePath ):
 	
 # end
 
-def solve( param, nParam, nBin, bound ):
+def solve( param, nParam, nBin, bound, fileInd ):
 	
 	p = deepcopy(param)
 	
@@ -424,11 +523,20 @@ def solve( param, nParam, nBin, bound ):
 	
 	paramStr = ','.join( map(str, p[0:nParam]) )
 	
+	# old idk	
 #	call("./basic_run " + paramStr + "", shell=True)
-	call("./basic_run_unpreturbed " + paramStr + " > SolveMetro.out", shell=True)
+	# no flag
+#	call("./basic_run_unpreturbed " + paramStr + " > SolveMetro.out", shell=True)
+	# with flag
+	call("./basic_run_unpreturbed -o " + fileInd + " " + paramStr + " > SolveMetro.out", shell=True)
 	
-	RV   = np.loadtxt("a.101")
-	RV_u = np.loadtxt("a.000")
+	# no flag
+#	RV   = np.loadtxt("a.101")
+#	RV_u = np.loadtxt("a.000")
+	
+	# with flag
+	RV   = np.loadtxt("basic_"     + fileInd + ".out")
+	RV_u = np.loadtxt("basic_unp_" + fileInd + ".out")
 #	print RV_u[0,:]
 	
 	dr = RV[-1,0:3]-RV_u[-1,0:3]
@@ -441,8 +549,62 @@ def solve( param, nParam, nBin, bound ):
 	binC   = BinField( nBin, RV,   bound )
 	binC_u = BinField( nBin, RV_u, bound )
 	
-	return binC, binC_u
+	return binC, binC_u, RV, RV_u
 	
+# end
+
+def solve_parallel( XXX, nParam, nBin, bound, scrTM, scrMU, a, b, fileInd, qOut ):
+	
+	index = XXX[0]
+	param = XXX[1]
+	
+	p = deepcopy(param)
+	
+	# convert mass units
+	r    = p[6]
+	t    = p[7]
+	p[7] = t/(r+1)
+	p[6] = r*p[7]
+	
+#	p[2] = 1000
+	
+	paramStr = ','.join( map(str, p[0:nParam]) )
+	
+	# old idk	
+#	call("./basic_run " + paramStr + "", shell=True)
+	# no flag
+#	call("./basic_run_unpreturbed " + paramStr + " > SolveMetro.out", shell=True)
+	# with flag
+	call("./basic_run_unpreturbed -o " + fileInd + " " + paramStr + " > SolveMetro.out", shell=True)
+	
+	# no flag
+#	RV   = np.loadtxt("a.101")
+#	RV_u = np.loadtxt("a.000")
+	
+	# with flag
+	RV   = np.loadtxt("basic_"     + fileInd + ".out")
+	RV_u = np.loadtxt("basic_unp_" + fileInd + ".out")
+#	print RV_u[0,:]
+	
+	dr = RV[-1,0:3]-RV_u[-1,0:3]
+	for i in range(len(RV)/2+1):
+		j = i + len(RV)/2
+		RV_u[j,0:3] = RV_u[j,0:3] + dr
+		RV_u[j,3:] = 0
+	# end
+	
+	M = BinField( nBin, RV,   bound )
+	U = BinField( nBin, RV_u, bound )
+	
+#	tmScore  = MachineScore( nBin, T, M, scrTM )
+#	muScore  = MachineScore( nBin, M, U, scrMU )
+#	muScoreX = np.exp( -(muScore - a)**2/(2*b**2))
+#	score    = (tmScore*muScoreX)**(1.0/2.0)
+	
+	qOut.put( [index, M, U] )
+	
+	return M, U
+#	return score
 # end
 
 def BinField( nBin, RV, bound ):
@@ -476,45 +638,101 @@ def BinField( nBin, RV, bound ):
 	
 # end
 
-def getInitPop( nPop, nParam, xLim ):
+def getInitPop( nPop, nParam, pFit, pReal, xLim ):
 	
-	# get initial population
+	initType = 0
+	
 	popSol = []
-	for i in range(nPop):
-		x = np.zeros(nParam)
-		for j in range(nParam):
-			x[j] = np.random.uniform( xLim[j,0], xLim[j,1] )
+	
+	if( initType == 0 ):
+		for i in range(nPop):
+			x = np.zeros(nParam)
+			for j in range(nParam):
+				if j in pFit:
+					x[j] = np.random.uniform( xLim[j,0], xLim[j,1] )
+				else:
+					x[j] = pReal[j]
+				# end
+			# end
+			popSol.append( x )
 		# end
-		popSol.append( x )
+	else:
+		R = []
+		for j in range(nParam):
+			R.append( np.linspace( xLim[j,0], xLim[j,1], nPop ) )
+		# end
+		R = np.array(R)
+		
+		for i in range(nPop):
+			x = np.zeros(nParam)
+			for j in range(nParam):
+				if j in pFit:
+					x[j] = R[j][i]
+				else:
+					x[j] = pReal[j]
+				# end
+			# end
+			popSol.append( x )
+		# end
 	# end
+	
 	popSol = np.array(popSol)
 	
 	return popSol
 # end
 
-def evalPop( nPop, popSol, nParam, nBin,  bound, T, scrTM, scrMU, a, b ):
+def evalPop( nProc, nPop, popSol, nParam, nBin, bound, T, scrTM, scrMU, a, b ):
 	
 	popFit = []
+	
+	qJob = TaskQueue(num_workers=nProc)
+	qOut = Queue.Queue()
+	
 	for i in range(nPop):
-#		print popSol[i]
-		M, U = solve( popSol[i,:], nParam, nBin, bound )
-#		M = np.ones((nBin,nBin))
-#		U = np.ones((nBin,nBin))
+		if( i < 10 ):
+			fileInd = "00" + str(i)
+		elif( i < 100 ):
+			fileInd =  "0" + str(i)
+		else:
+			fileInd =        str(i)
+		# end
 		
-		tmScore = MachineScore( nBin, T, M, scrTM )
-		muScore = MachineScore( nBin, M, U, scrMU )
+		qJob.add_task( solve_parallel, [i, popSol[i,:]], nParam, nBin, bound, scrTM, scrMU, a, b, fileInd, qOut )
+	# end
+	
+	qJob.join()
+	
+	out  = []
+	inds = []
+	for i in range(nPop):
+		out.append( qOut.get() )
+		inds.append( out[i][0] )
+	# end
+	
+	M = []
+	U = []
+	for i in range(nPop):
+		M.append(out[inds[i]][1])
+		U.append(out[inds[i]][2])
+	# end
+	
+	for i in range(nPop):
+		tmScore  = MachineScore( nBin,    T, M[i], scrTM )
+		muScore  = MachineScore( nBin, M[i], U[i], scrMU )
+		muScoreX = np.exp( -(muScore - a)**2/(2*b**2))
+		score    = (tmScore*muScoreX)**(1.0/1.0)
 		
-		muScore2 = np.exp( -(muScore - a)**2/(2*b**2))
+		print score, tmScore, muScoreX, muScore, a
 		
-		popFit.append( tmScore*muScore2 )
+		popFit.append( score )
 	# end
 	popFit = np.array(popFit)
-#	print " "
 	
 	return popFit
 # end
 
 def Selection( nPop, popSol, popFit ):
+	
 	
 	selectType = 0
 	
@@ -522,7 +740,18 @@ def Selection( nPop, popSol, popFit ):
 	
 	if( selectType == 0 ):
 		# get selection probabilities
-		popProb = np.cumsum( popFit/np.sum(popFit) )
+#		popProb = np.cumsum( popFit/np.sum(popFit) )
+		
+		xxx = popFit**3
+		xxx = xxx/np.sum(xxx)
+		print xxx
+		
+		popProb = np.cumsum( xxx )
+		
+#		popFit2 = deepcopy(popFit)
+#		popFit2 = popFit2**2
+#		popProb = np.cumsum( popFit2/np.sum(popFit2) )
+		
 		
 		for i in range(nPop/2):
 			r1 = np.random.uniform(0,1)
@@ -534,7 +763,24 @@ def Selection( nPop, popSol, popFit ):
 			parents.append( [ popSol[ind1], popSol[ind2] ] )
 		# end
 	else:
-		w = 1
+		# get selection probabilities
+		inds = popFit.argsort() + np.ones(nPop)
+		popProb = np.cumsum( inds/np.sum(inds) )
+		
+#		popFit2 = deepcopy(popFit)
+#		popFit2 = popFit2**2
+#		popProb = np.cumsum( popFit2/np.sum(popFit2) )
+		
+		for i in range(nPop/2):
+			r1 = np.random.uniform(0,1)
+			r2 = np.random.uniform(0,1)
+			
+			ind1 = np.argmax( r1 <= popProb )
+			ind2 = np.argmax( r2 <= popProb )
+			
+			parents.append( [ popSol[ind1], popSol[ind2] ] )
+		# end
+
 	# end
 	parents = np.array(parents)
 	
@@ -547,7 +793,7 @@ def Crossover( nPop, nParam, parents ):
 	
 	popSol = np.zeros((nPop,nParam))
 	
-	if( crossType == 0 ):
+	if(   crossType == 0 ):
 		for i in range(nPop/2):
 			r  = np.random.uniform(0,1)
 			c1 = parents[i,0]*r     + parents[i,1]*(1-r)
@@ -555,8 +801,28 @@ def Crossover( nPop, nParam, parents ):
 			popSol[2*i,:]   = c1
 			popSol[2*i+1,:] = c2
 		# end
-	else:
-		w = 1
+	elif( crossType == 1 ):
+		for i in range(nPop/2):
+			inds = np.random.randint( 2, size=nParam )
+			
+			c1 = np.zeros(nParam)
+			c2 = np.zeros(nParam)
+			for j in range(nParam):
+				c1[j] = parents[i,  inds[j],j]
+				c2[j] = parents[i,1-inds[j],j]
+				"""
+				if( inds[j] == 0 ):
+					c1[j] = parents[i,0,j]
+					c2[j] = parents[i,1,j]
+				else:
+					c1[j] = parents[i,1,j]
+					c2[j] = parents[i,0,j]
+				# end
+				"""
+			# end
+			popSol[2*i,:]   = c1
+			popSol[2*i+1,:] = c2
+		# end
 	# end
 	popSol = np.array(popSol)
 	
@@ -611,7 +877,7 @@ def getCovMatrix( cov, covInit, C, mean, beta, step, burn, nPop, nParam, chainAl
 	
 	# apply mixing
 	if( toMix == 1 ):
-		if( step <= burn ):
+		if( step < burn ):
 			# scale
 			for i in range(nParam):
 				s = np.random.uniform(0,1)
@@ -627,7 +893,7 @@ def getCovMatrix( cov, covInit, C, mean, beta, step, burn, nPop, nParam, chainAl
 					cov[i,i] = (r)**2*covInit[i,i]
 				# end
 			# end
-		elif( step > burn ):
+		elif( step >= burn ):
 			# decompose, normalize
 			w, v = LA.eig(cov)
 			w    = scaleInit*w/np.abs(np.prod(w))**(1.0/nParam)
@@ -660,7 +926,7 @@ def getCovMatrix( cov, covInit, C, mean, beta, step, burn, nPop, nParam, chainAl
 	return cov, mean, C
 # end
 
-def GA( nGen, nPop, nParam, start, xLim, pWidth, nBin, bound, T, toMix, burn, beta, mixAmp, mixProb, scrTM, scrMU, a, b ):
+def GA( nProc, nGen, nPop, nParam, pFit, start, xLim, pWidth, nBin, bound, T, toMix, burn, beta, mixAmp, mixProb, scrTM, scrMU, a, b ):
 	
 	covInit = np.diag(pWidth**2)
 	cov     = np.diag(pWidth**2)
@@ -675,27 +941,24 @@ def GA( nGen, nPop, nParam, start, xLim, pWidth, nBin, bound, T, toMix, burn, be
 	chainF = []
 	
 	# get initial population
-	popSol = getInitPop( nPop, nParam, xLim )
-	popFit = evalPop( nPop, popSol, nParam, nBin, bound, T, scrTM, scrMU, a, b )
+	print "initial solutions"
+	popSol = getInitPop( nPop, nParam, pFit, start, xLim )
+	popFit = evalPop( nProc, nPop, popSol, nParam, nBin, bound, T, scrTM, scrMU, a, b )
+	print " "
 	
 	# add init to all
 	chain = [ popSol ]
-	error = [ popFit ]
+	fit = [ popFit ]
 	for i in range(nPop):
 		chainF.append( popSol[i] )
 	# end
 	
-#	print "min error gen " + str(0) + ": "
+#	print "min fit gen " + str(0) + ": "
 #	print min(popFit)
 	
 	# Random walk
 	for step in range(nGen):
-		print str(step+1) + "/" + str(nGen)
-		
-		for i in range(nPop):
-#			print popSol[i]
-			print popFit[i]
-		# end
+		print "step: " + str(step+1) + "/" + str(nGen)
 		
 		# get covariance matrix
 		cov, mean, C = getCovMatrix( cov, covInit, C, mean, beta, step, burn, nPop, nParam, chainF, popSol, r, scaleInit, toMix, mixProb, mixAmp )
@@ -709,25 +972,25 @@ def GA( nGen, nPop, nParam, start, xLim, pWidth, nBin, bound, T, toMix, burn, be
 		# perform mutation
 		popSol = Mutate( nPop, nParam, popSol, cov, xLim )
 		
-		# calculate errors
-		popFit = evalPop( nPop, popSol, nParam, nBin, bound, T, scrTM, scrMU, a, b )
+		# calculate fits
+		popFit = evalPop( nProc, nPop, popSol, nParam, nBin, bound, T, scrTM, scrMU, a, b )
 		
 		chain.append( popSol )
-		error.append( popFit )
+		fit.append( popFit )
 		for i in range(nPop):
 			chainF.append( popSol[i] )
 		# end
 		
-#		print "min error gen " + str(step+1) + ": "
+#		print "min fit gen " + str(step+1) + ": "
 #		print min(popFit)
 		
 		print " "
 	# end
 	
-	chain  = np.array(chain)
-	error  = np.array(error)
+	chain = np.array(chain)
+	fit   = np.array(fit)
 	
-	return chain, error
+	return chain, fit
 
 # end
 
@@ -744,26 +1007,57 @@ else:
 # end
 """
 
-def cumMin( chain1, error1 ):
+class TaskQueue(Queue.Queue):
 	
-	error2 = []
+	def __init__(self, num_workers=1):
+		Queue.Queue.__init__(self)
+		self.num_workers = num_workers
+		self.start_workers()
+	# end
+	
+	def add_task(self, task, *args, **kwargs):
+		args = args or ()
+		kwargs = kwargs or {}
+		self.put((task, args, kwargs))
+	# end
+	
+	def start_workers(self):
+		for i in range(self.num_workers):
+			t = Thread(target=self.worker)
+			t.daemon = True
+			t.start()
+		# end
+	# end
+	
+	def worker(self):
+		while True:
+			item, args, kwargs = self.get()
+			item(*args, **kwargs)  
+			self.task_done()
+		# end
+	# end
+# end
+
+def cumMin( chain1, fit1 ):
+	
+	fit2 = []
 	chain2 = []
 	
-	curMin = error1[0] + 1
-	for i in range( len(error1) ):
-		if( error1[i] < curMin ):
-			error2.append( error1[i]   )
+	curMax = fit1[0] - 1
+	for i in range( len(fit1) ):
+		if( fit1[i] > curMin ):
+			fit2.append( fit1[i]   )
 			chain2.append( chain1[i,:] )
-			curMin = error1[i]
+			curMin = fit1[i]
 		else:
-			error2.append( error2[-1]   )
+			fit2.append( fit2[-1]   )
 			chain2.append( chain2[-1] )
 		# end
 	# end
-	error2 = np.array(error2)
+	fit2 = np.array(fit2)
 	chain2 = np.array(chain2)
 	
-	return chain2, error2
+	return chain2, fit2
 # end
 
 
@@ -787,9 +1081,7 @@ def equals(a, b):
 
 def print2D(A):
 	
-#	print('\n'.join([' '.join(['{:4}'.format(item) for item in row]) for row in A]))
-#	print('\n'.join([' '.join(['{0:.2f}'.format(item) for item in row]) for row in A]))
-	print('\n'.join([' '.join(['{0:8.4f}'.format(item) for item in row]) for row in A]))
+	print('\n'.join([''.join(['{:4}'.format(item) for item in row]) for row in A]))
 	
 # end
 

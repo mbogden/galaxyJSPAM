@@ -41,71 +41,69 @@ def main():
 	###   VARIABLES   ###
 	#####################
 	
-	toPlot = 1
+	toPlot = 2
 	
-	nParam = 14
 	pFile = "587722984435351614_combined.txt"
+#	pFile = "587729227151704160_combined.txt"
+	
+	toPlot    = 2
+	
+	nBin      = 40		# bin resolution
+	nParam    = 14		# number of SPAM parameters
+	
 	targetInd = 0
 	
-	fileInd = "21"
+	plotUnp = 1
 	
-	shrink = 0.5
-	
-	nHist = 35
-	
-	nBin = 60
-	bound = np.array([	# bin window
-#		[-0.6,0.6],
-#		[-0.4,0.8]])
-		[-19.0, 11.0],
-		[-18.0, 12.0]])
-	
-	# read zoo file
-	data, nModel, nCol = ReadAndCleanupData( pFile )
-	
-	pReal = np.zeros(nParam+7)
-	pReal[0:nParam] = data[targetInd,0:-1]
-	
-	# get parameter stats
-	mins = np.min( data, axis=0 )
-	maxs = np.max( data, axis=0 )
-	stds = np.std( data, axis=0 )
-	
-	xLim = np.zeros((nParam,2))
-	for i in range(nParam):
-		xLim[i,0] = pReal[i] - shrink*(pReal[i] - mins[i])
-		xLim[i,1] = shrink*(maxs[i] - pReal[i]) + pReal[i]
-	# end
-	
-	nKeep = 100
-	orbitR1 = solveOrb( pReal, nParam )
-	nStep, xxx = orbitR1.shape
-	inds1 = map( int, np.linspace(0,nStep-1,nKeep) )
-	orbitR1 = orbitR1[inds1,:]
-	
-	pTrans = deepcopy(pReal)
-	pTrans[2] = -pTrans[2]
-	pTrans[5] = -pTrans[5]
-	nKeep = 100
-	orbitR2 = solveOrb( pTrans, nParam )
-	nStep, xxx = orbitR2.shape
-	inds2 = map( int, np.linspace(0,nStep-1,nKeep) )
-	orbitR2 = orbitR2[inds2,:]
-	
-	print pReal
-	print pTrans
 	
 	
 	###############################
 	###   DATA/INITIALIZATION   ###
 	###############################
 	
-	RVm1, RVu1 = solve( pReal,  nParam, nBin, bound )
-	RVm2, RVu2 = solve( pTrans, nParam, nBin, bound )
+	bound = [	[-7, 13],
+			[-10, 10],
+			[-10, 10] ]
+	bound = np.array(bound)
 	
-	nPts, xxx = RVm1.shape
+	pReal = [	0, 5, 0, 
+			4, 0, 0,
+			1, 30,
+			4, 4,
+			0, 0,
+			0, 0 ]
+	pReal = np.array( pReal )
 	
+	pTrans = deepcopy(pReal)
+	
+	# x symmetry
+#	pTrans[3]  = -pTrans[3]
+	pTrans[12] = 180 + pTrans[12]
+	pTrans[13] = 180 + pTrans[13]
+#	pTrans[10] = 360 - pTrans[10]
+#	pTrans[11] = 360 - pTrans[11]
+	
+	# z symmetry
+#	pTrans[2]  = -pTrans[2]
+#	pTrans[5]  = -pTrans[5]
+#	pTrans[12] = 360 - pTrans[12]
+#	pTrans[13] = 360 - pTrans[13]
+	
+	
+	
+	###############################
+	###   DATA/INITIALIZATION   ###
+	###############################
+	
+	RVm1, RVu1, MR, UR = solve( pReal,  nParam, nBin, bound )
+	RVm2, RVu2, MT, UT = solve( pTrans, nParam, nBin, bound )
+	
+	nPts, xxx = RVm2.shape
 	print nPts
+	
+	orb1 = solveOrb( pReal,  nParam )
+	orb2 = solveOrb( pTrans, nParam )
+	
 	
 	
 	####################
@@ -129,21 +127,31 @@ def main():
 		ax[2].plot( orbitR2[:,0], orbitR2[:,1], orbitR2[:,2], 'm', linewidth=5 )
 		ax[2].plot( [0], [0], [0], 'kX', markersize=14 )
 	elif( toPlot == 2 ):
-		fig = plt.figure()
-		
-		fig, axes = plt.subplots(nrows=1, ncols=3)
+		fig, axes = plt.subplots(nrows=1, ncols=2)
 		ax = axes.flatten()
 		fig.set_size_inches(12,8)
 		
 		ax[0].plot( RVm1[0:nPts/2,0], RVm1[0:nPts/2,1], 'b.' )
 		ax[0].plot( RVm1[nPts/2:-1,0], RVm1[nPts/2:-1,1], 'r.' )
+		ax[0].plot( orb1[:,0], orb1[:,1], 'g', linewidth=3 )
+		ax[0].set_xlim( bound[0,:] )
+		ax[0].set_ylim( bound[1,:] )
 		
 		ax[1].plot( RVm2[0:nPts/2,0], RVm2[0:nPts/2,1], 'b.' )
 		ax[1].plot( RVm2[nPts/2:-1,0], RVm2[nPts/2:-1,1], 'r.' )
+		ax[1].plot( orb2[:,0], orb2[:,1], 'g', linewidth=3 )
+		ax[1].set_xlim( bound[0,:] )
+		ax[1].set_ylim( bound[1,:] )
+	elif( toPlot == 3 ):
+		fig, ax = plt.subplots(nrows=1, ncols=2)
+		ax = ax.flatten()
+		fig.set_size_inches(12,8)
 		
-		ax[2].plot( orbitR1[:,0], orbitR1[:,1], orbitR1[:,2], 'k', linewidth=5 )
-		ax[2].plot( orbitR2[:,0], orbitR2[:,1], orbitR2[:,2], 'm', linewidth=5 )
-		ax[2].plot( [0], [0], [0], 'kX', markersize=14 )
+		ax[0].imshow( np.log(1+MT), cmap='gray', interpolation='none' )
+		ax[0].set_title( "Real" )
+		
+		ax[1].imshow( np.log(1+MR), cmap='gray', interpolation='none' )
+		ax[1].set_title( "Trans" )
 	# end	
 	
 	plt.tight_layout(w_pad=0.0, h_pad=0.0)
@@ -512,11 +520,11 @@ def solve( param, nParam, nBin, bound ):
 		RV_u[j,3:] = 0
 	# end
 	
-#	binC   = BinField( nBin, RV,   bound )
-#	binC_u = BinField( nBin, RV_u, bound )
+	binC   = BinField( nBin, RV,   bound )
+	binC_u = BinField( nBin, RV_u, bound )
 	
 #	return binC, binC_u
-	return RV, RV_u
+	return RV, RV_u, binC, binC_u
 	
 # end
 

@@ -15,19 +15,7 @@ from matplotlib import image as img
 
 import pickle
 import cv2
-import multiprocessing as mp
-import threading as thr
-from threading import Thread
-import os
-import time
-import Queue
 
-from mpl_toolkits.mplot3d import Axes3D
-
-import glob
-
-from math import sin
-from math import cos
 
 
 ##############
@@ -40,30 +28,23 @@ def main():
 	###   VARIABLES   ###
 	#####################
 	
-	toPlot = 8
+	
+	# overlap threshold acts weird when set high relative to particles/bin
+	
 	
 	pFile = "587722984435351614_combined.txt"
+#	pFile = "587729227151704160_combined.txt"
+	
+	nBin      = 80		# bin resolution
+	nParam    = 14		# number of SPAM parameters
+	bound = np.array([	# bin window
+#		[-0.6,0.6],
+#		[-0.4,0.8]])
+		[-19.0, 11.0],
+		[-18.0, 12.0]])
+	
 	targetInd = 0
-	fileInd   = "47"
-	
-	shrink = 1.0
-	
-	# read zoo file
-	data, nModel, nCol = ReadAndCleanupData( pFile )
-	
-	pReal = data[targetInd,0:-1]
-	nParam = len(pReal)
-	
-	# get parameter stats
-	mins = np.min( data, axis=0 )
-	maxs = np.max( data, axis=0 )
-	stds = np.std( data, axis=0 )
-	
-	xLim = np.zeros((nParam,2))
-	for i in range(nParam):
-		xLim[i,0] = pReal[i] - shrink*(pReal[i] - mins[i])
-		xLim[i,1] = shrink*(maxs[i] - pReal[i]) + pReal[i]
-	# end
+	toPlot = 1
 	
 	
 	
@@ -71,106 +52,46 @@ def main():
 	###   DATA/INITIALIZATION   ###
 	###############################
 	
-	chain  = pickle.load( open("solutions_" + fileInd + ".txt", "rb") )
-#	scores = pickle.load( open("scores_"    + fileInd + ".txt", "rb") )
-#	Ms     = pickle.load( open("models_"    + fileInd + ".txt", "rb") )
+	# read zoo file
+	data, nModel, nCol = ReadAndCleanupData( pFile )
 	
-	nGen, nPop, nParam = chain.shape
+	pReal = data[targetInd,0:-1]
 	
-	orbitals = np.zeros((nGen,nPop,7))
-	for i in range(nGen):
-		for j in range(nPop):
-			tmin, dmin, vmin, rmin = solveMod( chain[i,j,:], nParam )
-			inc, argPer, longAN = getOrbitalElements( chain[i,j,:], rmin )
+	# get simulated target
+	T, V = solve( pReal, nParam, nBin, bound )
 	
-			orbitals[i,j,0] = tmin
-			orbitals[i,j,1] = dmin
-			orbitals[i,j,2] = vmin
-			orbitals[i,j,3] = (chain[i,j,6]+chain[i,j,7])/(vmin*dmin**2)
-			orbitals[i,j,4] = inc
-			orbitals[i,j,5] = argPer
-			orbitals[i,j,6] = longAN
-		# end
-		print str(i+1) + "/" + str(nGen)
-	# end
+	####################
+	###   PLOTTING   ###
+	####################
 	
-	pickle.dump( orbitals,   open("elements_" + fileInd + ".txt", "wb") )
+	if( toPlot == 1 ):
+		fig, axes = plt.subplots(nrows=1, ncols=3)
+		axes = axes.flatten()
+		fig.set_size_inches(12,8)
+		
+		axes[0].imshow( np.log(1+T), cmap='gray', interpolation='none' )
+		axes[0].set_title("Model (log scale)")
+		
+		axes[1].imshow( np.log(1+V), cmap='gray', interpolation='none' )
+		axes[1].set_title("Unperturbed model (log scale)")
+		
+		X = T-V
+		m = np.amax(np.abs(X))
+		X[0,0] = -m
+		X[-1,-1] = m
+		
+		axes[2].imshow(           X, cmap='bwr',  interpolation='none' )
+		axes[2].set_title("Difference (M-U)")
+		
+	# end	
 	
+	plt.tight_layout(w_pad=0.0, h_pad=0.0)
+	plt.show()
 	
 	
 ##############
 #  END MAIN  #
 ##############
-
-def getOrbitalElements( pReal, rmin ):
-	
-	pp = pReal[10]*np.pi/180.0
-	sp = pReal[11]*np.pi/180.0
-	pt = pReal[12]*np.pi/180.0
-	st = pReal[13]*np.pi/180.0
-	
-	origin = np.zeros(3)
-	
-	secCen = pReal[0:3]
-#	secCen = RVt[-1,:3]
-	secVel = pReal[3:6]
-#	secVel = RVt[-1,3:]
-	secVm  = ( secVel[0]**2 + secVel[1]**2 + secVel[2]**2 )**0.5
-	secVn  = secVel/secVm
-	
-	pVec   = np.array( [ sin(pt)*cos(pp), sin(pt)*sin(pp), cos(pt) ] )
-	
-	sVec   = np.array( [ sin(st)*cos(sp), sin(st)*sin(sp), cos(st) ] )
-	
-	oVec   = np.cross( secCen, secVel )
-	oVec   = oVec/LA.norm(oVec)
-	
-	inc = math.acos( np.dot( oVec, pVec ) )/np.pi*180.0
-	
-	ascNode = np.cross( pVec, oVec )
-	ascNode = ascNode/LA.norm(ascNode)
-	
-	argPer = math.acos( np.dot( ascNode, rmin[:3]/LA.norm(rmin[:3]) ) )*180.0/np.pi
-	
-	refDir  = np.array( [ cos(pt)*cos(pp), cos(pt)*sin(pp), -sin(pt) ] )
-	
-	xxx = np.cross( refDir, ascNode )
-	yyy = np.dot( pVec, xxx )
-	if( yyy >= 0 ):
-		longAN = math.acos( np.dot( refDir, ascNode ) )*180.0/np.pi
-	else:
-		longAN = 360 - math.acos( np.dot( refDir, ascNode ) )*180.0/np.pi
-	# end
-	
-	return inc, argPer, longAN
-# end
-
-def solveMod( param, nParam ):
-	
-	p = deepcopy(param)
-	
-	# convert mass units
-	r    = p[6]
-	t    = p[7]
-	p[7] = t/(r+1)
-	p[6] = r*p[7]
-	
-#	p[2] = 1000
-	
-	paramStr = ','.join( map(str, p[0:nParam]) )
-	
-	call("./mod_run " + paramStr + " > SolveMetro.out", shell=True)
-	
-	output = np.loadtxt("rmin.txt")
-	
-	tmin = output[0]
-	dmin = output[1]
-	rmin = output[2:]
-	vmin = LA.norm(output[5:])
-	
-	return tmin, dmin, vmin, rmin
-	
-# end
 
 def MachineScore( nBin, binCt, binCm, scr ):
 	
@@ -494,6 +415,8 @@ def getInitPop( nPop, nParam, xLim ):
 
 def evalPop( nPop, popSol, nParam, nBin,  bound, T, scrTM, scrMU, a, b ):
 	
+	print "score         tm          mu2           muM             muT"
+	
 	popFit = []
 	for i in range(nPop):
 #		print popSol[i]
@@ -501,12 +424,17 @@ def evalPop( nPop, popSol, nParam, nBin,  bound, T, scrTM, scrMU, a, b ):
 #		M = np.ones((nBin,nBin))
 #		U = np.ones((nBin,nBin))
 		
-		tmScore = MachineScore( nBin, T, M, scrTM )
+#		tmScore = MachineScore( nBin, T, M, scrTM )
+		tmScore1 = MachineScore( nBin, T, M, 0 )
+		tmScore2 = MachineScore( nBin, T, M, 2 )
 		muScore = MachineScore( nBin, M, U, scrMU )
 		
-		muScore2 = np.exp( -(muScore - a)**2/(2*b**2))
+		muScoreX = np.exp( -(muScore - a)**2/(2*b**2))
+		score = (tmScore1*tmScore2*muScoreX)**(1.0/3.0)
 		
-		popFit.append( tmScore*muScore2 )
+		print score, tmScore1, tmScore2, muScoreX, muScore, a
+		
+		popFit.append( score )
 	# end
 	popFit = np.array(popFit)
 #	print " "
@@ -516,6 +444,7 @@ def evalPop( nPop, popSol, nParam, nBin,  bound, T, scrTM, scrMU, a, b ):
 
 def Selection( nPop, popSol, popFit ):
 	
+	
 	selectType = 0
 	
 	parents = []
@@ -523,6 +452,10 @@ def Selection( nPop, popSol, popFit ):
 	if( selectType == 0 ):
 		# get selection probabilities
 		popProb = np.cumsum( popFit/np.sum(popFit) )
+		
+#		popFit2 = deepcopy(popFit)
+#		popFit2 = popFit2**2
+#		popProb = np.cumsum( popFit2/np.sum(popFit2) )
 		
 		for i in range(nPop/2):
 			r1 = np.random.uniform(0,1)
@@ -533,8 +466,8 @@ def Selection( nPop, popSol, popFit ):
 			
 			parents.append( [ popSol[ind1], popSol[ind2] ] )
 		# end
-	else:
-		w = 1
+	#else:
+	#	w = 1
 	# end
 	parents = np.array(parents)
 	
@@ -543,11 +476,11 @@ def Selection( nPop, popSol, popFit ):
 
 def Crossover( nPop, nParam, parents ):
 	
-	crossType = 0
+	crossType = 1
 	
 	popSol = np.zeros((nPop,nParam))
 	
-	if( crossType == 0 ):
+	if(   crossType == 0 ):
 		for i in range(nPop/2):
 			r  = np.random.uniform(0,1)
 			c1 = parents[i,0]*r     + parents[i,1]*(1-r)
@@ -555,8 +488,28 @@ def Crossover( nPop, nParam, parents ):
 			popSol[2*i,:]   = c1
 			popSol[2*i+1,:] = c2
 		# end
-	else:
-		w = 1
+	elif( crossType == 1 ):
+		for i in range(nPop/2):
+			inds = np.random.randint( 2, size=nParam )
+			
+			c1 = np.zeros(nParam)
+			c2 = np.zeros(nParam)
+			for j in range(nParam):
+				c1[j] = parents[i,  inds[j],j]
+				c2[j] = parents[i,1-inds[j],j]
+				"""
+				if( inds[j] == 0 ):
+					c1[j] = parents[i,0,j]
+					c2[j] = parents[i,1,j]
+				else:
+					c1[j] = parents[i,1,j]
+					c2[j] = parents[i,0,j]
+				# end
+				"""
+			# end
+			popSol[2*i,:]   = c1
+			popSol[2*i+1,:] = c2
+		# end
 	# end
 	popSol = np.array(popSol)
 	
@@ -692,10 +645,10 @@ def GA( nGen, nPop, nParam, start, xLim, pWidth, nBin, bound, T, toMix, burn, be
 	for step in range(nGen):
 		print str(step+1) + "/" + str(nGen)
 		
-		for i in range(nPop):
+#		for i in range(nPop):
 #			print popSol[i]
-			print popFit[i]
-		# end
+#			print popFit[i]
+#		# end
 		
 		# get covariance matrix
 		cov, mean, C = getCovMatrix( cov, covInit, C, mean, beta, step, burn, nPop, nParam, chainF, popSol, r, scaleInit, toMix, mixProb, mixAmp )
@@ -787,9 +740,7 @@ def equals(a, b):
 
 def print2D(A):
 	
-#	print('\n'.join([' '.join(['{:4}'.format(item) for item in row]) for row in A]))
-#	print('\n'.join([' '.join(['{0:.2f}'.format(item) for item in row]) for row in A]))
-	print('\n'.join([' '.join(['{0:8.4f}'.format(item) for item in row]) for row in A]))
+	print('\n'.join([''.join(['{:4}'.format(item) for item in row]) for row in A]))
 	
 # end
 

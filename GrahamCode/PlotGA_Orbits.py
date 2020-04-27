@@ -47,7 +47,7 @@ def main():
 	pFile = "587722984435351614_combined.txt"
 	targetInd = 0
 	
-	fileInd = "21"
+	fileInd = "47"
 	
 	shrink = 0.5
 	
@@ -133,6 +133,7 @@ def main():
 	pBest   = chain[indBest[0],indBest[1],:]
 	
 	print scores[indBest[0],indBest[1]]
+	print chain[indBest[0],indBest[1],:]
 	
 	
 	####################
@@ -458,8 +459,8 @@ def main():
 		z = np.array(z).flatten()
 		c = np.array(c).flatten()
 		
-		thresh = 0.90
-#		thresh = 0.0
+		thresh = 0.0
+		thresh = 0.94
 		inds   = np.where( c >= thresh )
 		inds   = np.array(inds)
 		
@@ -472,6 +473,9 @@ def main():
 		
 		ax.plot( [0], [0], [0], 'kX', markersize=14 )
 		
+		ax.set_xlabel( "x" )
+		ax.set_ylabel( "y" )
+		ax.set_zlabel( "z" )
 		
 		"""
 		for i in range(nGen):

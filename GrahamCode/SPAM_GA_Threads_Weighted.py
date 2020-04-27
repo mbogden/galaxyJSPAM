@@ -22,13 +22,6 @@ import os
 import time
 import Queue
 
-from mpl_toolkits.mplot3d import Axes3D
-
-import glob
-
-from math import sin
-from math import cos
-
 
 
 ##############
@@ -41,43 +34,53 @@ def main():
 	###   VARIABLES   ###
 	#####################
 	
-	toPlot = 11
+	
+	# overlap threshold acts weird when set high relative to particles/bin
 	
 	pFile = "587722984435351614_combined.txt"
-	targetInd = 0
+#	pFile = "587729227151704160_combined.txt"
 	
-	fileInd = "48"
+	toPlot    = 1
 	
-	shrink = 1.0
+	nProc     = 2**3
+	shift     = 0*nProc
 	
-	nHist = 35
+	scrTM     = 8		# which machine score
+	scrMU     = 8		# which machine score
 	
-	nBin = 60
+	nGen      = 2**8	# number of generations
+	nPop      = 2**5	# size of population at each step
+	nBin      = 40		# bin resolution
+	nParam    = 14		# number of SPAM parameters
+	sigScale  = 0.04		# scale param stddev for prop width
+	initScale = 10.0	# scale param limits
 	bound = np.array([	# bin window
 #		[-0.6,0.6],
 #		[-0.4,0.8]])
 		[-19.0, 11.0],
 		[-18.0, 12.0]])
 	
-	# read zoo file
-	data, nModel, nCol = ReadAndCleanupData( pFile )
+	targetInd = 0
 	
-	pReal = data[targetInd,0:-1]
-	nParam = len(pReal)
+	fileInd = "36"
 	
-	# get parameter stats
-	mins = np.min( data, axis=0 )
-	maxs = np.max( data, axis=0 )
-	stds = np.std( data, axis=0 )
+#	pFit = range(2,14)
+#	pFit = [ 3, 4, 5 ]
+	pFit = [ 2, 3, 4, 5, 6, 7, 12, 13 ]
+#	pFit = [ 2, 5, 12, 13 ]
 	
-	xLim = np.zeros((nParam,2))
-	for i in range(nParam):
-		xLim[i,0] = pReal[i] - shrink*(pReal[i] - mins[i])
-		xLim[i,1] = shrink*(maxs[i] - pReal[i]) + pReal[i]
-	# end
+	initSeed = 234329	# random seed for initial params
+#	np.random.seed(initSeed)
 	
+	shrink = 1.00
 	
+	toMix = 1
 	
+	burn = nGen/2**-2
+	beta = 0.001
+	
+	mixProb = np.array( [ 1.0/3.0, 1.0/3.0, 1.0/3.0 ] )
+	mixAmp  = [ 1.0/3.0, 3.0 ]
 	
 	
 	
@@ -85,50 +88,158 @@ def main():
 	###   DATA/INITIALIZATION   ###
 	###############################
 	
-#	chain  = pickle.load( open("solutions.txt", "rb") )
-#	scores = pickle.load( open("scores.txt",    "rb") )
+	# read zoo file
+	data, nModel, nCol = ReadAndCleanupData( pFile )
+	print " "
 	
-	chain  = pickle.load( open("solutions_" + fileInd + ".txt", "rb") )
-	scores = pickle.load( open("scores_"    + fileInd + ".txt", "rb") )
-#	Ms     = pickle.load( open("models_"    + fileInd + ".txt", "rb") )
+	pReal = data[targetInd,0:-1]
+	
+	# get parameter stats
+	mins = np.min( data, axis=0 )[0:-1]
+	maxs = np.max( data, axis=0 )[0:-1]
+#	stds = np.std( data, axis=0 )[0:-1]
+	
+	xLim = np.zeros((nParam,2))
+	for i in range(nParam):
+		if( not ( i == 10 or i == 11 or i == 12 or i == 13 ) ):
+			xLim[i,0] = pReal[i] - shrink*(pReal[i] - mins[i])
+			xLim[i,1] = shrink*(maxs[i] - pReal[i]) + pReal[i]
+		else:
+			xLim[i,0] = pReal[i] - shrink*(pReal[i] - 0)
+			xLim[i,1] = shrink*(360 - pReal[i]) + pReal[i]
+		# end
+	# end
+	
+	"""
+	# manually set
+	# position
+	stds[0]  = 0.0001
+	stds[1]  = 0.0001
+	stds[2]  = 0.7
+	# velocity
+	stds[3]  = 0.1
+	stds[4]  = 0.1
+	stds[5]  = 0.7
+	# mass
+	stds[6]  = 0.1
+	stds[7]  = 0.7
+	# radii
+	stds[8]  = 0.1
+	stds[9]  = 0.1
+	# angles
+	stds[10] = 1.3
+	stds[11] = 1.3
+	stds[12] = 1.3
+	stds[13] = 1.3
+	"""
+	
+	# std is a fraction of width
+	stds = np.zeros(nParam)
+	for i in range(nParam):
+		if i in pFit:
+#			stds[i] = (xLim[i,1]-xLim[i,0])/30.0
+			stds[i] = (xLim[i,1]-xLim[i,0])/1.0
+#			stds[i] = (maxs[i]-mins[i])/1.0
+		else:
+			stds[i] = 0.0001
+		# end
+	# end
+	
+	pWidth = stds*sigScale
+	
+	print "min                 real       max           pWidth"
+	for i in range(nParam):
+		print xLim[i,0], pReal[i], xLim[i,1], pWidth[i]
+	# end
+	print " "
+	
+	# get simulated target
+	T, V, RVt, RVv = solve( pReal, nParam, nBin, bound, "00" )
+	
+	nPts, xxx = RVt.shape
+	
+	# find target perturbedness
+	muScore = MachineScore( nBin, T, V, scrMU )
+	
+	a = muScore
+	b = 0.15
+	
+	
+	
+	##############
+	###   GA   ###
+	##############
+	
+	# RUN GA -------------
+	chain, scores, M = GA( nProc, nGen, nPop, nParam, pFit, pReal, xLim, pWidth, nBin, bound, T, toMix, burn, beta, mixAmp, mixProb, scrTM, scrMU, a, b, shift )
+	
+	pickle.dump( chain,   open("solutions_" + fileInd + ".txt", "wb") )
+	pickle.dump( scores,  open("scores_"    + fileInd + ".txt", "wb") )
+	pickle.dump(      M,  open("models_"    + fileInd + ".txt", "wb") )
+	
+	
+	
+	####################
+	###   ANALYSIS   ###
+	####################
 	
 	nGen, nPop, nParam = chain.shape
-	print chain.shape
 	
 	indBest = np.unravel_index( np.argmax(scores, axis=None), scores.shape )
 	pBest   = chain[indBest[0],indBest[1],:]
-	
 	print scores[indBest[0],indBest[1]]
+	
+	print M.shape
+	
+	h       = 0
+	M[M>h]  = 1
+	M[M<=h] = 0
+	
+	"""
+	X = np.zeros((nBin,nBin))
+	for i in range(nBin):
+		for j in range(nBin):
+			X[j,i] = np.sum(M[:,:,j,i])/(1.0*nPop*nGen)
+		# end
+	# end
+	print X
+	"""
+	
+	X = np.zeros((nBin,nBin))
+	for i in range(nBin):
+		for j in range(nBin):
+			X[j,i] = np.sum(M[:,:,j,i])/(1.0*nPop*nGen)
+		# end
+	# end
+	print X
+	
+	
+	
 	
 	
 	####################
 	###   PLOTTING   ###
 	####################
 	
-	labels = [ 'x', 'y', 'z', 'vx', 'vy', 'vz', 'mf', 'mt', 'rp', 'rs', 'pp', 'ps', 'tp', 'ts' ]
+	labels = [ 'x', 'y', 'z', 'vx', 'vy', 'vz', 'mr', 'mt', 'rp', 'rs', 'pp', 'ps', 'tp', 'ts' ]
 	
 	if(   toPlot == 1 ):
-#		fig, axes = plt.subplots(nrows=4, ncols=4)
-		fig, axes = plt.subplots(nrows=3, ncols=4)
+		fig, axes = plt.subplots(nrows=4, ncols=4)
 		axes = axes.flatten()
 		fig.set_size_inches(12,8)
 		
 		ind = 0
-#		for i in range(nParam+1):
-		for i in [2,3,4,5,6,7,8,9,12,13,14]:
-			if(   i < nParam ):
-				axes[ind].plot( np.sort( chain[:,:,i], axis=1), 'b.' )
-#				axes[ind].plot(  xLim[i,0]*np.ones(nGen+1), 'g' )
-#				axes[ind].plot(  xLim[i,1]*np.ones(nGen+1), 'g' )
-				axes[ind].plot( pReal[i]*np.ones(nGen+1), 'r-', linewidth=2 )
-				axes[ind].plot( pBest[i]*np.ones(nGen+1), 'g--', linewidth=3 )
-				axes[ind].set_ylabel( labels[i] )
-				axes[ind].set_xlabel( "generation" )
-			elif( i == nParam ):
+		for i in range(nParam+1):
+			if(   ind < nParam ):
+				axes[ind].plot( np.sort( chain[:,:,ind], axis=1), 'b.' )
+				axes[ind].plot(  xLim[ind,0]*np.ones(nGen+1), 'g-' )
+				axes[ind].plot(  xLim[ind,1]*np.ones(nGen+1), 'g-' )
+				axes[ind].plot( pReal[ind]*np.ones(nGen+1), 'r-' )
+				axes[ind].plot( pBest[ind]*np.ones(nGen+1), 'k-' )
+				axes[ind].set_ylabel( labels[ind] )
+			elif( ind == nParam ):
 				axes[ind].plot( np.sort( scores, axis=1), 'r.' )
-				axes[ind].set_ylim( [0,       1      ] )
-				axes[ind].set_ylabel( "scores" )
-				axes[ind].set_xlabel( "generation" )
+				axes[i].set_ylim( [0,       1      ] )
 			# end
 			ind += 1
 		# end
@@ -136,15 +247,6 @@ def main():
 		fig, axes = plt.subplots(nrows=4, ncols=4)
 		axes = axes.flatten()
 		fig.set_size_inches(12,8)
-		
-		scores = (scores/np.amax(scores))**2
-		
-#		r    = chain[:,:,6]
-#		t    = chain[:,:,7]
-#		m2 = t/(r+1)
-#		m1 = r*m2
-#		mred = m1*m2/(m1+m2)
-#		vred = chain[:,:,4]/mred**0.5
 		
 		for i in range(nParam):
 			axes[i].plot( chain[:,:,i].flatten(), scores.flatten(), 'b.' )
@@ -155,33 +257,21 @@ def main():
 			axes[i].set_ylim( [0,       1      ] )
 			axes[i].set_xlabel( labels[i] )
 		# end
-		
-#		axes[14].plot( vred.flatten(), scores.flatten(), 'b.' )
-#		axes[14].plot( m1.flatten(), scores.flatten(), 'b.' )
-#		axes[15].plot( m2.flatten(), scores.flatten(), 'b.' )
 	elif( toPlot == 3 ):
 		fig, axes = plt.subplots(nrows=2, ncols=3)
 #		axes = axes.flatten()
 		fig.set_size_inches(12,8)
 		
-		T, V = solve( pReal, nParam, nBin, bound )
-#		axes[0,0].imshow( T,           interpolation="none", cmap="gray" )
-		axes[0,0].imshow( np.log(1+T), interpolation="none", cmap="gray" )
+#		T, V = solve( pReal, nParam, nBin, bound, "00" )
+		axes[0,0].imshow( T,           interpolation="none", cmap="gray" )
 		axes[0,0].set_title("T")
 		
-		M, U = solve( pBest, nParam, nBin, bound )
-#		axes[0,1].imshow( M,           interpolation="none", cmap="gray" )
-		axes[0,1].imshow( np.log(1+M), interpolation="none", cmap="gray" )
+		M, U, RVm, RVu = solve( pBest, nParam, nBin, bound, "00" )
+		axes[0,1].imshow( M,           interpolation="none", cmap="gray" )
 		axes[0,1].set_title("M")
 		
 		axes[0,2].imshow( T-M, interpolation="none", cmap="bwr" )
 		axes[0,2].set_title("T-M")
-		
-		scrTM     = 4		# which machine score
-		scrMU     = 4		# which machine score
-		
-		a = MachineScore( nBin, T, V, scrMU )
-		b = 0.13
 		
 		tmScore = MachineScore( nBin, T, M, scrTM )
 		muScore = MachineScore( nBin, M, U, scrMU )
@@ -200,309 +290,20 @@ def main():
 		axes[1,2].imshow( T-M, interpolation="none", cmap="bwr" )
 		axes[1,2].set_title("T-M")
 	elif( toPlot == 4 ):
-		fig, axes = plt.subplots(nrows=4, ncols=4)
+		fig, axes = plt.subplots(nrows=1, ncols=2)
 		axes = axes.flatten()
-		fig.set_size_inches(12,8)
+		fig.set_size_inches(9,6)
 		
-		thresh = 0.78
-		inds   = np.where( scores >= thresh )
-		inds   = np.array(inds)
+		axes[0].plot( RVt[0:nPts/2,0],  RVt[0:nPts/2,1],  'b.' )
+		axes[0].plot( RVt[nPts/2:-1,0], RVt[nPts/2:-1,1], 'r.' )
 		
-		params = []
-		for i in [2,3,4,5,6,7,8,9,12,13]:
-			params.append( chain[inds[0,:],inds[1,:],i] )
-		# end
-		params = np.array(params)
-		
-		rho = np.corrcoef( params )
-		print2D( rho )
-		
-		w, v = LA.eig( rho )
-		print w
-		print2D( v )
-		
-		for i in range(nParam):
-			axes[i].plot( chain[inds[0,:],inds[1,:],i].flatten(), scores[inds[0,:],inds[1,:]].flatten(), 'b.' )
-			
-			axes[i].plot( [ pReal[i], pReal[i] ], [0, 1], 'r--' )
-			
-			axes[i].set_xlim( [xLim[i,0], xLim[i,1]] )
-			axes[i].set_ylim( [0,       1      ] )
-			axes[i].set_xlabel( labels[i] )
-		# end
+		axes[1].plot( RVv[0:nPts/2,0],  RVv[0:nPts/2,1],  'b.' )
+		axes[1].plot( RVv[nPts/2:-1,0], RVv[nPts/2:-1,1], 'r.' )
 	elif( toPlot == 5 ):
-		fig, axes = plt.subplots(nrows=4, ncols=4)
-		axes = axes.flatten()
-		fig.set_size_inches(12,8)
-		
-		for i in range(nParam):
-			x, y = np.histogram( chain[:,:,i].flatten(), nHist )
-			M = max(x)
-			axes[i].hist( chain[:,:,i].flatten(), nHist )
-			
-			axes[i].plot( [ pReal[i], pReal[i] ], [0, M], 'r-' )
-			axes[i].plot( [ pBest[i], pBest[i] ], [0, M], 'k-' )
-			
-			axes[i].set_xlim( [xLim[i,0], xLim[i,1]] )
-			axes[i].set_xlabel( labels[i] )
-		# end
-	elif( toPlot == 6 ):
-		print np.histogram( scores.flatten(), nHist )
-		plt.hist( scores.flatten(), nHist )
-		plt.xlim( [0,       1      ] )
-	elif( toPlot == 7 ):
-#		pList = [2,3,4,5,6,7]
-#		pList = [2,3,4,5,6,7,12,13]
-#		pList = [2,5]
-#		pList = [2,5,6,7]
-#		pList = [2,5,12,13]
-		pList = [2,3,4,5,6,12,13]
-#		pList = [3,4,5,7,8,9]
-#		pList = range(2,14)
-		
-		fig, axes = plt.subplots(nrows=len(pList), ncols=len(pList))
-#		axes = axes.flatten()
-		fig.set_size_inches(12,8)
-		
-		thresh = 0.0
-#		thresh = 0.78
-		inds   = np.where( scores >= thresh )
-#		inds   = np.where( scores <= thresh )
-		inds   = np.array(inds)
-		
-		print np.array(inds.shape)[1]
-		
-#		inds   = np.where( chain[:,:,12] < 100 )
-#		inds   = np.array(inds)
-		
-		scores = (scores/np.amax(scores))**2
-		
-		params = []
-		for i in pList:
-			params.append( chain[inds[0,:],inds[1,:],i] )
-		# end
-		params = np.array(params)
-		
-		rho = np.corrcoef( params )
-		print2D( rho )
-		
-		w, v = LA.eig( rho )
-		print w
-#		print2D( v )
-		
-		print pReal
-		
-		ii = 0
-		for i in pList:
-			jj = 0
-			for j in pList:
-				II = axes[jj,ii].scatter( params[ii,:], params[jj,:], c=scores[inds[0,:],inds[1,:]], s=8, cmap='jet' )
-				
-				axes[jj,ii].plot( pReal[i], pReal[j], 'kX' )
-				
-				II.set_clim( [ 0.0, 1.0 ] )
-				if( ii == len(pList)-1 ):
-					cbar = fig.colorbar( II, ax=axes[jj,ii] )
-				# end
-				
-#				axes[jj,ii].set_xlim( [xLim[i,0], xLim[i,1]] )
-#				axes[jj,ii].set_ylim( [xLim[j,0], xLim[j,1]] )
-				if( jj == len(pList)-1 ):
-					axes[jj,ii].set_xlabel( labels[i] )
-				else:
-					axes[jj,ii].set_xticks([],[])
-				# end
-				if( ii == 0 ):
-					axes[jj,ii].set_ylabel( labels[j] )
-				else:
-					axes[jj,ii].set_yticks([],[])
-				# end
-				
-				jj += 1
-			# end
-			
-			ii += 1
-		# end
-		
-		plt.tight_layout( w_pad=-0.1, h_pad=-0.5 )
-	elif( toPlot == 8 ):
-		pList = [2,3,4,5,6,7]
-		
-		fig, axes = plt.subplots(nrows=len(pList), ncols=len(pList))
-#		axes = axes.flatten()
-		fig.set_size_inches(12,8)
-		
-		nn = 20
-		
-		for kk in range(nn):
-			thresh = 1 - np.amax(scores)*kk/(nn-1.0)
-			inds   = np.where( scores >= thresh )
-#			inds   = np.where( scores <= thresh )
-			inds   = np.array(inds)
-			print np.array(inds.shape)[1], thresh
-			
-#			scores = (scores/np.amax(scores))**2
-			
-			params = []
-			for i in pList:
-				params.append( chain[inds[0,:],inds[1,:],i] )
-			# end
-			params = np.array(params)
-			
-			ii = 0
-			for i in pList:
-				jj = 0
-				for j in pList:
-					axes[jj,ii].clear()
-					
-#					II = axes[jj,ii].scatter( params[ii,:], params[jj,:], c=scores[inds[0,:],inds[1,:]], s=2, cmap='jet' )
-					II = axes[jj,ii].scatter( params[ii,:], params[jj,:], c=(scores[inds[0,:],inds[1,:]]/np.amax(scores))**2, s=2, cmap='jet' )
-					
-					axes[jj,ii].plot( pReal[i], pReal[j], 'kX' )
-					
-					II.set_clim( [ 0.0, 1.0 ] )
-#					if( ii == len(pList)-1 ):
-#						cbar = fig.colorbar( II, ax=axes[jj,ii] )
-					# end
-					
-					axes[jj,ii].set_xlim( [xLim[i,0], xLim[i,1]] )
-					axes[jj,ii].set_ylim( [xLim[j,0], xLim[j,1]] )
-					if( jj == len(pList)-1 ):
-						axes[jj,ii].set_xlabel( labels[i] )
-					# end
-					if( ii == 0 ):
-						axes[jj,ii].set_ylabel( labels[j] )
-					# end
-					
-					jj += 1
-				# end
-				
-				ii += 1
-			# end
-			plt.pause(3.0)
-		# end
-	elif( toPlot == 9 ):
-		print Ms.shape
-		
-		h1         = 0
-		Ms[Ms>h1]  = 1
-		Ms[Ms<=h1] = 0
-		
-		h2         = 0.91
-		
-		tot = 0
-		X = np.zeros((nBin,nBin))
-		for i in range(nPop):
-			for j in range(nGen):
-				if( scores[j,i] >= h2 ):
-					X += Ms[j,i,:,:]
-					tot += 1
-				# end
-			# end
-		# end
-		X = X/tot
-		print tot
-		print X
-		
 		plt.imshow( X, interpolation="none", cmap="gray" )
-	elif( toPlot == 10 ):
-		fig, axes = plt.subplots(nrows=2, ncols=1)
-		axes = axes.flatten()
-		fig.set_size_inches(12,8)
-		
-		T, V = solve( pReal, nParam, nBin, bound )
-		axes[0].imshow( np.log(1+T), interpolation="none", cmap="gray" )
-		axes[0].set_title("Target (log scale)")
-		
-		M, U = solve( pBest, nParam, nBin, bound )
-		axes[1].imshow( np.log(1+M), interpolation="none", cmap="gray" )
-		axes[1].set_title("Best model found (log scale)")
-	elif( toPlot == 11 ):
-#		fig, axes = plt.subplots(nrows=4, ncols=4)
-		fig, axes = plt.subplots(nrows=3, ncols=4)
-		axes = axes.flatten()
-		fig.set_size_inches(12,8)
-		
-		gens = []
-		for i in range(nGen):
-			gens.append( i*np.ones(nPop) )
-		# end
-		gens = np.array(gens)
-		
-		print gens.shape
-		print chain[:,:,0].shape
-		
-		ind = 0
-#		for i in range(nParam+1):
-		for i in [2,3,4,5,6,7,8,9,12,13,14]:
-			if(   i < nParam ):
-#				axes[ind].plot( chain[:,:,i], 'b.' )
-				II = axes[ind].scatter( gens.flatten(), chain[:,:,i].flatten(), c=scores.flatten(), s=8, cmap='jet' )
-				
-				II.set_clim( [ 0.0, 1.0 ] )
-				
-				axes[ind].plot( pReal[i]*np.ones(nGen+1), 'r-', linewidth=2 )
-				axes[ind].plot( pBest[i]*np.ones(nGen+1), 'g--', linewidth=3 )
-				axes[ind].set_ylabel( labels[i] )
-				axes[ind].set_xlabel( "generation" )
-			elif( i == nParam ):
-				II = axes[ind].scatter( gens.flatten(), scores.flatten(), c=scores.flatten(), s=8, cmap='jet' )
-				II.set_clim( [ 0.0, 1.0 ] )
-				
-				axes[ind].set_ylim( [0,       1      ] )
-				axes[ind].set_ylabel( "scores" )
-				axes[ind].set_xlabel( "generation" )
-			# end
-			ind += 1
-		# end
-	elif( toPlot == 12 ):
-		pList = [2,5]
-		
-		fig, axes = plt.subplots(nrows=len(pList), ncols=len(pList))
-#		axes = axes.flatten()
-		fig.set_size_inches(12,8)
-		
-		gens = []
-		for i in range(nGen):
-			gens.append( i*np.ones(nPop) )
-		# end
-		gens = np.array(gens)
-		
-		for kk in range(nGen):
-			ii = 0
-			for i in pList:
-				jj = 0
-				for j in pList:
-					axes[jj,ii].clear()
-					
-					II = axes[jj,ii].scatter( chain[0:kk,:,i].flatten(), chain[0:kk,:,j].flatten(), c=scores[0:kk,:].flatten(), s=8, cmap='jet' )
-					
-					axes[jj,ii].plot( pReal[i], pReal[j], 'kX' )
-					
-					II.set_clim( [ 0.0, 1.0 ] )
-					
-					axes[jj,ii].set_xlim( [xLim[i,0], xLim[i,1]] )
-					axes[jj,ii].set_ylim( [xLim[j,0], xLim[j,1]] )
-					if( jj == len(pList)-1 ):
-						axes[jj,ii].set_xlabel( labels[i] )
-					# end
-					if( ii == 0 ):
-						axes[jj,ii].set_ylabel( labels[j] )
-					# end
-					
-					jj += 1
-				# end
-				
-				ii += 1
-			# end
-			plt.pause(0.1)
-		# end
 	# end	
 	
-	if( toPlot != 7 ):
-		plt.tight_layout( w_pad=0.5, h_pad=0.5 )
-#		plt.tight_layout( w_pad=-1.0, h_pad=0.5 )
-	# end
+	plt.tight_layout(w_pad=0.0, h_pad=0.0)
 	plt.show()
 	
 	
@@ -516,9 +317,10 @@ def MachineScore( nBin, binCt, binCm, scr ):
 	M = deepcopy(binCm)
 	
 	if( scr == 0 ):
+		"""
 		mm = max( 1.0*np.amax(binCt), 1.0*np.amax(M) )
 		
-		tmScore = 1.0
+		tmScore = 0.0
 		for i in range(nBin):
 			for j in range(nBin):
 				tmScore += ( T[i,j] - M[i,j] )**2
@@ -527,6 +329,24 @@ def MachineScore( nBin, binCt, binCm, scr ):
 		tmScore /= 1.0*nBin**2
 		tmScore /= 1.0*mm**2
 		tmScore = ( 1 - tmScore**0.5 )**2
+		"""
+		
+		X = binCt/np.amax(binCt)
+		Y = binCm/np.amax(binCm)
+		
+		X = np.log(1+X)
+		Y = np.log(1+Y)
+		
+		tmScore = 0.0
+		for i in range(nBin):
+			for j in range(nBin):
+				tmScore += ( X[i,j] - Y[i,j] )**2
+			# end
+		# end
+		
+#		s = 4
+		s = 3
+		tmScore = np.exp( - tmScore/(2*s**2) )
 	elif( scr == 1 ):
 		h = 0
 		
@@ -710,6 +530,11 @@ def MachineScore( nBin, binCt, binCm, scr ):
 		tmScore = ( (MM[6] - MT[6])/(MT[6]))**2 + 3*( (MM[7] - MT[7])/(MT[7]))**2 + 3*((MM[8] - MT[8])/(MT[8]))**2 + ((MM[9] - MT[9])/(MT[9]))**2
 		
 		tmScore = np.exp(-tmScore**1/20**2)
+	elif( scr == 8 ):
+		T = T.flatten()
+		M = M.flatten()
+		
+		tmScore = np.corrcoef( np.log(1+T), np.log(1+M) )[0,1]
 	# end
 	
 	return tmScore
@@ -737,9 +562,9 @@ def ReadAndCleanupData( filePath ):
 	data2 = data2[:,cols]
 	
 	# convert p,s mass to ratio,total mass
+	r = data2[:,6] / data2[:,7]
 	t = data2[:,6] + data2[:,7]
-	f = data2[:,6] / t
-	data2[:,6] = f
+	data2[:,6] = r
 	data2[:,7] = t
 	
 	data2 = np.array( data2, dtype=np.float32 )
@@ -748,7 +573,7 @@ def ReadAndCleanupData( filePath ):
 	
 # end
 
-def solve( param, nParam, nBin, bound ):
+def solve( param, nParam, nBin, bound, fileInd ):
 	
 	p = deepcopy(param)
 	
@@ -762,11 +587,20 @@ def solve( param, nParam, nBin, bound ):
 	
 	paramStr = ','.join( map(str, p[0:nParam]) )
 	
+	# old idk	
 #	call("./basic_run " + paramStr + "", shell=True)
-	call("./basic_run_unpreturbed " + paramStr + " > SolveMetro.out", shell=True)
+	# no flag
+#	call("./basic_run_unpreturbed " + paramStr + " > SolveMetro.out", shell=True)
+	# with flag
+	call("./basic_run_unpreturbed -o " + fileInd + " " + paramStr + " > SolveMetro.out", shell=True)
 	
-	RV   = np.loadtxt("a.101")
-	RV_u = np.loadtxt("a.000")
+	# no flag
+#	RV   = np.loadtxt("a.101")
+#	RV_u = np.loadtxt("a.000")
+	
+	# with flag
+	RV   = np.loadtxt("basic_"     + fileInd + ".out")
+	RV_u = np.loadtxt("basic_unp_" + fileInd + ".out")
 #	print RV_u[0,:]
 	
 	dr = RV[-1,0:3]-RV_u[-1,0:3]
@@ -779,8 +613,62 @@ def solve( param, nParam, nBin, bound ):
 	binC   = BinField( nBin, RV,   bound )
 	binC_u = BinField( nBin, RV_u, bound )
 	
-	return binC, binC_u
+	return binC, binC_u, RV, RV_u
 	
+# end
+
+def solve_parallel( XXX, nParam, nBin, bound, scrTM, scrMU, a, b, fileInd, qOut ):
+	
+	index = XXX[0]
+	param = XXX[1]
+	
+	p = deepcopy(param)
+	
+	# convert mass units
+	r    = p[6]
+	t    = p[7]
+	p[7] = t/(r+1)
+	p[6] = r*p[7]
+	
+#	p[2] = 1000
+	
+	paramStr = ','.join( map(str, p[0:nParam]) )
+	
+	# old idk	
+#	call("./basic_run " + paramStr + "", shell=True)
+	# no flag
+#	call("./basic_run_unpreturbed " + paramStr + " > SolveMetro.out", shell=True)
+	# with flag
+	call("./basic_run_unpreturbed -o " + fileInd + " " + paramStr + " > SolveMetro.out", shell=True)
+	
+	# no flag
+#	RV   = np.loadtxt("a.101")
+#	RV_u = np.loadtxt("a.000")
+	
+	# with flag
+	RV   = np.loadtxt("basic_"     + fileInd + ".out")
+	RV_u = np.loadtxt("basic_unp_" + fileInd + ".out")
+#	print RV_u[0,:]
+	
+	dr = RV[-1,0:3]-RV_u[-1,0:3]
+	for i in range(len(RV)/2+1):
+		j = i + len(RV)/2
+		RV_u[j,0:3] = RV_u[j,0:3] + dr
+		RV_u[j,3:] = 0
+	# end
+	
+	M = BinField( nBin, RV,   bound )
+	U = BinField( nBin, RV_u, bound )
+	
+#	tmScore  = MachineScore( nBin, T, M, scrTM )
+#	muScore  = MachineScore( nBin, M, U, scrMU )
+#	muScoreX = np.exp( -(muScore - a)**2/(2*b**2))
+#	score    = (tmScore*muScoreX)**(1.0/2.0)
+	
+	qOut.put( [index, M, U] )
+	
+	return M, U
+#	return score
 # end
 
 def BinField( nBin, RV, bound ):
@@ -814,55 +702,146 @@ def BinField( nBin, RV, bound ):
 	
 # end
 
-def getInitPop( nPop, nParam, xLim ):
+def getInitPop( nPop, nParam, pFit, pReal, xLim ):
 	
-	# get initial population
+	initType = 0
+	
 	popSol = []
-	for i in range(nPop):
-		x = np.zeros(nParam)
-		for j in range(nParam):
-			x[j] = np.random.uniform( xLim[j,0], xLim[j,1] )
+	
+	if( initType == 0 ):
+		for i in range(nPop):
+			x = np.zeros(nParam)
+			for j in range(nParam):
+				if j in pFit:
+					x[j] = np.random.uniform( xLim[j,0], xLim[j,1] )
+				else:
+					x[j] = pReal[j]
+				# end
+			# end
+			popSol.append( x )
 		# end
-		popSol.append( x )
+	else:
+		R = []
+		for j in range(nParam):
+			R.append( np.linspace( xLim[j,0], xLim[j,1], nPop ) )
+		# end
+		R = np.array(R)
+		
+		for i in range(nPop):
+			x = np.zeros(nParam)
+			for j in range(nParam):
+				if j in pFit:
+					x[j] = R[j][i]
+				else:
+					x[j] = pReal[j]
+				# end
+			# end
+			popSol.append( x )
+		# end
 	# end
+	
 	popSol = np.array(popSol)
 	
 	return popSol
 # end
 
-def evalPop( nPop, popSol, nParam, nBin,  bound, T, scrTM, scrMU, a, b ):
+def evalPop( nProc, nPop, popSol, nParam, nBin, bound, T, scrTM, scrMU, a, b, shift ):
+	
+	qJob = TaskQueue(num_workers=nProc)
+	qOut = Queue.Queue()
+	
+	for j in range(nPop):
+		i = j + shift
+		
+		if( i < 10 ):
+			fileInd = "00" + str(i)
+		elif( i < 100 ):
+			fileInd =  "0" + str(i)
+		else:
+			fileInd =        str(i)
+		# end
+		
+		qJob.add_task( solve_parallel, [j, popSol[j,:]], nParam, nBin, bound, scrTM, scrMU, a, b, fileInd, qOut )
+	# end
+	
+	qJob.join()
+	
+	out  = []
+	inds = []
+	for i in range(nPop):
+		out.append( qOut.get() )
+		inds.append( out[i][0] )
+	# end
+	inds = np.argsort(inds)
+	
+	M = []
+	U = []
+	for i in range(nPop):
+		M.append( out[inds[i]][1] )
+		U.append( out[inds[i]][2] )
+	# end
 	
 	popFit = []
 	for i in range(nPop):
-#		print popSol[i]
-		M, U = solve( popSol[i,:], nParam, nBin, bound )
-#		M = np.ones((nBin,nBin))
-#		U = np.ones((nBin,nBin))
+		tmScore  = MachineScore( nBin,    T, M[i], scrTM )
+		muScore  = MachineScore( nBin, M[i], U[i], scrMU )
+		muScoreX = np.exp( -(muScore - a)**2/(2*b**2) )
+		score    = (tmScore*muScoreX)**(1.0/1.0)
 		
-		tmScore = MachineScore( nBin, T, M, scrTM )
-		muScore = MachineScore( nBin, M, U, scrMU )
+		print score, tmScore, muScoreX, muScore, a
 		
-		muScore2 = np.exp( -(muScore - a)**2/(2*b**2))
-		
-		popFit.append( tmScore*muScore2 )
+		popFit.append( score )
 	# end
 	popFit = np.array(popFit)
-#	print " "
 	
-	return popFit
+	return popFit, M
 # end
 
 def Selection( nPop, popSol, popFit ):
 	
 	selectType = 0
 	
-	parents = []
+	parSol = []
+	parFit = []
 	
 	if( selectType == 0 ):
 		# get selection probabilities
-		popProb = np.cumsum( popFit/np.sum(popFit) )
+#		popProb = np.cumsum( popFit/np.sum(popFit) )
 		
-		for i in range(nPop/2):
+		xxx = popFit**2
+		xxx = xxx/np.sum(xxx)
+#		print xxx
+		
+		popProb = np.cumsum( xxx )
+		
+#		popFit2 = deepcopy(popFit)
+#		popFit2 = popFit2**2
+#		popProb = np.cumsum( popFit2/np.sum(popFit2) )
+		
+#		arg = np.argmax(popFit)
+#		parents.append( [ popSol[arg], popSol[arg] ] )
+		
+		for i in range(nPop):
+#		for i in range(nPop-1):
+			r1 = np.random.uniform(0,1)
+			r2 = np.random.uniform(0,1)
+			
+			ind1 = np.argmax( r1 <= popProb )
+			ind2 = np.argmax( r2 <= popProb )
+			
+			parSol.append( [ popSol[ind1], popSol[ind2] ] )
+			parFit.append( [ popFit[ind1], popFit[ind2] ] )
+		# end
+	else:
+		# get selection probabilities
+		inds = popFit.argsort() + np.ones(nPop)
+		popProb = np.cumsum( inds/np.sum(inds) )
+		
+#		popFit2 = deepcopy(popFit)
+#		popFit2 = popFit2**2
+#		popProb = np.cumsum( popFit2/np.sum(popFit2) )
+		
+		for i in range(nPop):
 			r1 = np.random.uniform(0,1)
 			r2 = np.random.uniform(0,1)
 			
@@ -871,30 +850,37 @@ def Selection( nPop, popSol, popFit ):
 			
 			parents.append( [ popSol[ind1], popSol[ind2] ] )
 		# end
-	else:
-		w = 1
+
 	# end
-	parents = np.array(parents)
+	parSol = np.array(parSol)
+	parFit = np.array(parFit)
 	
-	return parents
+	return parSol, parFit
 # end
 
-def Crossover( nPop, nParam, parents ):
+def Crossover( nPop, nParam, parSol, parFit ):
 	
-	crossType = 0
+	crossType = 1
 	
 	popSol = np.zeros((nPop,nParam))
 	
-	if( crossType == 0 ):
-		for i in range(nPop/2):
-			r  = np.random.uniform(0,1)
-			c1 = parents[i,0]*r     + parents[i,1]*(1-r)
-			c2 = parents[i,0]*(1-r) + parents[i,1]*r
-			popSol[2*i,:]   = c1
-			popSol[2*i+1,:] = c2
+	if(   crossType == 0 ):
+		for i in range(nPop):
+			r0 = parFit[i,0]/(parFit[i,0]+parFit[i,1])
+			r1 = parFit[i,1]/(parFit[i,0]+parFit[i,1])
+			c  = parSol[i,0]*r0 + parSol[i,1]*r1
+			popSol[i,:] = c
 		# end
-	else:
-		w = 1
+	elif( crossType == 1 ):
+		for i in range(nPop):
+			inds = np.random.randint( 2, size=nParam )
+			
+			c1 = np.zeros(nParam)
+			for j in range(nParam):
+				c1[j] = parSol[i,inds[j],j]
+			# end
+			popSol[i,:] = c1
+		# end
 	# end
 	popSol = np.array(popSol)
 	
@@ -903,6 +889,22 @@ def Crossover( nPop, nParam, parents ):
 
 def Mutate( nPop, nParam, popSol, cov, xLim ):
 	
+	popSol2 = np.zeros((nPop,nParam))
+	for i in range(nPop):
+		x = np.random.multivariate_normal(mean=popSol[i,:],cov=cov,size=1)[0]
+		
+		for j in range(nParam):
+			if(   xLim[j,0] > x[j] ):
+				popSol2[i,j] = 0.5*( xLim[j,0] + popSol[i,j] )
+			elif( xLim[j,1] < x[j] ):
+				popSol2[i,j] = 0.5*( xLim[j,1] + popSol[i,j] )
+			else:
+				popSol2[i,j] = x[j]
+			# end
+		# end
+	# end
+	
+	"""
 	popSol2 = np.zeros((nPop,nParam))
 	for i in range(nPop):
 		popSol2[i,:] = np.random.multivariate_normal(mean=popSol[i,:],cov=cov,size=1)[0]
@@ -915,6 +917,7 @@ def Mutate( nPop, nParam, popSol, cov, xLim ):
 			# end
 		# end
 	# end
+	"""
 	
 	return popSol2
 # end
@@ -949,7 +952,7 @@ def getCovMatrix( cov, covInit, C, mean, beta, step, burn, nPop, nParam, chainAl
 	
 	# apply mixing
 	if( toMix == 1 ):
-		if( step <= burn ):
+		if( step < burn ):
 			# scale
 			for i in range(nParam):
 				s = np.random.uniform(0,1)
@@ -965,7 +968,7 @@ def getCovMatrix( cov, covInit, C, mean, beta, step, burn, nPop, nParam, chainAl
 					cov[i,i] = (r)**2*covInit[i,i]
 				# end
 			# end
-		elif( step > burn ):
+		elif( step >= burn ):
 			# decompose, normalize
 			w, v = LA.eig(cov)
 			w    = scaleInit*w/np.abs(np.prod(w))**(1.0/nParam)
@@ -998,7 +1001,7 @@ def getCovMatrix( cov, covInit, C, mean, beta, step, burn, nPop, nParam, chainAl
 	return cov, mean, C
 # end
 
-def GA( nGen, nPop, nParam, start, xLim, pWidth, nBin, bound, T, toMix, burn, beta, mixAmp, mixProb, scrTM, scrMU, a, b ):
+def GA( nProc, nGen, nPop, nParam, pFit, start, xLim, pWidth, nBin, bound, T, toMix, burn, beta, mixAmp, mixProb, scrTM, scrMU, a, b, shift ):
 	
 	covInit = np.diag(pWidth**2)
 	cov     = np.diag(pWidth**2)
@@ -1012,60 +1015,77 @@ def GA( nGen, nPop, nParam, start, xLim, pWidth, nBin, bound, T, toMix, burn, be
 	chain  = []
 	chainF = []
 	
+	M = []
+	
 	# get initial population
-	popSol = getInitPop( nPop, nParam, xLim )
-	popFit = evalPop( nPop, popSol, nParam, nBin, bound, T, scrTM, scrMU, a, b )
+	print "initial solutions"
+	popSol    = getInitPop( nPop, nParam, pFit, start, xLim )
+	popFit, X = evalPop( nProc, nPop, popSol, nParam, nBin, bound, T, scrTM, scrMU, a, b, shift )
+	print " "
+	M.append(X)
 	
 	# add init to all
 	chain = [ popSol ]
-	error = [ popFit ]
+	fit = [ popFit ]
 	for i in range(nPop):
 		chainF.append( popSol[i] )
 	# end
 	
-#	print "min error gen " + str(0) + ": "
+#	print "min fit gen " + str(0) + ": "
 #	print min(popFit)
 	
 	# Random walk
 	for step in range(nGen):
-		print str(step+1) + "/" + str(nGen)
-		
-		for i in range(nPop):
-#			print popSol[i]
-			print popFit[i]
-		# end
+		print "step: " + str(step+1) + "/" + str(nGen)
 		
 		# get covariance matrix
 		cov, mean, C = getCovMatrix( cov, covInit, C, mean, beta, step, burn, nPop, nParam, chainF, popSol, r, scaleInit, toMix, mixProb, mixAmp )
 		
 		# perform selection
-		parents = Selection( nPop, popSol, popFit )
+		parSol, parFit = Selection( nPop, popSol, popFit )
 		
 		# perform crossover
-		popSol = Crossover( nPop, nParam, parents )
+		popSol = Crossover( nPop, nParam, parSol, parFit )
 		
 		# perform mutation
 		popSol = Mutate( nPop, nParam, popSol, cov, xLim )
 		
-		# calculate errors
-		popFit = evalPop( nPop, popSol, nParam, nBin, bound, T, scrTM, scrMU, a, b )
+		if( ( step % (nGen/16) ) == 0 ):
+			for i in range(nPop):
+				r = np.random.uniform(0,1)
+				
+				if( r < 0.5 ):
+					popSol[i,2] = -popSol[i,2]
+					popSol[i,5] = -popSol[i,5]
+#					popSol[i,10] = 180 + popSol[i,10]
+#					popSol[i,11] = 180 + popSol[i,11]
+					popSol[i,12] = 360 - popSol[i,12]
+					popSol[i,13] = 360 - popSol[i,13]
+				# end
+			# end
+		# end
+		
+		# calculate fits
+		popFit, X = evalPop( nProc, nPop, popSol, nParam, nBin, bound, T, scrTM, scrMU, a, b, shift )
+		
+		M.append(X)
 		
 		chain.append( popSol )
-		error.append( popFit )
+		fit.append( popFit )
 		for i in range(nPop):
 			chainF.append( popSol[i] )
 		# end
 		
-#		print "min error gen " + str(step+1) + ": "
+#		print "min fit gen " + str(step+1) + ": "
 #		print min(popFit)
 		
 		print " "
 	# end
+	chain = np.array(chain)
+	fit   = np.array(fit)
+	M     = np.array(M)
 	
-	chain  = np.array(chain)
-	error  = np.array(error)
-	
-	return chain, error
+	return chain, fit, M
 
 # end
 
@@ -1082,26 +1102,57 @@ else:
 # end
 """
 
-def cumMin( chain1, error1 ):
+class TaskQueue(Queue.Queue):
 	
-	error2 = []
+	def __init__(self, num_workers=1):
+		Queue.Queue.__init__(self)
+		self.num_workers = num_workers
+		self.start_workers()
+	# end
+	
+	def add_task(self, task, *args, **kwargs):
+		args = args or ()
+		kwargs = kwargs or {}
+		self.put((task, args, kwargs))
+	# end
+	
+	def start_workers(self):
+		for i in range(self.num_workers):
+			t = Thread(target=self.worker)
+			t.daemon = True
+			t.start()
+		# end
+	# end
+	
+	def worker(self):
+		while True:
+			item, args, kwargs = self.get()
+			item(*args, **kwargs)  
+			self.task_done()
+		# end
+	# end
+# end
+
+def cumMin( chain1, fit1 ):
+	
+	fit2 = []
 	chain2 = []
 	
-	curMin = error1[0] + 1
-	for i in range( len(error1) ):
-		if( error1[i] < curMin ):
-			error2.append( error1[i]   )
+	curMax = fit1[0] - 1
+	for i in range( len(fit1) ):
+		if( fit1[i] > curMin ):
+			fit2.append( fit1[i]   )
 			chain2.append( chain1[i,:] )
-			curMin = error1[i]
+			curMin = fit1[i]
 		else:
-			error2.append( error2[-1]   )
+			fit2.append( fit2[-1]   )
 			chain2.append( chain2[-1] )
 		# end
 	# end
-	error2 = np.array(error2)
+	fit2 = np.array(fit2)
 	chain2 = np.array(chain2)
 	
-	return chain2, error2
+	return chain2, fit2
 # end
 
 
@@ -1125,9 +1176,7 @@ def equals(a, b):
 
 def print2D(A):
 	
-#	print('\n'.join([' '.join(['{:4}'.format(item) for item in row]) for row in A]))
-#	print('\n'.join([' '.join(['{0:.2f}'.format(item) for item in row]) for row in A]))
-	print('\n'.join([' '.join(['{0:8.4f}'.format(item) for item in row]) for row in A]))
+	print('\n'.join([''.join(['{:4}'.format(item) for item in row]) for row in A]))
 	
 # end
 

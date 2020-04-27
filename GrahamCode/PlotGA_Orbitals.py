@@ -47,9 +47,9 @@ def main():
 	pFile = "587722984435351614_combined.txt"
 	targetInd = 0
 	
-	fileInd = "21"
+	fileInd = "47"
 	
-	shrink = 0.5
+	shrink = 1.0
 	
 	nHist = 35
 	
@@ -119,7 +119,7 @@ def main():
 	###   PLOTTING   ###
 	####################
 	
-	labels = [ 'x', 'y', 'z', 'vx', 'vy', 'vz', 'mr', 'mt', 'rp', 'rs', 'pp', 'ps', 'tp', 'ts', 'tmin', 'dmin', 'vmin', 'beta', 'inc', 'argPer', 'longAN']
+	labels = [ 'x', 'y', 'z', 'vx', 'vy', 'vz', 'mf', 'mt', 'rp', 'rs', 'pp', 'ps', 'tp', 'ts', 'tmin', 'dmin', 'vmin', 'beta', 'inc', 'argPer', 'longAN']
 	
 	if(   toPlot == 1 ):
 		fig, axes = plt.subplots(nrows=4, ncols=5)
@@ -264,14 +264,20 @@ def main():
 #		pList = [2,3,4,5,6,7]
 #		pList = [2,3,4,5,14,15,16]
 #		pList = [14,15,16]
-		pList = [12,13,18,19,20]
+#		pList = [12,13,18,19,20]
+#		pList = [2,3,4,5,6,7,14,15,16,17]
+		pList = [6,14,15,16,17]
+#		pList = [2,3,4,5,6,14,15,16,17]
 		
 		fig, axes = plt.subplots(nrows=len(pList), ncols=len(pList))
 #		axes = axes.flatten()
 		fig.set_size_inches(12,8)
 		
+		pReal[nParam+3] = np.log(pReal[nParam+3])
+		chain[:,:,nParam+3] = np.log(chain[:,:,nParam+3])
+		
 		thresh = 0.0
-#		thresh = 0.88
+#		thresh = 0.8
 		inds   = np.where( scores >= thresh )
 #		inds   = np.where( scores <= thresh )
 		inds   = np.array(inds)
@@ -302,7 +308,7 @@ def main():
 		for i in pList:
 			jj = 0
 			for j in pList:
-				II = axes[jj,ii].scatter( params[ii,:], params[jj,:], c=scores[inds[0,:],inds[1,:]], s=1, cmap='jet' )
+				II = axes[jj,ii].scatter( params[ii,:], params[jj,:], c=scores[inds[0,:],inds[1,:]], s=2, cmap='jet' )
 				
 				axes[jj,ii].plot( pReal[i], pReal[j], 'kX' )
 				
@@ -315,9 +321,13 @@ def main():
 #				axes[jj,ii].set_ylim( [xLim[j,0], xLim[j,1]] )
 				if( jj == len(pList)-1 ):
 					axes[jj,ii].set_xlabel( labels[i] )
+				else:
+					axes[jj,ii].set_xticks([],[])
 				# end
 				if( ii == 0 ):
 					axes[jj,ii].set_ylabel( labels[j] )
+				else:
+					axes[jj,ii].set_yticks([],[])
 				# end
 				
 				jj += 1
@@ -325,6 +335,8 @@ def main():
 			
 			ii += 1
 		# end
+		
+		plt.tight_layout( w_pad=-0.1, h_pad=-0.5 )
 	elif( toPlot == 8 ):
 		pList = [2,3,4,5,6,7]
 		
@@ -407,7 +419,10 @@ def main():
 		plt.imshow( X, interpolation="none", cmap="gray" )
 	# end	
 	
-	plt.tight_layout(w_pad=0.0, h_pad=0.0)
+	if( toPlot != 7 ):
+		plt.tight_layout( w_pad=0.5, h_pad=0.5 )
+#		plt.tight_layout( w_pad=-1.0, h_pad=0.5 )
+	# end
 	plt.show()
 	
 	
@@ -712,9 +727,9 @@ def ReadAndCleanupData( filePath ):
 	data2 = data2[:,cols]
 	
 	# convert p,s mass to ratio,total mass
-	r = data2[:,6] / data2[:,7]
 	t = data2[:,6] + data2[:,7]
-	data2[:,6] = r
+	f = data2[:,6] / t
+	data2[:,6] = f
 	data2[:,7] = t
 	
 	data2 = np.array( data2, dtype=np.float32 )

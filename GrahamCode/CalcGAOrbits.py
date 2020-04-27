@@ -44,9 +44,9 @@ def main():
 	
 	pFile = "587722984435351614_combined.txt"
 	targetInd = 0
-	fileInd   = "27"
+	fileInd   = "47"
 	
-	shrink = 0.5
+	shrink = 1.0
 	
 	# read zoo file
 	data, nModel, nCol = ReadAndCleanupData( pFile )
