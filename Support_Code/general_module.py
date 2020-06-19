@@ -40,6 +40,8 @@ def readFile( fileLoc ):
 class inArgClass:
 
     def __init__( self, inArg=None ):
+
+        self.printBase = True
         self.printAll = False
         self.nProc = 1
 
@@ -116,7 +118,7 @@ class inArgClass:
         allAttrs = vars( self )
         print('GM: Printing Input arguments')
         for a in allAttrs:
-            print('\t- %s :' % a, getattr(self, a ), type(getattr(self,a)) )
+            print('\t- %s - %s : ' % (a, str(type(getattr(self,a))) ), getattr(self, a ) )
     # End print all arguments
 
 

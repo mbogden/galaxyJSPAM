@@ -19,10 +19,12 @@ def test():
 
 def main(arg):
     print("IM: Hi!  You're in Matthew Information module's main function.")
+    if arg.printAll:
+        arg.printArg()
 
-    if arg.sdssDir != None:
-        print("IM: Found SDSS dir!: %s" % arg.sdssDir )
-        procSdss( arg.sdssDir, printAll=True )
+    if arg.targetDir != None:
+        print("IM: Found SDSS dir!: %s" % arg.targetDir )
+        procTarget( arg.targetDir, printAll=True )
 
     elif arg.dataDir != None:
         print("IM: dataDir: %s" % arg.dataDir )
@@ -63,129 +65,154 @@ def main(arg):
 
 # End main
 
-def procSdss( sDir, printAll=False, gatherInfo=True ):
-
-    if not path.exists( sDir ):
-        print("IM: WARNING:\n\t- sdss directory not found: %s" % sDir)
-        return False
-
-    iDir = sDir + 'information/'
-    gDir = sDir + 'gen000/'
-    pDir = sDir + 'plots/'
-
-    if not path.exists( iDir ) or not path.exists( gDir ):
-        print("IM: WARNING: Somethings wrong with sdss dir")
-        print('\t- info Dir: %s' % iDir )
-        print('\t- gen0 Dir: %s' % gDir )
-        return False
-
-    infoLoc = iDir + 'target_info.json'
-    
-    tInfo = target_info_class( targetDir = sDir, printAll = printAll )
-
-    runDirs = listdir( gDir )
-    runDirs.sort()
-
-    for run in runDirs:
-        rDir = gDir + run + '/'
-        procRun( rDir, gatherInfo=True )
-
-# End processing sdss dir
-
-
-def procRun( rDir, printAll=False, gatherInfo=True ):
-    
-    if not path.exists( rDir ):
-        print("IM: WARNING:\n\t- run directory not found: %s" % rDir)
-        return False
-
-
-    modelDir = rDir + 'model_images/'
-    miscDir = rDir + 'misc_images/'
-    ptsDir = rDir + 'particle_files/'
-    infoLoc = rDir + 'info.json'
-
-    if not path.exists( modelDir ) or not path.exists( ptsDir ) or not path.exists( infoLoc):
-        print("Somethings wrong with run dir")
-
-
-
 class target_info_class:
 
-    tDict = None    # Primary dict of information contained in target_info.json
-    sDict = None    # State of json upon initial reading.
-    status = False  # State of this class.  For initiating.
+    tDict = None      # Primary dictionary of info for all data 
+    initDict = None     # Dictionary of info upon initial reading of file
+    baseDict = None     # Simple dictionary of info for basic info.
+
+    status = False      # State of this class.  For initiating.
     printAll = False
 
     targetDir = None
+    zModelDir = None
+    baseInfoLoc = None
+    allInfoLoc = None
+    scoreLoc = None
+    plotDir = None
 
     # For user to see headers.
     targetHeaders = ( 'target_identifier', 'target_images', 'model_image_parameters', 'progress',  'model_sets',)
 
-    def __init__( self, printAll = False, rmInfo=False,
-            targetDir = None, infoLoc=False, tDict=None,  ):
+    def __init__( self, targetDir = None, printAll = False, rmInfo=False, ):
 
         # Tell class if it should print progress
         self.printAll = printAll
-        if self.printAll: print("IM: Initailizing target info class")
+        if self.printAll: 
+            print("IM: Initailizing target info class")
+            print('\t - targetDir: ', targetDir)
+            print('\t - rmInfo: ', rmInfo)
+            print('\t - printAll: ', printAll)
 
-        # if nothing given, create blank rDict
-        if targetDir == None and infoLoc == None and tDict == None:
-            self.createBlank()
+        # if nothing given, complain
+        if targetDir == None:
+            print("IM: WARNING: No target Dir given.  No other option at this time.")
+            return
+
+        # If path not found, complain
+        elif not path.exists( targetDir ):
+            print("IM: WARNING: Target dir not found")
+            print('\t - targetDir: ', targetDir )
+            return
+
+        good = self.initTargetDir( targetDir )
+        if not good:
+            print("IM: Target: WARNING: Something not right.")
+            return
+    
+        # Remove info file if condition given
+        if rmInfo:
+
+            if self.printAll: print("IM: Removing previous info files.")
+            from os import remove
+
+            if path.exists( self.allInfoLoc ):
+                remove( self.allInfoLoc )
+
+            if path.exists( self.baseInfoLoc ):
+                remove( self.baseInfoLoc )
+
+        # If target info does not exist, create
+        if not path.exists( self.baseInfoLoc ):
+            if self.printAll: print("IM: WARNING: Base info json not found: %s" % self.baseInfoLoc )
+            
+            self.newTargetInfo()
+            self.gatherRunInfos()
+            self.saveInfoFile( baseFile=True )
             self.status = True
             return
 
-        # if given pre-existing rDict
-        elif tDict != None:
-            self.tDict = deepcopy( tDict )
-            self.sDict = deepcopy( tDict )
+        # Else, target info file found.
+        else:
+
+            if self.printAll: 
+                print("IM: Target: Opening target info json")
+                print("\t - allInfoLoc: (%s) %s", path.isfile( self.allInfoLoc ), self.allInfoLoc )
+
+            with open( self.allInfoLoc ) as iFile:
+                if self.printAll: print("IM: Target: Reading target info json")
+                self.tDict = json.load( iFile )
+
+            self.initDict = deepcopy( self.tDict )
+
+            if self.printAll: print("IM: Target: Read target info json")
             self.status = True
+            return
 
-        # Else get data from file
-        elif targetDir != None or infoLoc != None:
-            
-            if targetDir != None:
-                if targetDir[-1] != '/': targetDir += '/'
-                self.targetDir = targetDir
-                self.infoLoc = self.targetDir + 'information/target_info.json'
-
-            elif infoLoc != None:
-                self.infoLoc = infoLoc
-
-            # Remove info file if condition given
-            if rmInfo and path.exists( self.infoLoc ):
-                from os import remove
-                remove( self.infoLoc )
-
-            # If target info does not exist
-            if not path.exists( self.infoLoc ):
-                print("IM: WARNING: Target: info json not found: %s" % self.infoLoc )
-                self.newTargetInfo()
-                self.saveInfoFile()
-                self.status = True
-                return
-
-            else:
-                with open( self.infoLoc ) as iFile:
-                    self.tDict = json.load( iFile )
-
-                self.sDict = deepcopy( self.tDict )
-
-                if self.printAll: print("IM: Target: Read target info json")
-                self.status = True
-                return
         # End reading target file
+    # End target init 
+
+    def initTargetDir( self, targetDir ):
+
+        if self.printAll:
+            print( 'IM: initTargetDir:' )
+            print( '\t - targetDir: %s' % targetDir )
+
+        # Define paths for all useful things in target structure
+        self.targetDir = path.abspath( targetDir )
+        if self.targetDir[-1] != '/': self.targetDir += '/'
+
+        self.infoDir = self.targetDir + 'information/'
+        self.allInfoLoc = self.infoDir + 'all_target_info.json'
+        self.baseInfoLoc = self.infoDir + 'base_target_info.json'
+        self.scoreLoc = self.infoDir + 'scores.csv'
+
+        self.zooModelDir = self.targetDir + 'gen000/'
+
+        self.plotDir = self.targetDir + 'plots/'
+
+        status = True
+
+        # Check if everything needed is found
+        if not path.exists( self.infoDir ):
+            print("IM: WARNING: info directory not found!")
+            status = False
+
+        if not path.exists( self.zooModelDir ):
+            print("IM: WARNING: zoo models directory not found!")
+            status = False
+
+        if status and not path.exists( self.plotDir ):
+            from os import mkdir
+            mkdir( self.plotDir )
+        
+        if self.printAll:
+            print( '\t - targetDir: (%s) %s' % ( path.exists( self.targetDir ), self.targetDir ) )
+            print( '\t - infoDir: (%s) %s' % ( path.exists( self.infoDir ), self.infoDir ) )
+            print( '\t - baseInfoLoc: (%s) %s' % ( path.exists( self.baseInfoLoc ), self.baseInfoLoc ) )
+            print( '\t - allInfoLoc: (%s) %s' % ( path.exists( self.allInfoLoc ), self.allInfoLoc ) )
+            print( '\t - zooModelDir: (%s) %s' % ( path.exists( self.zooModelDir ), self.zooModelDir ) )
+            print( '\t - plotDir: (%s) %s' % ( path.exists( self.plotDir ), self.plotDir ) )
+
+        return status
+
+    # For code I want to make in the future but isn't needed now
+    def incomplete( self ):
+
+        # if given pre-existing rDict
+        if tDict != None:
+            self.tDict = deepcopy( tDict )
+            self.initDict = deepcopy( tDict )
+            self.status = True
 
         else:
             print("IM: ERROR: Umm.... You shouldn't be here...")
             self.status = False
             return 
 
-    # End target init 
-
     # Deconstructor
     def __del__( self ):
-        if self.tDict != self.sDict:
+        if self.tDict != self.initDict:
             print("IM: WARNING: Target: target_info.json updated but not saved!")
     # End deconstructor
 
@@ -195,6 +222,135 @@ class target_info_class:
         pp.pprint( self.tDict )
     # End print info
 
+    def printStatus( self ):
+
+        print("IM: Printing target info status.")
+        for h in self.tDict:
+            item = self.tDict[h]
+
+            if type( item ) == list:
+                print("\tLIST!")
+                for i in item:
+                    print(i)
+
+
+            print( '\t', h, len( item ) )
+
+    # Gather human and machine scores into pandas files and save as csv
+    def getScores( self, setId = 'galaxy_zoo_mergers', saveScores=True, newScores= False):
+
+        import pandas as pd
+        import numpy as np
+
+        if newScores or not path.exists( self.scoreLoc ):
+            if self.printAll: print("IM: Gathering scores")
+            sFrame = self.gatherScores( setId=setId )
+            if self.scoreLoc != None: sFrame.to_csv( self.scoreLoc, index = False )
+
+        if self.printAll: print("IM: Getting scores from csv file")
+        sFrame = pd.read_csv( self.scoreLoc )
+
+        return sFrame
+
+
+    def gatherScores( self, setId = None ):
+
+        if self.printAll: print("IM: Gathering Scores")
+
+        import pandas as pd
+        import numpy as np
+
+        setList = self.tDict[ 'model_sets' ]
+        desiredSet = None
+
+        # Find model set with name of setID
+        for s in setList:
+            setName = s.get( 'set_identifier', None)
+            if setName == None: 
+                print("IM: WARNING: A target model set without identifier found")
+                continue
+
+            if setName == setId:
+                desiredSet = s
+                break
+
+        if desiredSet == None:
+            print("IM: WARNING: Model set not found: ", setId)
+            return None
+
+        # Create Frame and populate scores
+        models = desiredSet['models']
+        if self.printAll: print("IM: getScores: \n\t - %d models" % len(models) )
+
+        if len(models) == 0:
+            if self.printAll: print("\t - WARNING: No scores found.")
+            return None
+
+
+        # Calculate DataDrame size based on first mode1
+        m0 = models[0]
+        m0_id = m0['run_identifier']
+        m0_h = m0['human_scores']
+        m0_m = m0['machine_scores']
+        m0_p = m0['perturbedness']
+
+        print( m0) 
+
+        # run ID
+        headerNames = [ 'run_id' ]
+
+        # human Scores
+        for h in m0_h:
+            hN = h.get( 'score_name', None )
+            headerNames.append( 'human_' + hN )
+
+        # Machine Scores
+        for m in m0_m:
+            cN = m.get( 'comparison_name', None )
+            headerNames.append( 'machine_' + cN )
+
+        # Perturbedness Scores
+        for p in m0_p:
+            cN = p.get( 'comparison_name', None )
+            print(cN)
+            headerNames.append( 'perturbation_' + cN )
+
+        if self.printAll: 
+            print( '\t - %d headers' % len(headerNames) )
+            print( '\t -', headerNames )
+
+
+        # Create Empty dataframe and populate
+        sFrame = pd.DataFrame( index = np.arange( len( models ) ), columns=headerNames)
+
+        for i, m in enumerate(models):
+
+            for h in headerNames:
+
+                if h == 'run_id':
+                    sFrame.loc[ i, h ] = m[ 'run_identifier' ]
+
+                if 'galaxy_zoo' in h:
+                    sFrame.loc[ i, h ] = m[ 'human_scores' ][0]['score']
+
+                if 'machine_' in h:
+                    for ms in m['machine_scores']:
+                        if ms['comparison_name'] in h:
+                            sFrame.loc[ i, h] =  ms['score'] 
+                            break
+
+                if 'perturbation_' in h:
+                    for ps in m['perturbedness']:
+                        if ps['comparison_name'] in h:
+                            sFrame.loc[ i, h] = ps['score']
+                            break 
+
+            break
+
+        # End going through models
+        
+        return sFrame
+
     # Create blank dictionary
     def createBlank( self, ):
 
@@ -203,7 +359,7 @@ class target_info_class:
         for h in targetHeaders:
             self.tDict[h] = None
 
-        self.sDict = deepcopy( self.rDict )
+        self.initDict = deepcopy( self.rDict )
 
         if self.printAll: print('IM: Target: info:\n' % self.rDict)
     # End creating blank target info
@@ -239,34 +395,23 @@ class target_info_class:
 
     def newTargetInfo( self, ):
 
-        print("IM: Initializing target info class")
-            
-        self.iDir = self.targetDir + 'information/'
-        self.gDir = self.targetDir + 'gen000/'
-        self.pDir = self.targetDir + 'plots/'
+        if self.printAll: 
+            print("IM: newtargetInfo: Creating new target info file")
 
         self.tDict = {}
-
-        print('IM:', self.tDict)
-
-        if not path.exists( self.iDir ) or not path.exists( self.gDir ):
-            print("IM: WARNING: Somethings wrong with sdss dir")
-            print('\t- info Dir: %s' % self.iDir )
-            print('\t- gen0 Dir: %s' % self.gDir )
-            return False
 
         for key in self.targetHeaders:
             self.tDict[key] = None
 
-        # Find target/sdss name
-        progLoc = self.iDir + 'progress.txt'
+        # Find target/sdss name from progress file...
+        progLoc = self.infoDir + 'progress.txt'
         pFile = gm.readFile( progLoc )
         tId = pFile[0].split()[-1]
         self.tDict['target_identifier'] = tId
         if self.printAll: print('\t- target_id: %s' % self.tDict['target_identifier'])
 
         # Search for files
-        iFiles = listdir( self.iDir )
+        iFiles = listdir( self.infoDir )
         tImgs = []
         pFiles = []
 
@@ -289,10 +434,12 @@ class target_info_class:
         if self.printAll: print('\t- image parameters: ', self.tDict['model_image_parameters'])
 
         # Make progress note
-        self.tDict['progress'] = 'initial creation of info module'
+        self.tDict['progress'] = { 'Initial' : 'Initial creation of information file' } 
 
         # Add orginal runs from galaxy zoo
-        self.tDict['model_sets'] = { 'set_identifier' : 'galaxy_zoo_mergers', 'models' : None }
+        self.tDict['model_sets'] = [ { 'set_identifier' : 'galaxy_zoo_mergers', 'models' : None } ]
+
+    # End new target info dictionary
 
 
     def gatherRunInfos( self, ):
@@ -316,38 +463,51 @@ class target_info_class:
             with open( rInfoLoc) as rInfo:
                 rInfoList.append( json.load( rInfo ) )
 
-            if self.printAll: print("%d/%d" % ( i, nRuns ), end='\r' )
+            if self.printAll: print("\t- %d/%d" % ( i, nRuns ), end='\r' )
         
-        self.tDict['model_sets']['models'] = rInfoList
-        if self.printAll: print( '\n\t- Gathered %d run info files' % len( self.tDict['model_sets']['models'] ) )
+        self.tDict['model_sets'][0]['models'] = rInfoList
+        if self.printAll: print( '\n\t- Gathered %d run info files' % len( self.tDict['model_sets'][0]['models'] ) )
 
 
-    def saveInfoFile( self, saveLoc = None ):
+    def saveInfoFile( self, saveLoc = None, baseFile=False ):
 
         if self.printAll: print("IM: Saving target info file...")
 
-        if self.infoLoc == None and saveLoc == None:
+        if self.allInfoLoc == None and saveLoc == None:
             print("ERROR: IM: No target info location given...")
             return False
 
-        if self.tDict == self.sDict:
+        if baseFile != False and self.baseInfoLoc == None:
+            print("ERROR: IM: No base target info location given...")
+            return False
+
+        if self.tDict == self.initDict:
             if self.printAll: print("IM: No changes detected, not saving")
             return True
 
         retVal = False
 
-        if self.infoLoc != None:
-            with open( self.infoLoc, 'w' ) as infoFile:
-                json.dump( self.tDict, infoFile )
-                retVal = True
-
-        if saveLoc != None:
-            with open( saveLoc, 'w' ) as infoFile:
-               json.dump( self.tDict, infoFile )
-               retVal = True
+        with open( self.allInfoLoc, 'w' ) as infoFile:
+            json.dump( self.tDict, infoFile )
+            retVal = True
 
         if retVal:
-            self.sDict = deepcopy( self.tDict )
+            self.initDict = deepcopy( self.tDict )
+
+        if baseFile:
+            if self.printAll: print("IM: Target: Saving base info file")
+
+            #targetHeaders = ( 'target_identifier', 'target_images', 'model_image_parameters', 'progress',  'model_sets',)
+            self.baseDict = {}
+            self.baseDict['target_identifier'] = self.tDict['target_identifier']
+            self.baseDict['target_images'] = self.tDict['target_images']
+            self.baseDict['model_image_parameters'] = self.tDict['model_image_parameters']
+            self.baseDict['progress'] = self.tDict['progress']
+            self.baseDict['model_sets'] = None
+
+            with open( self.baseInfoLoc, 'w' ) as infoFile:
+                json.dump( self.baseDict, infoFile )
+                if self.printAll: print("\t - Saved base info file")
 
         return retVal
     
@@ -355,7 +515,7 @@ class target_info_class:
 class run_info_class: 
 
     rDict = None    # Primary dict of information contained in info.json
-    sDict = None    # State of json upon initial reading.
+    initDict = None    # State of json upon initial reading.
     status = False  # State of this class.  For initiating.
 
 
@@ -385,7 +545,7 @@ class run_info_class:
         # if given pre-existing rDict
         elif rDict != None:
             self.rDict = deepcopy( rDict )
-            self.sDict = deepcopy( rDict )
+            self.initDict = deepcopy( rDict )
             self.status = True
             return
 
@@ -431,7 +591,7 @@ class run_info_class:
                 try: 
                     with open( self.infoLoc, 'r' ) as iFile:
                         self.rDict = json.load( iFile )
-                        self.sDict = deepcopy( self.rDict )
+                        self.initDict = deepcopy( self.rDict )
 
                     if self.printAll: print("IM: run: Read score file:")
                     self.status = True
@@ -452,7 +612,7 @@ class run_info_class:
     # deconstructor
     def __del__( self ):
 
-        if self.rDict != self.sDict:
+        if self.rDict != self.initDict:
             print("IM: WARNING: info.json updated but not save!")
     # End deconstructor
 
@@ -469,7 +629,7 @@ class run_info_class:
         for h in runHeaders:
             self.rDict[h] = None
 
-        self.sDict = deepcopy( self.rDict )
+        self.initDict = deepcopy( self.rDict )
 
         if self.printAll: print('IM: run_info:\n' % self.rDict)
 
@@ -623,7 +783,7 @@ class run_info_class:
         self.rDict['perturbedness'] = []
         self.rDict['machine_scores'] = []
 
-        self.sDict = deepcopy( self.rDict )
+        self.initDict = deepcopy( self.rDict )
 
 
     # end info2Dict
@@ -636,7 +796,7 @@ class run_info_class:
             print("ERROR: IM: Run: No score location given to save score file")
             return False
 
-        if self.rDict == self.sDict:
+        if self.rDict == self.initDict:
             if self.printAll: print("No changes detected, not saving")
             return True
 
@@ -653,11 +813,61 @@ class run_info_class:
                retVal = True
 
         if retVal:
-            self.sDict = deepcopy( self.rDict )
+            self.initDict = deepcopy( self.rDict )
 
         return retVal
 
 # End Run info class
+
+def procTarget( tDir, printAll=False, gatherInfo=True ):
+
+    if not path.exists( tDir ):
+        print("IM: WARNING:\n\t- sdss directory not found: %s" % tDir)
+        return False
+
+    elif printAll:
+        print("IM: Found targetDir.")
+
+    iDir = tDir + 'information/'
+    gDir = tDir + 'gen000/'
+    pDir = tDir + 'plots/'
+
+    if not path.exists( iDir ) or not path.exists( gDir ):
+        print("IM: WARNING: Somethings wrong with sdss dir")
+        print('\t- info Dir: %s' % iDir )
+        print('\t- gen0 Dir: %s' % gDir )
+        return False
+
+    infoLoc = iDir + 'target_info.json'
+    
+    tInfo = target_info_class( targetDir = tDir, printAll = printAll )
+
+    runDirs = listdir( gDir )
+    runDirs.sort()
+
+    for run in runDirs:
+        rDir = gDir + run + '/'
+        procRun( rDir, gatherInfo=True )
+
+# End processing sdss dir
+
+
+def procRun( rDir, printAll=False, gatherInfo=True ):
+    
+    if not path.exists( rDir ):
+        print("IM: WARNING:\n\t- run directory not found: %s" % rDir)
+        return False
+
+
+    modelDir = rDir + 'model_images/'
+    miscDir = rDir + 'misc_images/'
+    ptsDir = rDir + 'particle_files/'
+    infoLoc = rDir + 'info.json'
+
+    if not path.exists( modelDir ) or not path.exists( ptsDir ) or not path.exists( infoLoc):
+        print("Somethings wrong with run dir")
+
+
 
 if __name__=='__main__':
 
