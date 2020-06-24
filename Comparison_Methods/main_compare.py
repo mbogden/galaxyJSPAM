@@ -246,13 +246,16 @@ def pipelineRun( rDir, printAll=False, rmInfo=False, tLoc=None, tImg=None, tName
     iDictList = rInfo.rDict.get( 'misc_images', None )
     pScores = rInfo.rDict.get( 'perturbedness', None )
     mScores = rInfo.rDict.get( 'machine_scores', None )
+    iScores = rInfo.rDict.get( 'initial_bias', None )
 
-    if mDictList == None or iDictList == None or pScores == None or mScores == None:
+    if mDictList == None or iDictList == None:
         print("Error: MC: info json not complete")
         print("\t- ", mDictList)
         print("\t- ", iDictList)
-        print("\t- ", pScores)
-        print("\t- ", mScores)
+        return False
+
+    if pScores == None or mScores == None or iScores == None:
+        print("BLAH!")
         return False
 
     # Can't do anything if list is empty

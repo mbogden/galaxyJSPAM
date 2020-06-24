@@ -17,7 +17,7 @@ def test():
     print("GM: Hi!  You're in Matthew's module for generally useful functions and classes")
 
 
-def readFile( fileLoc ):
+def readFile( fileLoc, stripLine=False ):
 
     if not path.isfile( fileLoc ):
         print("Error: GM: File does not exist: %s" % fileLoc)
@@ -31,8 +31,14 @@ def readFile( fileLoc ):
         return None
 
     else:
+
         inList = list(inFile)
         inFile.close()
+
+        if stripLine:
+            for i in range( len( inList ) ):
+                inList[i] = inList[i].strip()
+
         return inList
 
 # End simple read file into list

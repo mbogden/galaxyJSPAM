@@ -17,9 +17,9 @@ import Support_Code.info_module as im
 
 def main(arg):
 
-    print("Hi!  In Matthew's python template for creating new SPAM related code.")
 
     if arg.printAll:
+        print("SIMR: Hi!  In Matthew's code for connecting various pieces of code.")
         gm.test()
         im.test()
         arg.printArg()
@@ -36,7 +36,7 @@ def main(arg):
         procTarget( arg.targetDir, printAll=arg.printAll )
 
     elif arg.dataDir != None:
-        procAllData( arg.dataDir, printAll=arg.printAll, zModelDir = getattr( arg, 'zModelDir', None)  )
+        procAllData( arg.dataDir, printAll=arg.printAll, targetFile = getattr( arg, 'targetFile', None)  )
 
     # If no main options selected
     else:
@@ -46,7 +46,6 @@ def main(arg):
         print("\t -runDir /path/to/dir/")
         print("\t -targetDir /path/to/dir/")
         print("\t -dataDir /path/to/dir/")
-
 
 # End main
 
@@ -68,9 +67,12 @@ def procTarget( tDir, printAll=False ):
     runDirs = listdir( gDir )
     runDirs.sort()
 
+    '''
     for run in runDirs:
         rDir = gDir + run + '/'
         procRun( rDir )
+
+    '''
 
 # End processing sdss dir
 
@@ -106,33 +108,112 @@ def procRun( rDir, printAll=False, checkStatus=False ):
 # end processing run dir
 
 
-def procAllData( dataDir, printAll=False, zModelDir=None ):
+def procAllData( dataDir, targetFile=None, printBase=True, printAll=False, printProg=True ):
 
     if printAll: 
         print("PT: procAllData:")
         print("\t - dataDir: %s" % dataDir )
         print("\t - printAll: ", printAll )
-        print("\t - zModelDir: ", zModelDir )
 
-    if zModelDir[-1] != '/': zModelDir += '/'
 
-    dirList = listdir( dataDir )
-    dirList.sort()
+    targetDirList = listdir( dataDir )
+    targetDirList.sort()
+
+    if targetFile != None:
+        print("SIMR: Filtering targets")
+
+        if not path.exists( targetFile ):
+            print("SIMR: WARNING: targetFile not found: %s" % targetFile)
+
+        tFile = gm.readFile( targetFile, stripLine=True )
+
+        tList = [ t for t in targetDirList if t in tFile ]
+        
+        print('\t- Before: %d' % len( targetDirList) )
+        print('\t- After: %d' % len( tList) )
+
+        targetDirList = tList
+
+    # End filtering based on targets of interest
+
+    nTargets = len( targetDirList )
 
     if printAll:
-        print("SIMR: Found target directories: %d" % len( dirList ) )
+        print("SIMR: Found target directories: %d" % nTargets )
 
-    for tName in dirList:
+    # Gather up information data on interested targets
+    tInfoList = []
+    for tName in targetDirList:
         tDir = dataDir + tName + '/'
 
-        zModelLoc = zModelDir + tName + '.txt'
         if printAll: 
             print('\t - target: %s (%s) "%s"' % ( tName, path.exists(tDir), tDir ) )
-            print('\t - modelFile: (%s) %s' % ( path.exists( zModelLoc ), zModelLoc ) )
 
-        tInfo = im.target_info_class( targetDir = tDir, printAll = printAll, rmInfo=True )
+        tInfo = im.target_info_class( targetDir = tDir, printAll = printAll, rmInfo=False )
+        tInfo.updateProgress()
+        
+        if tInfo.status:
+            tInfoList.append( tInfo )
+
+        else:
+            print("SIMR: ERROR!: target failed to read info file")
+            print('\t- targetDir: %s (%s) %s' % (tName, path.exists(tDir), tDir ))
+            return
+
+    if printProg:
+        checkDataProg( tInfoList )
 
 
+def checkDataProg( tInfoList ):
+
+    n = len( tInfoList )
+
+    pDict = {}
+    
+    for key in tInfoList[0].progHeaders:
+        pDict[key] = 0
+
+    for tInfo in tInfoList:
+
+        pInfo = tInfo.tDict['progress']
+
+        for key in tInfo.progHeaders:
+
+            if pInfo.get( key, None ) == None:
+                continue
+
+            # If true or false value
+            elif type( pInfo[key] ) == type( True ):
+                if pInfo[key] == True:
+                    pDict[key] += 1
+
+            elif type( pInfo[key] ) == int:
+                pDict[key] += 1
+                    
+            # If string value with quantities
+            elif type( pInfo[key] ) == type( 'string' ):
+
+                from re import findall
+                
+                # Check for quantities is given
+                numList = findall( pInfo[key], '/d+' )
+                print(numList)
+                
+                # If just string or single number given
+                if len( numList ) == ( 1 or 0 ):
+                    pDict[key] += 1
+
+                # two quantities given (some/total)
+                elif len( numList ) == 2 and '/' in pInfo[key]:
+                    n2, n3 = pInfo[key].split('/')
+                    if n2 == n3:
+                        pDict[key] += 1
+
+
+    print("SIMR: All Target Progression.")
+    for key in pDict:
+        print( '\t- %s : %d/%d (%s)' % ( key, pDict[key], n, pDict[key] == n ) )
+    
 
 # Run main after declaring functions
 if __name__ == '__main__':

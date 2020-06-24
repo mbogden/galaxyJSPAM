@@ -40,6 +40,7 @@ IRB course?
   - Create checker to see if all runs have images
 
 ### Future
+- Compare unperturbed model with target and see how it correlates with scores.
 - Use np.histogram to autobin giant list of points optimially.
 - Create std image param based on # of particles
   - no radial distance, just pts
