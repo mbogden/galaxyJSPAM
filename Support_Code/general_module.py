@@ -200,7 +200,7 @@ class ppClass:
             if self.printProg:
                 p = int(self.nQueue) - int( self.jobQueue.qsize() )
                 perc = ( p / int(self.nQueue) ) * 100
-                print("%.1f - %d / %d" % ( perc, p, self.nQueue ), end='\r' )
+                print("%.1f%% - %d / %d" % ( perc, p, self.nQueue ), end='\r' )
 
             # Run desired function on core
             self.funcPtr(**funcArgs)
@@ -220,7 +220,11 @@ def printVal( n1, n2=1 ):
 
 def checkPP(arg):
 
-    print("This is an example method for using the pp Module class")
+    import multiprocessing as mp
+
+    print("Hi!  You're in Matt's parallel processing module.")
+    print("\t- requested cores: %s" % arg.nProc)
+    print("\t- available cores: %d" % mp.cpu_count() )
 
     nCores = 2
     pHolder = ppClass( nCores )
@@ -238,17 +242,12 @@ def checkPP(arg):
     pHolder.runCores()
 
 
-def checkArg(arg):
-    arg.printAllArg()
-# End check argument class
-
-
 # Run main after declaring functions
 if __name__ == '__main__':
 
     # For testing main input arguments
     from sys import argv
     arg = inArgClass( argv )
+    arg.printArg()
 
-    checkArg(arg)
     checkPP(arg)

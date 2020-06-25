@@ -20,9 +20,6 @@ import general_module as gm
 import info_module as im
 import machine_score_methods as ms
 
-#gm.test()
-#im.test()
-#ms.test()
 
 # compare global variables
 
@@ -35,72 +32,90 @@ def main(argList):
     if not hasattr( arg, 'new'): setattr( arg, 'new', False )
 
     if arg.printAll:
-        print( "MC: Printing Main Compare input arguments")
-        arg.printArg()
 
-    if arg.simple == False and arg.runDir == None and arg.sdssDir == None and arg.dataDir == None:
-        print("Error: MC: Please specify a directory to work in")
-        print("\t -simple -img1 /path/to/img1 -img2 /path/to/img2")
-        print("\t -runDir /path/to/dir/ -targetLoc /path/to/target")
-        print("\t -sdssDir /path/to/dir/")
-        print("\t -dataDir /path/to/dir/")
-        return
+        print( "MC: Hi!  You're in Matthew's main comparison code" )
+        gm.test()
+        im.test()
+        ms.test()
+        arg.printArg()
+    # End printAll
 
     if arg.simple:
+        procSimple( 
+                img1 = getattr( arg, 'img1', None ), \
+                img2 = getattr( arg, 'img2', None ), \
+                printAll = arg.printAll, \
+                )
+    # End simple 
 
-        if not hasattr( arg, 'img1'):
-            print('Error: Please specify image 1 location')
-            print('\t-img1 path/to/img1.png')
-            return
+    elif arg.runDir != None:
 
-        if not hasattr( arg, 'img2'):
-            print('Error: Please specify image 2 location')
-            print('\t-img2 path/to/img1.png')
-            return
-
-        if not path.exists( arg.img1 ) and not path.exists( arg.img2 ):
-            print('Error: An image was not found')
-            print('\timg1: %s - \'%s\'' % ( str( path.exists( arg.img1 ) ), arg.img1 ) )
-            print('\timg2: %s - \'%s\'' % ( str( path.exists( arg.img2 ) ), arg.img2 ) )
-
-
-        img1, img2 = getImages( arg.img1, arg.img2 )
-
-        simpleScore( img1, img2, printAll = arg.printAll )
-
-        sList, cList = allScores( img1, img2, printAll = arg.printAll )
-        for i, score in enumerate( sList ):
-            print( '%s - %s - %s' % ( i, sList[i], cList[i] ) )
-        
-        return score
+        pipelineRun( \
+                arg.runDir, \
+                printAll = arg.printAll, \
+                tLoc = getattr( arg, 'targetLoc', None), \
+                rmInfo= getattr( arg, 'rmInfo', None ) \
+                )
 
 
-    # Only scoring a single run directory
-    if arg.runDir != None:
 
-        # Check if targetLoc was given in arguments
-        if not hasattr( arg, 'targetLoc'):
-            print("Error: Please specify a target image location for runDir.")
-            print("\t -targetLoc /path/to/img.png.")
-            return False
+    # If given a target directory
+    elif arg.targetDir != None:
 
-        
+        pipelineTarget( \
+                arg.targetDir, \
+                printAll = arg.printAll, \
+                rmInfo = getattr( arg, 'rmInfo', False), \
+                nProcs = int( arg.nProc ), \
+                nRuns = getattr( arg, 'nRuns', None ),                
+                )
 
-        pipelineRun( arg.runDir, tLoc = arg.targetLoc, printAll = arg.printAll, rmInfo=arg.new )
-
-    elif arg.sdssDir != None:
-        if arg.printAll: print("MC: Processing sdds dir: %s" % arg.sdssDir )
-
-        pipelineSdss( arg.sdssDir, printAll = arg.printAll, rmInfo=arg.new, nProcs=int(arg.nProc) )
-
-
-    elif arg.dataDir != None:
-        print("MC: WARNING: data dir in prog.")
-        if arg.printAll: print("MC: Processing data dir: %s" % arg.sdssDir )
+        # process entire data directory
+    elif arg.dataDir != None: 
 
         pipelineAllData( arg.dataDir, printAll = arg.printAll, rmInfo=arg.new, nProcs=int(arg.nProc) )
 
+
+    #  Option not chosen 
+    else:
+        print("Error: MC: Please specify a directory to work in")
+        print("\t -simple -img1 /path/to/img1 -img2 /path/to/img2")
+        print("\t -runDir /path/to/dir/ -targetLoc /path/to/target")
+        print("\t -targetDir /path/to/dir/")
+        print("\t -dataDir /path/to/dir/")
+        return
+
 # End main
+
+def procSimple( img1 = None, img2 = None, printAll = True ):
+
+    if img1 == None: 
+        print('Error: Please specify image 1 location')
+        print('\t-img1 path/to/img1.png')
+        return
+
+    if img2 == None:
+        print('Error: Please specify image 2 location')
+        print('\t-img2 path/to/img1.png')
+        return
+
+    if not path.exists( img1 ) and not path.exists( img2 ):
+        print('Error: An image was not found')
+        print('\timg1: %s - \'%s\'' % ( str( path.exists( arg.img1 ) ), arg.img1 ) )
+        print('\timg2: %s - \'%s\'' % ( str( path.exists( arg.img2 ) ), arg.img2 ) )
+
+
+    img1, img2 = getImages( arg.img1, arg.img2 )
+
+    simpleScore( img1, img2, printAll = arg.printAll )
+
+    sList, cList = allScores( img1, img2, printAll = arg.printAll )
+    for i, score in enumerate( sList ):
+        print( '%s - %s - %s' % ( i, sList[i], cList[i] ) )
+    
+    return score
+
+
 
 def pipelineAllData( dataDir, printAll = False, nProcs=1, rmInfo=False ):
 
@@ -117,37 +132,40 @@ def pipelineAllData( dataDir, printAll = False, nProcs=1, rmInfo=False ):
 
 
  
-def pipelineSdss( sDir, printAll = False, n=0, nProcs=1, rmInfo=False ):
+def pipelineTarget( tDir, printAll = False, nRuns=None, nProcs=1, rmInfo=False ):
 
-    if sDir[-1] != '/': sDir += '/'
-    if printAll: print("CM: pipelineSdss: %s" % sDir)
+    if tDir[-1] != '/': tDir += '/'
 
-    iDir = sDir + 'information/'
-    gDir = sDir + 'gen000/'
-    pDir = sDir + 'plots/'
+    if printAll: 
+        print("CM: pipelineTarget:")
+        print("\t- printAll: %s" % printAll)
+        print("\t- nRuns: %s" % nRuns)
+        print("\t- nProcs: %s" % nProcs)
+        print("\t- rmInfo: %s" % rmInfo)
 
-    if not path.exists( iDir ) or not path.exists( gDir ):
-        print("ERROR: sdssDir:", sDir)
-        return False 
+    tInfo = im.target_info_class( targetDir = tDir, printAll = printAll, rmInfo=rmInfo )
 
-    tInfo = im.target_info_class( targetDir = sDir, printAll = printAll, rmInfo=rmInfo )
+    if tInfo.status == False:
+        print("BAD!")
+        return False
 
+    gDir = tInfo.zooModelDir
     runDirs = listdir( gDir )
     runDirs.sort()
 
     if len( runDirs ) == 0:
         print("CM: WARNING: No runs directories found in sdssDir")
-        print("\t- sdssDir: %s" % sDir)
+        print("\t- sdssDir: %s" % tDir)
         return False
     
     # Find target images
-    sInfoContents = listdir( iDir )
+    sInfoContents = listdir( tInfo.infoDir )
 
-    print("CM: SDSS: Hard coded to use 'target_zoo.png'")
-    tImgLoc = iDir + 'target_zoo.png'
+    print("CM: pipelineTarget(): Hard coded to use 'target_zoo.png'")
+    tImgLoc = tInfo.infoDir + 'target_zoo.png'
 
     if not path.exists( tImgLoc ):
-        print("CM: SDSS: Target image location not found")
+        print("CM: pipelineTarget(): Target image location not found")
         print('\t- tLoc: %s' % tImgLoc)
         return False
 
@@ -160,33 +178,35 @@ def pipelineSdss( sDir, printAll = False, n=0, nProcs=1, rmInfo=False ):
         print("CM: ERROR: Failed to read target img")
         return False
 
-    # for troubleshooting
-    #n = 200
-    if n != 0:
-        runDirs = runDirs[:n] 
+
+    if nRuns != None:
+        nRuns = int(nRuns)
+        runDirs = runDirs[:nRuns] 
         print( "CM: TESTING: ", len( runDirs ), runDirs )
 
     # if single core
     if nProcs == 1:
 
         for i,run in enumerate(runDirs):
-            if printAll: print('IM: runs: ', i, end='\r')
+            if printAll: print('CM: runs: ', i, end='\r')
             rDir = gDir + run + '/'
             pipelineRun( rDir, tImg=tImg, tName=tName, printAll=False, rmInfo=rmInfo )
         if printAll: print('')
 
+    # If running in parallel
     else:
  
-        print("IM: using pp") 
+        print("CM: pipelineTarget(): Using parallel processing!") 
         pClass = gm.ppClass( nProcs, printProg=printAll )
 
         runArgList = []
 
         for i,run in enumerate(runDirs):
-            if printAll: print('IM: runs: ', i, end='\r')
+            if printAll: print('CM: runs: ', i, end='\r')
             rDir = gDir + run + '/'
             
             runArg = dict( rDir=rDir, tImg=tImg, tName=tName, printAll=False, rmInfo=rmInfo )
+            #runArg = dict( rDir=rDir, tImg=tImg, tName=tName, printAll=False, rmInfo=rmInfo )
             runArgList.append( runArg )
 
             #pipelineRun( rDir, tImg=tImg, tName=tName, printAll=False, rmInfo=rmInfo )
@@ -196,63 +216,75 @@ def pipelineSdss( sDir, printAll = False, n=0, nProcs=1, rmInfo=False ):
         pClass.runCores()
 
 
-    tInfo.gatherRunInfos()
-    tInfo.saveInfoFile()
+    print("CM: pipelineTarget(): Not updating tInfo...")
+    #tInfo.gatherRunInfos()
+    #tInfo.saveInfoFile()
 
 # End processing sdss dir
 
 
-# Create perturbedness and comparison scores for run. 
+# Create perturbation and comparison scores for run. 
 def pipelineRun( rDir, printAll=False, rmInfo=False, tLoc=None, tImg=None, tName=None, paramName=None, overwriteScores=False ):
 
-    if printAll: print("MC: In pipeline run")
-
-    # Create paths to expected files and directories
-    modelDir = rDir + 'model_images/'
-    ptsDir   = rDir + 'particle_files/'
-    infoLoc  = rDir + 'info.json'
+    if printAll: 
+        print("MC: pipelineRun:")
+        print("\t- printAll: %s" % printAll)
+        print("\t- rmInfo: %s" % rmInfo)
+        print("\t- tLoc: %s" % tLoc)
+        print("\t- tImg: %s" % tImg)
+        print("\t- tName: %s" % tName)
+        print("\t- paramName: %s" % paramName)
+        print("\t- overwriteScores: %s" % overwriteScores)
 
     mImgs = []  # List of images
 
-    # Check if run directory exists
-    if not path.exists( rDir ):
-        print("Error: MC: Run directory does not exist at: %s" % arg.runDir)
-        return False
-     
-    # Check model directory exists
-    if not path.exists( modelDir ):
-        print("Error: MC: runDir folders not found: %s" % rDir)
-        return False
-
     # Check if target data was given
-    elif tLoc == None and type(tImg) == type(None):
-        print("Error: MC: No target data given for run: %s" % arg.runDir)
+    if tLoc == None and type(tImg) == type(None):
+        print("ERROR: MC: pipelineRun: ")
+        print("\t- No target image. runDir: %s" % arg.runDir)
         return False
 
-    # Read/create run Info file
-    if printAll: print("\t- Initizing info class for run.")
-    
-    rInfo = im.run_info_class( infoLoc=infoLoc, runDir=rDir, printAll=printAll, rmInfo=rmInfo )
+
+    rInfo = im.run_info_class( runDir=rDir, printAll=printAll, rmInfo=rmInfo )
 
     # Check if successfully read info data
     if rInfo.status == False:
-        print("Error: MC: Failed to get info from: \n\t- %s" % infoLoc)
+        print("Error: MC: pipelineRun: ")
+        print("\t- Bad status from run_info_class.")
+        print("\t- runDir: %s" % runDir)
         return False
+    else: 
+        if printAll: print("MC: Obtained run info.")
 
-    if printAll: print("MC: Obtained run info.")
-
-    rId = rInfo.rDict.get( 'run_identifier', None )
+    # Get info from run
     mDictList = rInfo.rDict.get( 'model_images', None )
     iDictList = rInfo.rDict.get( 'misc_images', None )
-    pScores = rInfo.rDict.get( 'perturbedness', None )
+    pScores = rInfo.rDict.get( 'perturbation', None )
     mScores = rInfo.rDict.get( 'machine_scores', None )
     iScores = rInfo.rDict.get( 'initial_bias', None )
+
+
+    # Check list for needed run information
+    checkList = [ 'model_images', 'init_images' ]
+    #rInfo.checkList( checkList )
+    if printAll:
+        print("MC: pipelienRun: WARNING:")
+        print("\t- Consider placing checkList, overwrite, and image retreival inside info module.")
 
     if mDictList == None or iDictList == None:
         print("Error: MC: info json not complete")
         print("\t- ", mDictList)
         print("\t- ", iDictList)
-        return False
+        rInfo.printInfo()
+        rInfo.updateInfo()
+        rInfo.printInfo()
+
+        mDictList = rInfo.rDict.get( 'model_images', None )
+        iDictList = rInfo.rDict.get( 'misc_images', None )
+        if mDictList == None or iDictList == None:
+
+           return False
+         
 
     if pScores == None or mScores == None or iScores == None:
         print("BLAH!")
@@ -268,9 +300,12 @@ def pipelineRun( rDir, printAll=False, rmInfo=False, tLoc=None, tImg=None, tName
     compareList = ms.getScoreFunctions()
     nScores = len( compareList )
 
-    doPerturbedness = True
     doMachineScores = True
+    doMetaScores = True
 
+    if printAll: print("MC: pipelineRun(): Currently disabling overwrite settings")
+
+    '''
     # check for existing machine scores
     if not overwriteScores and len(mScores) >= nScores*len( mDictList ):
         if printAll: print("MC: Machine fitness scores already found")
@@ -283,11 +318,12 @@ def pipelineRun( rDir, printAll=False, rmInfo=False, tLoc=None, tImg=None, tName
         if printAll: print("MC: Perturbedness scores already found")
         doPerturbedness = False
     else:
-        if printAll: print("MC: Creating perturbedness scores")
+        if printAll: print("MC: Creating perturbation scores")
 
     if not doPerturbedness and not doMachineScores:
         if printAll: print("MC: No scores needed")
         return False
+    '''
 
     # Open Target image
     if type(tImg) == type(None) and tLoc != None:
@@ -320,11 +356,12 @@ def pipelineRun( rDir, printAll=False, rmInfo=False, tLoc=None, tImg=None, tName
     # Go through model images and create scores
     for mD in mDictList:
 
-        mName = mD.get( 'image_name', None )
-        mParam = mD.get( 'image_parameter_name', None )
+        mName = mD
+        mParam = mDictList[mD]['image_parameter_name']
 
         if mName == None or mParam == None:
-            print("WARNING: MC: Bad image name found")
+            print("MC: pipelineRun: WARNING: ")
+            print("\t- Bad image name found")
             print("\t- ", mD)
             continue
 
@@ -342,44 +379,59 @@ def pipelineRun( rDir, printAll=False, rmInfo=False, tLoc=None, tImg=None, tName
                 c['model_name'] = mName
                 c['target_name'] = tName
 
-            new_mScores = rInfo.appendList( 'machine_scores', cList )
+            new_mScores = rInfo.appendScores( keyName='machine_scores', addList=cList )
 
             if new_mScores != None:
                 mScores = new_mScores
             else:
-                if printAll: print("MC: WARNING: Failed creating perturbedness for %s" % mName)
+                if printAll: print("MC: WARNING: Failed creating perturbation for %s" % mName)
 
 
-        # create and saving perturbedness scores
-        if doPerturbedness:
+        # create and saving perturbation scores
+        if doMetaScores:
 
-            if printAll: print("\t- Creating perturbedness for %s" % mName)
+            if printAll: print("\t- Creating perturbation and initial bias for %s" % mName)
 
             # Find matching initial image
+            '''
             iL = [ iD['image_name'] for iD in iDictList if iD['image_parameter_name'] == mParam ]
             if len( iL ) == 0:
                 print("MC: WARNING: Found no matching initial images for model image")
-                print("\t- rID: %s - %s" % (rId, mD) )
+                continue
+            '''
+
+            iLoc = rDir + 'misc_images/' + mName.replace('model','init')
+            iImg = getImg( iLoc )
+            if type(iImg) == type(None):
+                print("BAD")
                 continue
 
-            iName = iL[0]
-            iLoc = rDir + 'model_images/' + iName
-            iImg = getImg( iLoc )
+            psList, pcList = allScores( mImg, iImg, printAll = printAll )
+            isList, icList = allScores( tImg, iImg, printAll = printAll )
 
-            sList, cList = allScores( mImg, iImg, printAll = printAll )
+            # append image names to perturbation dict
+            for i,c in enumerate(pcList):
+                pcList[i]['model_name'] = mName
+                icList[i]['model_name'] = mName
+                icList[i]['target_name'] = tName
 
-            # append image names to perturbedness dict
-            for c in cList:
-                c['model_name'] = mName
+            new_pScores = rInfo.appendScores( keyName='perturbation', addList=pcList )
+            new_iScores = rInfo.appendScores( keyName='initial_bias' , addList=icList )
 
-            new_pScores = rInfo.appendList( 'perturbedness', cList )
+            if new_pScores == None:
+                 print("MC: WARNING: Failed creating perturbation for %s" % mName)
+                 print(pcList)
+                 print(new_pScores)
+                 print(rInfo.rDict['perturbation'])
 
-            if new_pScores != None:
-                pScores = new_pScores
-            else:
-                if printAll: print("MC: WARNING: Failed creating perturbedness for %s" % mName)
+            if new_iScores == None:
+                 print("MC: WARNING: Failed creating initial_bias for %s" % mName)
+                 print(icList)
+                 print(new_iScores)
+                 print(rInfo.rDict['initial_bias'])
 
-    # Done with perturbedness and machine scores
+
+    # Done with perturbation and machine scores
 
     rInfo.saveInfoFile()
 

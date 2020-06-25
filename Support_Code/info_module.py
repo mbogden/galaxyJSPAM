@@ -194,9 +194,9 @@ class target_info_class:
 
 
         self.saveInfoFile( baseFile=True )
-        self.gatherRunInfos()
-        self.updateProgress()
-        self.saveInfoFile( )
+        #self.gatherRunInfos()
+        #self.updateProgress()
+        #self.saveInfoFile( )
         self.status = True
         return
 
@@ -431,7 +431,8 @@ class target_info_class:
         m0_id = m0['run_identifier']
         m0_h = m0['human_scores']
         m0_m = m0['machine_scores']
-        m0_p = m0['perturbedness']
+        m0_p = m0['perturbation']
+        m0_i = m0['initial_bias']
 
         print( m0) 
 
@@ -453,6 +454,12 @@ class target_info_class:
             cN = p.get( 'comparison_name', None )
             print(cN)
             headerNames.append( 'perturbation_' + cN )
+
+        # Initial bias Scores
+        for i in m0_i:
+            cN = i.get( 'comparison_name', None )
+            print(cN)
+            headerNames.append( 'initialBias_' + cN )
 
         if self.printAll: 
             print( '\t - %d headers' % len(headerNames) )
@@ -479,7 +486,13 @@ class target_info_class:
                             break
 
                 if 'perturbation_' in h:
-                    for ps in m['perturbedness']:
+                    for ps in m['perturbation']:
+                        if ps['comparison_name'] in h:
+                            sFrame.loc[ i, h] = ps['score']
+                            break 
+
+                if 'initialBias_' in h:
+                    for ps in m['inital_bias']:
                         if ps['comparison_name'] in h:
                             sFrame.loc[ i, h] = ps['score']
                             break 
@@ -664,7 +677,7 @@ class run_info_class:
 
 
     runHeaders = ( 'run_identifier', 'model_data', 'human_scores',  'particle_files', 
-            'model_images', 'misc_images', 'perturbedness', 'initial_bias', 'machine_scores',)
+            'model_images', 'misc_images', 'perturbation', 'initial_bias', 'machine_scores',)
 
     modelImgHeaders = ( 'image_name', 'image_parameter_name' )
 
@@ -854,15 +867,18 @@ class run_info_class:
 
 
     # For appending new information to a list in run info module
-    def appendList( self, keyName, aList ):
+    def appendScores( self, keyName, addList ):
 
-        if self.printAll: print("IM: Extending %s list" % keyName)
+        if self.printAll: print("IM: Extending list: '%s'" % keyName)
 
-        if type( aList ) != type( [] ):
-            print("ERROR: IM: Given non-list in appendList: %s" % type(aList))
+        if type( addList ) != type( [] ):
+            print("ERROR: IM: Given non-list in appendList: %s" % type(addList))
             return None
 
-        keyGood = keyName in self.rDict
+        if keyName in self.rDict and keyName in ['machine_scores', 'perturbation', 'initial_bias']:
+            keyGood = True
+        else:
+            keyGood = False
 
         if not keyGood: 
             print("IM: WARNING: key %s does not exist in info module")
@@ -870,24 +886,38 @@ class run_info_class:
 
         # Check if key is list
         if type( self.rDict[keyName] ) != type( [] ):
+            self.rDict[keyName] = []
+            '''
             print("ERROR: IM: Key value not a list in appendList: %s" )
             print("\t- key: %s" % keyName)
             print("\t- Type: %s" % type( self.rDict[keyName] ) )
+            '''
             return None
 
         # All is good. 
-        self.rDict[keyName].extend( aList ) 
+        self.rDict[keyName].extend( addList ) 
         return self.rDict[keyName]
+    
+    def createBlank( self, ):
         
+        # Create blank dictionary
+        tempDict = {}
+        for key in self.runHeaders:
+            tempDict[key] = {}
+
+        tempDict['initial_bias'] = []
+        tempDict['perturbation'] = []
+        tempDict['machine_scores'] = []
+        
+        return tempDict
+    # End create Blank
+       
 
     def txt2Json( self, ):
         
         if self.printAll: print("IM: Run.txt2Json")
 
-        # Create blank dictionary
-        self.rDict = {}
-        for key in self.runHeaders:
-            self.rDict[key] = {}
+        self.rDict = self.createBlank()
 
         oldLoc = self.runDir + 'info.txt'
 
@@ -1025,9 +1055,6 @@ class run_info_class:
                 self.rDict['misc_images'][name] = name
 
         # Grab particle files
-        print('TEMP:')
-        print(self.rDict)
-        print(self.rDict['particle_files'])
         for name in listdir( self.ptsDir):
 
             # If initial image
@@ -1060,10 +1087,8 @@ class run_info_class:
             retVal = True
 
         if saveBase:
-            self.baseDict = {}
-            for key in self.runHeaders:
-                self.baseDict[key] = {}
 
+            self.baseDict = self.createBlank()
             self.baseDict['run_identifier'] = self.rDict['run_identifier'] 
             self.baseDict['model_data'] = self.rDict['model_data'] 
             self.baseDict['human_scores'] = self.rDict['human_scores'] 
