@@ -184,7 +184,30 @@ class ppClass:
 
     # Blah
 
+
+    def displayTime( sec ):
+        result = ''
+
+        # Calculate Hrs
+        Hr = sec // 3600
+        if Hr > 0:
+            sec -= Hr * 3600
+            result += '%dH:' % Hr
+
+        Min = sec // 60
+        if Min > 0:
+            sec -= Min * 60
+            result += '%dM:' % Min
+
+        result += '%dS' % sec
+        return result
+
+
     def coreFunc( self ):
+
+        from datetime.datetime import now
+        startTime = now()
+        n = int( self.nQueue )
 
         # Keep core running until shared queue is empty
         while True:
@@ -198,9 +221,11 @@ class ppClass:
                 break
 
             if self.printProg:
-                p = int(self.nQueue) - int( self.jobQueue.qsize() )
-                perc = ( p / int(self.nQueue) ) * 100
-                print("%.1f%% - %d / %d" % ( perc, p, self.nQueue ), end='\r' )
+                p = n - int( self.jobQueue.qsize() )
+                perc = ( p / n ) * 100
+                etaSec = ( n - p ) * ( now() - startTime ) / p
+                etaStr = displayTime( etaSec )
+                print("%.1f%% - %d / %d   ETA: %s           " % ( perc, p, n, etaStr ), end='\r' )
 
             # Run desired function on core
             self.funcPtr(**funcArgs)

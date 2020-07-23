@@ -47,6 +47,8 @@ def main(arg):
                 targetDir = arg.targetDir, \
                 printAll = arg.printAll, \
                 rmInfo = getattr( arg, 'rmInfo', False ), \
+                gatherRuns = getattr( arg, 'gatherRuns', False ), \
+                gatherScores = getattr( arg, 'gatherScores', False ), \
                 )
 
         if tInfo.status:
@@ -99,7 +101,7 @@ def main(arg):
 class target_info_class:
 
     tDict = None        # Primary dictionary of info for all data 
-    initDict = None     # Copy of dictionary when read
+    initDict = {}     # Copy of dictionary when read
     baseDict = None     # Simple dictionary of info for basic info.
 
     status = False      # State of this class.  For initiating.
@@ -118,12 +120,13 @@ class target_info_class:
 
     progHeaders = ( 'initial_creation', 'galaxy_zoo_models', '100k_particle_files', 'zoo_default_model_images', 'machine_scores' )
 
-    def __init__( self, targetDir = None, printAll = False, rmInfo=False, ):
+    def __init__( self, targetDir = None, printAll = False, rmInfo=False, \
+            gatherRuns=False, gatherScores = False ):
 
         # Tell class if it should print progress
         self.printAll = printAll
         if self.printAll: 
-            print("IM: Initailizing target info class")
+            print("IM: Target.__init__():")
             print('\t - targetDir: ', targetDir)
             print('\t - rmInfo: ', rmInfo)
             print('\t - printAll: ', printAll)
@@ -140,8 +143,10 @@ class target_info_class:
             return
 
         dirGood = self.initTargetDir( targetDir )
+
         if not dirGood:
-            print("IM: Target: WARNING: Something not right.")
+            print("IM: Target.__init__(): ")
+            print("\t- WARNING: Something went wrong initializing directory.")
             return
     
         # Remove info file if condition given
@@ -168,7 +173,6 @@ class target_info_class:
                 self.tDict = json.load( iFile )
             self.initDict = deepcopy( self.tDict )
             self.status = True
-            return
 
         # Copy base info file if all not found
         elif path.exists( self.baseInfoLoc ):
@@ -191,12 +195,18 @@ class target_info_class:
             if self.printAll: print("\t- Creating new info file" )
             
             self.newTargetInfo()
+            self.saveInfoFile( baseFile=True )
 
 
-        self.saveInfoFile( baseFile=True )
-        #self.gatherRunInfos()
-        #self.updateProgress()
-        #self.saveInfoFile( )
+        if gatherRuns:
+            self.gatherRunInfos()
+            self.saveInfoFile( )
+
+        if gatherScores:
+            self.getScores( newScores=True )
+            self.updateProgress()
+            self.saveInfoFile( )
+
         self.status = True
         return
 
@@ -292,7 +302,7 @@ class target_info_class:
     def initTargetDir( self, targetDir ):
 
         if self.printAll:
-            print( 'IM: initTargetDir:' )
+            print( 'IM: Target.initTargetDir():' )
             print( '\t - targetDir: %s' % targetDir )
 
         # Define paths for all useful things in target structure
@@ -348,7 +358,25 @@ class target_info_class:
             print("IM: ERROR: Umm.... You shouldn't be here...")
             self.status = False
             return 
+        '''
+        # Find model set with name of setID
+        for s in setList:
+            setName = s.get( 'set_identifier', None)
+            if setName == None: 
+                print("IM: WARNING: A target model set without identifier found")
+                continue
 
+            if setName == setId:
+                desiredSet = s
+                break
+
+        if desiredSet == None:
+            print("IM: WARNING: Model set not found: ", setId)
+            return None
+        '''
+    # End incomplete
+    
+    
     # Deconstructor
     def __del__( self ):
         if self.tDict != self.initDict:
@@ -367,7 +395,7 @@ class target_info_class:
         for h in self.tDict:
             item = self.tDict[h]
 
-            if type( item ) == list:
+            if type( item ) == type([]):
                 print("\tLIST!")
                 for i in item:
                     print(i)
@@ -378,15 +406,27 @@ class target_info_class:
     # Gather human and machine scores into pandas files and save as csv
     def getScores( self, setId = 'galaxy_zoo_mergers', saveScores=True, newScores= False):
 
+        if self.printAll:
+            print("IM: Target.getScores():")
+            print("\t- setId: %s" % setId)
+            print("\t- saveScores: %s" % saveScores)
+            print("\t- newScores: %s" % newScores)
+
         import pandas as pd
         import numpy as np
 
         if newScores or not path.exists( self.scoreLoc ):
-            if self.printAll: print("IM: Gathering scores")
+            
+            if self.printAll: 
+                print("IM: Gathering scores")
             sFrame = self.gatherScores( setId=setId )
-            if self.scoreLoc != None: sFrame.to_csv( self.scoreLoc, index = False )
+               
+            pass
 
-        if self.printAll: print("IM: Getting scores from csv file")
+                
+        if self.printAll: 
+            print("IM: Getting scores from csv file")
+            
         sFrame = pd.read_csv( self.scoreLoc )
 
         return sFrame
@@ -394,54 +434,42 @@ class target_info_class:
 
     def gatherScores( self, setId = None ):
 
-        if self.printAll: print("IM: Gathering Scores")
+        if self.printAll: print("IM: tareget.gatherScores():")
 
         import pandas as pd
         import numpy as np
 
-        setList = self.tDict[ 'model_sets' ]
-        desiredSet = None
-
-        # Find model set with name of setID
-        for s in setList:
-            setName = s.get( 'set_identifier', None)
-            if setName == None: 
-                print("IM: WARNING: A target model set without identifier found")
-                continue
-
-            if setName == setId:
-                desiredSet = s
-                break
-
-        if desiredSet == None:
-            print("IM: WARNING: Model set not found: ", setId)
-            return None
+        desiredSet = self.tDict[ 'model_sets' ][setId]
 
         # Create Frame and populate scores
-        models = desiredSet['models']
-        if self.printAll: print("IM: getScores: \n\t - %d models" % len(models) )
+        mKeys = list(desiredSet.keys())
+        if self.printAll: print("IM: getScores: \n\t - %d models" % len(mKeys) )
 
-        if len(models) == 0:
+        if len(mKeys) == 0:
             if self.printAll: print("\t - WARNING: No scores found.")
             return None
 
 
         # Calculate DataDrame size based on first mode1
-        m0 = models[0]
+
+        m0 = desiredSet[ mKeys[0] ]
+
         m0_id = m0['run_identifier']
         m0_h = m0['human_scores']
         m0_m = m0['machine_scores']
         m0_p = m0['perturbation']
         m0_i = m0['initial_bias']
 
-        print( m0) 
+        # Check if model has populated values
+        if len( m0_m ) == 0 or  len( m0_p ) == 0 or len( m0_i ) == 0:
+            print('\t- WARNING: model 0 has no scores')
+            print('\t- Exiting gatherScores')
+            return None
 
-        # run ID
-        headerNames = [ 'run_id' ]
+        headerNames = []
 
         # human Scores
-        for h in m0_h:
-            hN = h.get( 'score_name', None )
+        for hN in m0_h:
             headerNames.append( 'human_' + hN )
 
         # Machine Scores
@@ -452,13 +480,11 @@ class target_info_class:
         # Perturbedness Scores
         for p in m0_p:
             cN = p.get( 'comparison_name', None )
-            print(cN)
             headerNames.append( 'perturbation_' + cN )
 
         # Initial bias Scores
         for i in m0_i:
             cN = i.get( 'comparison_name', None )
-            print(cN)
             headerNames.append( 'initialBias_' + cN )
 
         if self.printAll: 
@@ -467,9 +493,16 @@ class target_info_class:
 
 
         # Create Empty dataframe and populate
-        sFrame = pd.DataFrame( index = np.arange( len( models ) ), columns=headerNames)
+        sFrame = pd.DataFrame( index = np.arange( len( mKeys ) ), columns=headerNames)
 
-        for i, m in enumerate(models):
+        nModels = len( mKeys )
+
+        for i, k in enumerate(mKeys):
+
+            print('%d / %d     ' % ( i, nModels ), end='\r' )
+
+            
+            m = desiredSet[k]
 
             for h in headerNames:
 
@@ -477,7 +510,7 @@ class target_info_class:
                     sFrame.loc[ i, h ] = m[ 'run_identifier' ]
 
                 if 'galaxy_zoo' in h:
-                    sFrame.loc[ i, h ] = m[ 'human_scores' ][0]['score']
+                    sFrame.loc[ i, h ] = m[ 'human_scores' ]['galaxy_zoo_mergers']['score']
 
                 if 'machine_' in h:
                     for ms in m['machine_scores']:
@@ -492,12 +525,15 @@ class target_info_class:
                             break 
 
                 if 'initialBias_' in h:
-                    for ps in m['inital_bias']:
+                    for ps in m['initial_bias']:
                         if ps['comparison_name'] in h:
                             sFrame.loc[ i, h] = ps['score']
                             break 
 
-            break
+
+        if self.scoreLoc != None: 
+            sFrame.to_csv( self.scoreLoc, index = False )
+
 
         # End going through models
         
@@ -584,8 +620,6 @@ class target_info_class:
             self.tDict['progress'][key] = None
         self.tDict['progress']['initial_creation'] = True  
 
-        self.initDict = deepcopy( self.tDict )
-
         if self.printAll: 
             print('\t- Created new info file')
             self.printInfo()
@@ -606,7 +640,7 @@ class target_info_class:
 
         for i,run in enumerate(self.runDirs):
 
-            rInfo = run_info_class( runDir = self.zooModelDir + run, rmInfo=True )
+            rInfo = run_info_class( runDir = self.zooModelDir + run, )
             rInfo.updateInfo()
             rId = rInfo.rDict['run_identifier']
             self.tDict['model_sets']['galaxy_zoo_mergers'][rId] = rInfo.rDict
@@ -618,7 +652,9 @@ class target_info_class:
 
     def saveInfoFile( self, saveLoc = None, baseFile=False ):
 
-        if self.printAll: print("IM: Saving target info file...")
+        if self.printAll: 
+            print("IM: Target.saveInfoFile():")
+            print("\t- Saving target info file...")
 
         if self.allInfoLoc == None and saveLoc == None:
             print("ERROR: IM: No target info location given...")
@@ -629,8 +665,8 @@ class target_info_class:
             return False
 
         if self.tDict == self.initDict:
-            if self.printAll: print("IM: No changes detected, not saving")
-            return True
+            if self.printAll: print("\t- No changes detected...")
+            #return True
 
         retVal = False
 

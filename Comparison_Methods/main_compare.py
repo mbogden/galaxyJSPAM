@@ -215,10 +215,8 @@ def pipelineTarget( tDir, printAll = False, nRuns=None, nProcs=1, rmInfo=False )
 
         pClass.runCores()
 
-
-    print("CM: pipelineTarget(): Not updating tInfo...")
-    #tInfo.gatherRunInfos()
-    #tInfo.saveInfoFile()
+    tInfo.gatherRunInfos()
+    tInfo.saveInfoFile()
 
 # End processing sdss dir
 

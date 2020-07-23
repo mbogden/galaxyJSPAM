@@ -16,6 +16,10 @@ sysPath.append( supportPath )
 import general_module as gm
 import info_module as im
 
+def test():
+    print("test")
+print('test')
+
 
 def main(arg):
 
@@ -118,12 +122,138 @@ def procTarget( tDir, printAll=False ):
         return None
 
     allFrame = tInfo.getScores()
+    allFrame = allFrame.sort_values( 'human_galaxy_zoo_mergers', ascending=True)
 
-    if printAll:
+
+    if False and printAll:
         print("SA: Found scores with headers")
         for c in allFrame.columns:
             print('\t - ',c)
 
+    print("Only using correlation for now")
+
+    h = ( 'galaxy_zoo_mergers', allFrame['human_galaxy_zoo_mergers'].values )
+    m = ( 'machine', allFrame['machine_correlation'].values )
+    p = ( 'perturbation', allFrame['perturbation_correlation'].values )
+    i = ( 'initial_bias', allFrame['initialBias_correlation'].values )
+ 
+    filter_me = p[1] < .75
+    fFrame = allFrame[ filter_me ]
+
+    fh = ( 'galaxy_zoo_mergers', fFrame['human_galaxy_zoo_mergers'].values )
+    fm = ( 'machine', fFrame['machine_correlation'].values )
+    fp = ( 'perturbation', fFrame['perturbation_correlation'].values )
+    fi = ( 'initial_bias', fFrame['initialBias_correlation'].values )
+   
+
+    pSubi = ( '%s - %s' % ( p[0], i[0] ), p[1] - i[1] ) 
+    mSubi = ( '%s - %s' % ( m[0], i[0] ), m[1] - i[1] ) 
+
+
+    newM = ( 'new score thing', m[1] * np.exp( - ( p[1] - i[1] )**2 / ( 2 * .15**2 ) ) )
+
+
+    createHeatPlot_v2( h, newM, p, saveLoc = tInfo.plotDir + 'new.png' ) 
+
+    '''
+    createHeatPlot_v2( m, p, h, saveLoc = tInfo.plotDir + '0_1m2.png' ) 
+
+    createHeatPlot_v2( m, p, h, saveLoc = tInfo.plotDir + '0_1m2.png' ) 
+
+    createHeatPlot_v2( h, m, p, saveLoc = tInfo.plotDir + '0_0h1.png' ) 
+    createHeatPlot_v2( h, m, i, saveLoc = tInfo.plotDir + '0_0h2.png' ) 
+    createHeatPlot_v2( h, i, p, saveLoc = tInfo.plotDir + '0_0h3.png' ) 
+    createHeatPlot_v2( h, i, m, saveLoc = tInfo.plotDir + '0_0h4.png' ) 
+    createHeatPlot_v2( h, p, i, saveLoc = tInfo.plotDir + '0_0h5.png' ) 
+    createHeatPlot_v2( h, p, m, saveLoc = tInfo.plotDir + '0_0h6.png' ) 
+
+    createHeatPlot_v2( m, i, h, saveLoc = tInfo.plotDir + '0_1m0.png' ) 
+    createHeatPlot_v2( m, i, p, saveLoc = tInfo.plotDir + '0_1m1.png' ) 
+    createHeatPlot_v2( m, p, h, saveLoc = tInfo.plotDir + '0_1m2.png' ) 
+    createHeatPlot_v2( m, p, i, saveLoc = tInfo.plotDir + '0_1m3.png' ) 
+
+    createHeatPlot_v2( p, i, h, saveLoc = tInfo.plotDir + '0_2i0.png' ) 
+    createHeatPlot_v2( p, i, m, saveLoc = tInfo.plotDir + '0_2i1.png' ) 
+
+    createHeatPlot_v2( fh, fm, fp, saveLoc = tInfo.plotDir + '0_0h1f.png' ) 
+    createHeatPlot_v2( fh, fm, fp, saveLoc = tInfo.plotDir + '1_1f.png' ) 
+    createHeatPlot_v2( fh, fm, fi, saveLoc = tInfo.plotDir + '1_2f.png' ) 
+    createHeatPlot_v2( fm, fp, fh, saveLoc = tInfo.plotDir + '1_3f.png' ) 
+    createHeatPlot_v2( fm, fp, fi, saveLoc = tInfo.plotDir + '1_4f.png' ) 
+    createHeatPlot_v2( fp, fi, fh, saveLoc = tInfo.plotDir + '1_5f.png' ) 
+    createHeatPlot_v2( fp, fi, fm, saveLoc = tInfo.plotDir + '1_6f.png' ) 
+
+
+    createHeatPlot_v2( h, mSubi, m, saveLoc = tInfo.plotDir + '2_mSubi_1.png', mH = False  ) 
+    createHeatPlot_v2( h, mSubi, p, saveLoc = tInfo.plotDir + '2_mSubi_2.png', mH = False  ) 
+    createHeatPlot_v2( h, mSubi, i, saveLoc = tInfo.plotDir + '2_mSubi_3.png', mH = False  ) 
+
+    createHeatPlot_v2( mSubi, p, i, saveLoc = tInfo.plotDir + '2_mSubi_4.png', mH = False  ) 
+    createHeatPlot_v2( mSubi, i, p, saveLoc = tInfo.plotDir + '2_mSubi_5.png', mH = False  ) 
+    createHeatPlot_v2( p, i, mSubi, saveLoc = tInfo.plotDir + '2_mSubi_6.png', mH = False  ) 
+
+    createHeatPlot_v2( h, m, pSubi, saveLoc = tInfo.plotDir + '3_pSubi_1.png', mH = False  ) 
+    createHeatPlot_v2( h, pSubi, m, saveLoc = tInfo.plotDir + '3_pSubi_2.png', mH = False  ) 
+    createHeatPlot_v2( h, pSubi, p, saveLoc = tInfo.plotDir + '3_pSubi_3.png', mH = False  ) 
+    createHeatPlot_v2( h, pSubi, i, saveLoc = tInfo.plotDir + '3_pSubi_4.png', mH = False  ) 
+
+    createHeatPlot_v2( m, pSubi, i, saveLoc = tInfo.plotDir + '3_mSubi_5.png', mH = False  ) 
+    createHeatPlot_v2( m, i, pSubi, saveLoc = tInfo.plotDir + '3_mSubi_6.png', mH = False  ) 
+    createHeatPlot_v2( pSubi, i, m, saveLoc = tInfo.plotDir + '3_mSubi_7.png', mH = False  ) 
+
+    createHeatPlot_v2( h, mSubi, pSubi, saveLoc = tInfo.plotDir + '4_pmSubi_1.png', mH = False  ) 
+    createHeatPlot_v2( h, pSubi, mSubi, saveLoc = tInfo.plotDir + '4_pmSubi_2.png', mH = False  ) 
+
+    createHeatPlot_v2( mSubi, pSubi, i, saveLoc = tInfo.plotDir + '4_mSubi_5.png', mH = False  ) 
+    createHeatPlot_v2( mSubi, i, pSubi, saveLoc = tInfo.plotDir + '4_mSubi_6.png', mH = False  ) 
+    createHeatPlot_v2( pSubi, i, mSubi, saveLoc = tInfo.plotDir + '4_mSubi_7.png', mH = False  ) 
+    '''
+
+def createHeatPlot_v2( s1, s2, s3, saveLoc = None, titleName=None, mH=True ):
+
+    plt.clf()
+
+    c1 = ( s1[0] +' v '+ s2[0], np.corrcoef( s1[1], s2[1])[0,1] )
+    c2 = ( s1[0] +' v '+ s3[0], np.corrcoef( s1[1], s3[1])[0,1] )
+    c3 = ( s2[0] +' v '+ s3[0], np.corrcoef( s2[1], s3[1])[0,1] )
+
+    #hMin = np.amin( s3[1] )
+    #hMax = np.amax( s3[1] )
+
+    cMap = plt.cm.get_cmap('RdYlBu_r')
+
+    if mH:
+        plot = plt.scatter( s1[1], s2[1], c=s3[1], s=5, cmap=cMap, vmax=1.0)
+    else:
+        plot = plt.scatter( s1[1], s2[1], c=s3[1], s=5, cmap=cMap)
+
+    cBar = plt.colorbar(plot)
+    
+    #plt.xlim(0,1)
+    #plt.ylim(0,1)
+
+    if titleName != None:
+        plt.title( titleName)
+
+
+    plt.xlabel(s1[0])
+    plt.xlim(right=1.0)
+    plt.ylabel(s2[0])
+    plt.ylim(top=1.0)
+    cBar.set_label( s3[0] )
+
+    ax = plt.gca()
+    ax.set_facecolor("xkcd:grey")
+
+    if saveLoc != None:
+        plt.savefig( saveLoc )
+
+# End plot creation
+
+
+
+
+def incomplete(): 
     # Sort values
     humanList = [ name for name in allFrame.columns if 'human_' in name ]
     machineList = [ name for name in allFrame.columns if 'machine_' in name ]
@@ -167,6 +297,7 @@ def createMethodPlot( hScores, mScores, titleName=None, saveLoc = None ):
         print( plotLoc )
         plt.savefig( plotLoc )
     plt.clf()
+
 
 
 def createHeatPlot( hScores, mScores, pScores = None, saveLoc = None, titleName=None ):
