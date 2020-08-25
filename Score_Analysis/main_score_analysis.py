@@ -17,7 +17,7 @@ import general_module as gm
 import info_module as im
 
 def test():
-    print("test")
+    print("SA: Hi!  You're in Matthew's Main program for score analysis")
 print('test')
 
 
@@ -346,9 +346,6 @@ if __name__ == '__main__':
     main( arg )
 
 
-exit(-1)
-
-
 # global input variables
 plotDir = ''
 scoreDir = ''
@@ -453,8 +450,6 @@ def exampleFilter():
     print( "Predictions!: ", ft.predictImg( imgs, pModel ) )
 
 
-
-    exit()
 
 def getTrainingImages(h):
 
@@ -581,8 +576,6 @@ def binTargets(tImg):
 
     tbImg = ms.binImg( tImg, 55 )
     cv2.imwrite( sdssDir + 'sdssParameters/target_zoo_binary.png', tbImg )
-    exit()
-
     binDir = sdssDir + 'sdssParameters/binTargets/'
     system( 'mkdir %s' % binDir )
 
@@ -784,7 +777,6 @@ def getScores():
         return pd.read_csv( scoreDir + 'scores.csv' )
     except:
         print("No scores.csv found at %s" % scoreDir + 'scores.csv')
-        exit()
 
 def createScoreCSV():
     
@@ -1092,7 +1084,6 @@ def main_old():
 
     if printAll: print("ImgDir: %s" % imgDir )
 
-    if endEarly: exit(-1)
 
     tImg = cv2.imread( imgDir + 'target.png' )
 
@@ -1507,11 +1498,9 @@ def getImgs( iDir ):
     '''
     if len(mImgs) == 0 or len(iImgs) == 0:
         print("# of model and init images 0")
-        exit(0)
 
     if len(mImgs) != len(iImgs):
         print("# of model and init images different")
-        exit(0)
     '''
 
     return mImgs, iImgs
@@ -1682,8 +1671,6 @@ def readFile( fileLoc ):
 if __name__=='__main__':
 
     endEarly = readArg()
-
-    if endEarly: exit(-1)
 
     if newSdss:
         initSdss()

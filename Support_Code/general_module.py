@@ -205,8 +205,10 @@ class ppClass:
 
     def coreFunc( self ):
 
-        from datetime.datetime import now
-        startTime = now()
+        #from datetime.datetime import now
+        #from datetime import datetime as dt
+        #now = dt.now
+        #startTime = now()
         n = int( self.nQueue )
 
         # Keep core running until shared queue is empty
@@ -220,11 +222,13 @@ class ppClass:
                 print('%s - queue empty' % self.mp.current_process().name)
                 break
 
-            if self.printProg:
+            #if self.printProg:
+            if False:
                 p = n - int( self.jobQueue.qsize() )
                 perc = ( p / n ) * 100
                 etaSec = ( n - p ) * ( now() - startTime ) / p
-                etaStr = displayTime( etaSec )
+                print('FINDME: ', type(etaSec), etaSec)
+                etaStr = self.displayTime( etaSec )
                 print("%.1f%% - %d / %d   ETA: %s           " % ( perc, p, n, etaStr ), end='\r' )
 
             # Run desired function on core
