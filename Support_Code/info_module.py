@@ -197,7 +197,6 @@ class target_info_class:
             self.newTargetInfo()
             self.saveInfoFile( baseFile=True )
 
-
         if gatherRuns:
             self.gatherRunInfos()
             self.saveInfoFile( )
@@ -293,10 +292,8 @@ class target_info_class:
 
         runList = self.zModelDir
         
-
         # If given list
         #if type( checkFunc ) == type( [] ): 
-
 
 
     def initTargetDir( self, targetDir ):
@@ -310,7 +307,6 @@ class target_info_class:
         if self.targetDir[-1] != '/': self.targetDir += '/'
 
         self.infoDir = self.targetDir + 'information/'
-
         self.allInfoLoc = self.infoDir + 'all_target_info.json'
         self.baseInfoLoc = self.infoDir + 'base_target_info.json'
         self.scoreLoc = self.infoDir + 'scores.csv'
@@ -358,6 +354,7 @@ class target_info_class:
             print("IM: ERROR: Umm.... You shouldn't be here...")
             self.status = False
             return 
+
         '''
         # Find model set with name of setID
         for s in setList:
@@ -374,6 +371,7 @@ class target_info_class:
             print("IM: WARNING: Model set not found: ", setId)
             return None
         '''
+
     # End incomplete
     
     

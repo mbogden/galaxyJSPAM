@@ -51,29 +51,11 @@ def main(arg):
 
 def procRun( rDir, printAll=False ):
 
-    if type(rDir) != type('string'):
-        print("ERROR: PT: runDir not a string: %s - %s" % ( type(rDir), rDir ) )
-        return False
-
-    if not path.exists( rDir ):
-        print("ERROR: PT: runDir not found: " % rDir )
-        return False
-
-    if arg.printAll: print("PT: runDir: %s" % arg.runDir )
-
-    modelDir = rDir + 'model_images/'
-    miscDir = rDir + 'misc_images/'
-    ptsDir = rDir + 'particle_files/'
-    infoLoc = rDir + 'info.json'
-
-    if not path.exists( modelDir ) or not path.exists( ptsDir ) or not path.exists( infoLoc):
-        print("ERROR: PT: A directory was not found in runDir")
-        print("\t- modelDir: " , path.exists( modelDir ) )
-        print("\t-  miscDir: " , path.exists( miscDir ) )
-        print("\t-  partDir: " , path.exists( ptsDir ) )
-        return False
-
     rInfo = im.run_info_class( runDir=rDir, printAll=printAll )
+
+    if printAll:
+        print('PT: rInfo.status: ', rInfo.status )
+
     #rInfo.printInfo()
 
 # end processing run dir
@@ -82,43 +64,42 @@ def procRun( rDir, printAll=False ):
 # Process target directory
 def procTarget( tDir, printAll=False ):
 
-    if arg.printAll: print("PT: sdssDir: %s" % arg.sdssDir )
-
-    if type(tDir) != type('string'):
-        print("ERROR: PT: Target: targetDir not a string: %s - %s" % ( type(tDir), tDir ) )
-        return False
-
-    if not path.exists( tDir ):
-        print("ERROR: PT: Target: targetDir not found: " % tDir )
-        return False
-
-    iDir = tDir + 'information/'
-    gDir = tDir + 'gen000/'
-    pDir = tDir + 'plots/'
-
-    infoLoc = iDir + 'target_info.json'
-
-    # If not a target folder
-    if not path.exists( iDir ) or not path.exists( gDir ):
-        print("ERROR: PT: Couldn't find needed folders in targetDir.")
-        print("\t- infoDir: " , path.exists( iDir ) )
-        print("\t-  genDir: " , path.exists( gDir ) )
-        return False
-
-    tInfo = im.target_info_class( infoLoc )
-
-    runDirs = listdir( gDir )
-    runDirs.sort()
+    tInfo = im.target_info_class( targetDir=tDir, printAll=True )
 
     for run in runDirs:
-        rDir = gDir + run + '/'
-        procRun( rDir )
+        #procRun( rDir )
+        break
 
 # End processing sdss dir
 
 def procAllData( dataDir, printAll=False ):
     if arg.printAll: print("PT: dataDir: %s" % arg.dataDir )
-    print("All data")
+
+    # Check if directory exists
+    if not path.exists( dataDir ):  
+        print("PT: WARNING: Directory not found")
+        print('\t - ' , dataDir )
+        return
+
+    # Append trailing '/' if needed
+    if dataDir[-1] != '/': dataDir += '/'  
+
+    dataList = listdir( dataDir )   # List of items found in folder
+    tDirList = []  # List of folders that are target directories
+
+    # Find target directories
+    for folder in dataList:
+        tDir = dataDir + folder
+        print(tDir)
+        tempInfo = im.target_info_class( targetDir=tDir, printAll=False )
+        print('s', tempInfo.status)
+
+        # if a valid target directory
+        if tempInfo.status:
+            tDirList.append( tempInfo )
+
+    print( 'PT.procAllData: ')
+    print( '\t - Found Dir: %d' % len( tDirList ) )
 
 # Run main after declaring functions
 if __name__ == '__main__':
