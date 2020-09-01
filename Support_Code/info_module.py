@@ -120,25 +120,43 @@ class target_info_class:
 
     progHeaders = ( 'initial_creation', 'galaxy_zoo_models', '100k_particle_files', 'zoo_default_model_images', 'machine_scores' )
 
-    def __init__( self, targetDir = None, printAll = False, rmInfo=False, \
+    def __init__( self, targetDir = None, printBase = True, printAll = False, rmInfo=False, \
             gatherRuns=False, gatherScores = False ):
 
-        # Tell class if it should print progress
+        # Tell class what to print
+        self.printBase = printBase
         self.printAll = printAll
+        if self.printAll:  self.printBase = True
+
         if self.printAll: 
-            print("IM: Target.__init__():")
+            print("IM: target_info_class.__init__:")
             print('\t - targetDir: ', targetDir)
-            print('\t - rmInfo: ', rmInfo)
+            print('\t - printBase: ', printBase)
             print('\t - printAll: ', printAll)
+            print('\t - rmInfo: ', rmInfo)
+            print('\t - gatherRuns: ', gatherRuns)
+            print('\t - gatherScores: ', gatherScores)
 
         # if nothing given, complain
-        if targetDir == None:
-            print("IM: WARNING: No target Dir given.  No other option at this time.")
+        if type(targetDir) == type(None):
+            if self.printBase:
+                print("IM: WARNING: ")
+                print(" - No target Dir given.  No other option at this time.")
+            return
+
+        # Double check if target directory is valid
+        elif type( targetDir ) != type( "String" ):
+            if self.printBase:
+                print("IM: WARNING: target_info_class.__init__")
+                print("\t - Target Directory Not a String!")
+                print("\t - %s" % type( self.targetDir ) )
+            self.status = False
             return
 
         # If path not found, complain
         elif not path.exists( targetDir ):
-            print("IM: WARNING: Target dir not found")
+            print("IM: WARNING: Target:")
+            print("\t - Target dir not found")
             print('\t - targetDir: ', targetDir )
             return
 
@@ -638,12 +656,12 @@ class target_info_class:
 
         for i,run in enumerate(self.runDirs):
 
-            rInfo = run_info_class( runDir = self.zooModelDir + run, )
+            rInfo = run_info_class( runDir = self.zooModelDir + run, printBase=False)
             rInfo.updateInfo()
             rId = rInfo.rDict['run_identifier']
             self.tDict['model_sets']['galaxy_zoo_mergers'][rId] = rInfo.rDict
 
-            if self.printAll: print("\t- %d/%d" % ( i, nRuns ), end='\r' )
+            if self.printBase: print("\t- %d/%d" % ( i, nRuns ), end='\r' )
         
         if self.printAll: print( '\n\t- Gathered %d run info files' % len( self.tDict['model_sets']['galaxy_zoo_mergers'] ) )
 
@@ -709,9 +727,12 @@ class run_info_class:
     miscDir = None
 
 
-
     runHeaders = ( 'run_identifier', 'model_data', 'human_scores',  'particle_files', 
             'model_images', 'misc_images', 'perturbation', 'initial_bias', 'machine_scores',)
+
+    # To-Do
+    baseHeaders = ( 'run_identifier', 'model_data', 'human_scores',  'particle_files', 
+            'model_images', 'misc_images', )
 
     modelImgHeaders = ( 'image_name', 'image_parameter_name' )
 
@@ -720,22 +741,37 @@ class run_info_class:
     machineScoreHeaders = ( 'image_name', 'scores' )
 
 
-    def __init__( self, runDir=None, printAll=False, rmInfo=False, newRun=False
+    def __init__( self, runDir=None, printBase=True, printAll=False, rmInfo=False, newRun=False
            ):
 
         # print 
         self.printAll = printAll
-        if self.printAll: 
-            print("IM: Run.__init__")
-            print("\t- runDir: %s" % runDir )
+        self.printBase = printBase
+
+        # Avoiding confusing things
+        if self.printAll: self.printBase = True
+
+        if self.printBase: 
+            print("IM: run_info_class.__init__")
+            print("\t- runDir: " , runDir )
+            print("\t- printBase: ", printBase )
             print("\t- printAll: ", printAll )
             print("\t- rmInfo: ", rmInfo )
             print("\t- newRun: ", newRun )
 
+        # Double check if run directory is valid
+        if type( runDir ) != type( "String" ):
+            if self.printBase:
+                print("IM: WARNING: run_info_class.__init__")
+                print("\t - Run Directory Not a String!")
+                print("\t - %s" % type( self.runDir ) )
+            self.status = False
+            return
+
         # initialize directory structure for run
         dirGood = self.initRunDir( runDir )
+
         if not dirGood:
-            print("IM: Run. Warning. Directory structure not good.")
             return
 
         if self.printAll: print("IM: Run.__init__")
@@ -809,13 +845,15 @@ class run_info_class:
         # Print stuff
         if self.printAll:
             print("IM: run.initRunDir")
-            print("\t- runDir: %s" % runDir )
-            print("\t- newDir: %s" % str( newDir ) )
+            print("\t - runDir: %s" % runDir )
+            print("\t - newDir: %s" % str( newDir ) )
 
         # Check if path exists
         if not path.exists( runDir ):
-            print("IM: Run. WARNING!  Run directory does not exist!")
-            print("\t- Considering implementing newDir")
+            print("IM: WARNING: initRunDir")
+            print("\t - runDir: '%s'" % runDir )
+            print("\t - Non-Valid Directory")
+            print("\t - Considering implementing newDir")
             return False
 
         # Save base directory
@@ -884,8 +922,6 @@ class run_info_class:
 
             elif infoLoc != None:
                 self.infoLoc = infoLoc
-
-
 
     # deconstructor
     def __del__( self ):
