@@ -90,13 +90,10 @@ def procAllData( dataDir, printAll=False ):
     # Find target directories
     for folder in dataList:
         tDir = dataDir + folder
-        print(tDir)
         tempInfo = im.target_info_class( targetDir=tDir, printAll=False )
-        print('s', tempInfo.status)
 
         # if a valid target directory
-        if tempInfo.status:
-            tDirList.append( tempInfo )
+        if tempInfo.status:  tDirList.append( tempInfo )
 
     print( 'PT.procAllData: ')
     print( '\t - Found Dir: %d' % len( tDirList ) )
