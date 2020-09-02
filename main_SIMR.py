@@ -5,7 +5,7 @@ Description:    Hopefully my primary code for calling all things Galaxy Simulati
 '''
 
 # Python module imports
-from os import path
+from os import path, listdir
 
 # For loading in Matt's general purpose python libraries
 import Support_Code.general_module as gm
@@ -70,14 +70,51 @@ def procRun( rDir, param, printBase=True, printAll=False ):
     rInfo = im.run_info_class( runDir=rDir, printBase = True, printAll=printAll )
 
     if printBase:
-        print('SIMR.procRun: rInfo.status: ', rInfo.status )
+        print('SIMR.procRun: ')
+        print('\t - rInfo.status: ', rInfo.status )
+
 
     if rInfo.status == False:
         print("SIMR.procRun: WARNING: runInfo bad")
         return
 
-    if printAll:
-        rInfo.printInfo()
+    ptsLoc = procRunSim( rInfo, param, printBase = printBase, printAll = printAll )
+    if ptsLoc == None:
+        return 
+
+    imgLoc = procRunImg( rInfo, param, printBase = printBase, printAll = printAll )
+
+# end processing run
+
+
+def procRunImg( rInfo, param, printBase = True, printAll = False ):
+
+    return
+
+def procRunSim( rInfo, param, printBase = True, printAll = False ):
+
+
+    # Get desired number of particles for simulation
+    dPts = getattr( param.simArg, 'nPts', None )
+
+    if dPts == None:
+        print("SIMR.procRunSim: WARNING:")
+        print("\t - Please specificy nPts")
+        return None
+
+    ptsLoc = rInfo.findPtsFile( dPts )
+
+    if printBase:
+        print('\t - dPts: ' , dPts)
+        print('\t - ptsLoc: %s' % ptsLoc)
+
+    if ptsLoc == None:
+        print("SIMR.procRunSim: WARNING:")
+        print("\t - nPts file not found")
+        print("\t - creating new file not yet implemented")
+        return None
+
+    return ptsLoc
 
 
 # end processing run dir

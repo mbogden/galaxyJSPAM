@@ -52,15 +52,14 @@ def main(arg):
 # End main
 
 
-def procRun( rDir, printBase=True, printAll=False ):
+def procRun( rDir, rInfo=None, printBase=True, printAll=False ):
 
     if printBase:
         print( "SS.procRun: Inputs" )
         print( "\t - rDir:", rDir )
 
-    #rInfo = im.run_info_class( runDir=rDir, printBase = False, printAll=printAll )
-    rInfo = im.run_info_class( runDir=rDir, printBase = True, printAll=False )
-
+    if rInfo == None:
+        rInfo = im.run_info_class( runDir=rDir, printBase = printBase, printAll=True )
 
     # Check if run is valid
     if rInfo.status == False:

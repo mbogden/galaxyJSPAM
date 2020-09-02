@@ -58,7 +58,6 @@ def main(arg):
             tInfo.updateProgress()
 
 
-
     if arg.dataDir != None:
         print("IM: dataDir: %s" % arg.dataDir )
         
@@ -87,7 +86,6 @@ def main(arg):
             if path.exists( infoLoc ):
                 with open( infoLoc ) as iFile:
                     dataJson['data_targets'].append( json.load( iFile ) )
-
 
         print('')
         print("IM: dataDir: Found %d targets" % len( dataJson['data_targets'] ) )
@@ -841,6 +839,26 @@ class run_info_class:
 
     # end __init__
 
+    def findPtsFile( self, nPts ):
+
+        
+        # Check for a letter
+        if 'k' in nPts:
+            nPts = str( int( nPts.strip('k') ) * 1000 )
+
+        elif 'K' in nPts:
+            nPts = str( int( nPts.strip('K') ) * 1000 )
+
+
+        ptsLoc = self.ptsDir + nPts + '_pts.zip'
+
+        if path.exists( ptsLoc ):
+            return ptsLoc
+        else:
+            return None
+
+    # End findPtsFile
+
     def initRunDir( self, runDir, newDir = False, ):
 
         # Print stuff
@@ -897,39 +915,13 @@ class run_info_class:
 
     # End initialize run directory structure
 
-    # For storing obsolete or future code not yet implemented
-    def old_future_code( self, ):
- 
-        # if nothing given, create blank rDict
-        if runDir == None and infoLoc == None and rDict == None:
-            self.createBlank()
-            self.status = True
-            return
-
-        # if given pre-existing rDict
-        elif rDict != None:
-            self.rDict = deepcopy( rDict )
-            self.initDict = deepcopy( rDict )
-            self.status = True
-            return
-
-        # Else get data from file
-        elif runDir != None or infoLoc != None:
-
-            if runDir != None:
-                if runDir[-1] != '/': runDir += '/'
-                self.runDir = runDir
-                self.infoLoc = runDir + 'info.json'
-
-            elif infoLoc != None:
-                self.infoLoc = infoLoc
-
     # deconstructor
     def __del__( self ):
 
         if self.rDict != self.initDict:
             print("IM: WARNING: info.json updated but not save!")
     # End deconstructor
+
 
     def printInfo( self, allInfo = False):
         from pprint import PrettyPrinter
@@ -1077,28 +1069,6 @@ class run_info_class:
                             'score_info' : 'wins/total: %s' % wins
                         } 
                     }
-
-
-        '''
-        self.rDict = {
-                'run_identifier' : rNum,
-                'model_data' : mData,
-                'human_scores' : { 
-                    'galaxy_zoo_mergers' : {
-                            'score' : hScore,
-                            'score_info' : 'wins/total: %s' % wins
-                        } 
-                    }
-            }
-
-        # Create blank arrays for remaining items
-        self.rDict['model_images'] = {}
-        self.rDict['misc_images'] = {}
-
-        self.rDict['initial_bias'] = []
-        self.rDict['perturbation'] = []
-        self.rDict['machine_scores'] = []
-        '''
 
         # created initial info.json file from info.txt
 
