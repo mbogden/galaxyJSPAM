@@ -59,7 +59,11 @@ def procRun( rDir, printBase=True, printAll=False ):
     rInfo = im.run_info_class( runDir=rDir, printBase = False, printAll=printAll )
 
     if printBase:
-        print('PT: rInfo.status: ', rInfo.status )
+        print('PT.procFun: rInfo.status: ', rInfo.status )
+
+    if rInfo.status == False:
+        print('PT.procRun: WARNGING:\n\t - rInfo status not good. Exiting...' )
+        return
 
     if printAll:
         rInfo.printInfo()
