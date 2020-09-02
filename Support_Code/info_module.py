@@ -164,7 +164,7 @@ class target_info_class:
 
         if not dirGood:
             print("IM: Target.__init__(): ")
-            print("\t- WARNING: Something went wrong initializing directory.")
+            print("\t - WARNING: Something went wrong initializing directory.")
             return
     
         # Remove info file if condition given
@@ -196,8 +196,8 @@ class target_info_class:
         elif path.exists( self.baseInfoLoc ):
 
             if self.printAll:
-                print("\t- target_info.json not found.")
-                print("\t- Copying base_target_info.json")
+                print("\t - target_info.json not found.")
+                print("\t - Copying base_target_info.json")
 
             from os import system
             cpCmd = 'cp %s %s' % ( self.baseInfoLoc, self.allInfoLoc ) 
@@ -210,7 +210,7 @@ class target_info_class:
 
         # If target info does not exist, create
         else:
-            if self.printAll: print("\t- Creating new info file" )
+            if self.printAll: print("\t - Creating new info file" )
             
             self.newTargetInfo()
             self.saveInfoFile( baseFile=True )
@@ -424,9 +424,9 @@ class target_info_class:
 
         if self.printAll:
             print("IM: Target.getScores():")
-            print("\t- setId: %s" % setId)
-            print("\t- saveScores: %s" % saveScores)
-            print("\t- newScores: %s" % newScores)
+            print("\t - setId: %s" % setId)
+            print("\t - saveScores: %s" % saveScores)
+            print("\t - newScores: %s" % newScores)
 
         import pandas as pd
         import numpy as np
@@ -478,8 +478,8 @@ class target_info_class:
 
         # Check if model has populated values
         if len( m0_m ) == 0 or  len( m0_p ) == 0 or len( m0_i ) == 0:
-            print('\t- WARNING: model 0 has no scores')
-            print('\t- Exiting gatherScores')
+            print('\t - WARNING: model 0 has no scores')
+            print('\t - Exiting gatherScores')
             return None
 
         headerNames = []
@@ -587,8 +587,8 @@ class target_info_class:
         # Check if key is list
         if type( self.tDict[keyName] ) != type( [] ):
             print("ERROR: IM: Key value not a list in appendList: %s" )
-            print("\t- key: %s" % keyName)
-            print("\t- Type: %s" % type( self.tDict[keyName] ) )
+            print("\t - key: %s" % keyName)
+            print("\t - Type: %s" % type( self.tDict[keyName] ) )
             return None
 
         # All is good. 
@@ -637,7 +637,7 @@ class target_info_class:
         self.tDict['progress']['initial_creation'] = True  
 
         if self.printAll: 
-            print('\t- Created new info file')
+            print('\t - Created new info file')
             self.printInfo()
 
 
@@ -670,7 +670,7 @@ class target_info_class:
 
         if self.printAll: 
             print("IM: Target.saveInfoFile():")
-            print("\t- Saving target info file...")
+            print("\t - Saving target info file...")
 
         if self.allInfoLoc == None and saveLoc == None:
             print("ERROR: IM: No target info location given...")
@@ -681,7 +681,7 @@ class target_info_class:
             return False
 
         if self.tDict == self.initDict:
-            if self.printAll: print("\t- No changes detected...")
+            if self.printAll: print("\t - No changes detected...")
             #return True
 
         retVal = False
@@ -715,6 +715,7 @@ class run_info_class:
 
     rDict = None    # Primary dict of information contained in info.json
     initDict = None    # State of json upon initial reading.
+    baseDict = None
 
     status = False  # State of this class.  For initiating.
 
@@ -753,11 +754,11 @@ class run_info_class:
 
         if self.printBase: 
             print("IM: run_info_class.__init__")
-            print("\t- runDir: " , runDir )
-            print("\t- printBase: ", printBase )
-            print("\t- printAll: ", printAll )
-            print("\t- rmInfo: ", rmInfo )
-            print("\t- newRun: ", newRun )
+            print("\t - runDir: " , runDir )
+            print("\t - printBase: ", printBase )
+            print("\t - printAll: ", printAll )
+            print("\t - rmInfo: ", rmInfo )
+            print("\t - newRun: ", newRun )
 
         # Double check if run directory is valid
         if type( runDir ) != type( "String" ):
@@ -791,7 +792,7 @@ class run_info_class:
         # Read info file
         if path.exists( self.infoLoc ):
 
-            if self.printAll: print('\t- Reading Info file.')
+            if self.printAll: print('\t - Reading Info file.')
 
             with open( self.infoLoc, 'r' ) as iFile:
 
@@ -802,11 +803,11 @@ class run_info_class:
         # end read info file
         else:
 
-            if self.printAll: print('\t- No info.json file.')
+            if self.printAll: print('\t - No info.json file.')
             # Create new run json from info file if it does not exist
 
             if path.exists( self.baseLoc ):
-                if self.printAll: print('\t- Copying base_info.json file.')
+                if self.printAll: print('\t - Copying base_info.json file.')
                 from os import system
                 cpCmd = 'cp %s %s' % ( self.baseLoc, self.infoLoc )
                 system( cpCmd )
@@ -826,7 +827,7 @@ class run_info_class:
             self.updateInfo()
 
             if self.printAll: 
-                print("\t- Initialized run score file")
+                print("\t - Initialized run score file")
                 self.printInfo()
 
             self.saveInfoFile()
@@ -836,7 +837,7 @@ class run_info_class:
         # End if not path exists
        
 
-        if self.printAll: print("\t- Initalized info module.")
+        if self.printAll: print("\t - Initalized info module.")
 
     # end __init__
 
@@ -869,12 +870,12 @@ class run_info_class:
 
         # Print stuff if needed
         if self.printAll:
-            print("\t- runDir: (%s) %s" % ( path.exists( self.runDir ), self.runDir ) )
-            print("\t- ptsDir: (%s) %s" % ( path.exists( self.ptsDir ), self.ptsDir ) )
-            print("\t- imgDir: (%s) %s" % ( path.exists( self.imgDir ), self.imgDir ) )
-            print("\t- miscDir: (%s) %s" % ( path.exists( self.miscDir ), self.miscDir ) )
-            print("\t- infoLoc: (%s) %s" % ( path.exists( self.infoLoc ), self.infoLoc ) )
-            print("\t- baseLoc: (%s) %s" % ( path.exists( self.baseLoc ), self.baseLoc ) )
+            print("\t - runDir: (%s) %s" % ( path.exists( self.runDir ), self.runDir ) )
+            print("\t - ptsDir: (%s) %s" % ( path.exists( self.ptsDir ), self.ptsDir ) )
+            print("\t - imgDir: (%s) %s" % ( path.exists( self.imgDir ), self.imgDir ) )
+            print("\t - miscDir: (%s) %s" % ( path.exists( self.miscDir ), self.miscDir ) )
+            print("\t - infoLoc: (%s) %s" % ( path.exists( self.infoLoc ), self.infoLoc ) )
+            print("\t - baseLoc: (%s) %s" % ( path.exists( self.baseLoc ), self.baseLoc ) )
 
         # Check if things are working
         dirGood = True
@@ -930,11 +931,28 @@ class run_info_class:
             print("IM: WARNING: info.json updated but not save!")
     # End deconstructor
 
-    def printInfo( self ):
+    def printInfo( self, allInfo = False):
         from pprint import PrettyPrinter
         pp = PrettyPrinter( indent = 2 )
-        pp.pprint( self.rDict )
 
+        print( "IM: run_info_class.printInfo():")
+
+        if allInfo:
+            pp.pprint( self.rDict )
+
+        else: 
+            if self.baseDict == None:
+                self.createBase()
+            
+            pp.pprint( self.baseDict )
+
+    # Create dict of basic info for printing
+    def createBase( self, ):
+
+        self.baseDict = self.createBlank()
+        for h in self.baseHeaders:
+            self.baseDict[h] = self.rDict[h]
+    # End create Base
 
     # For appending new information to a list in run info module
     def appendScores( self, keyName, addList ):
@@ -959,8 +977,8 @@ class run_info_class:
             self.rDict[keyName] = []
             '''
             print("ERROR: IM: Key value not a list in appendList: %s" )
-            print("\t- key: %s" % keyName)
-            print("\t- Type: %s" % type( self.rDict[keyName] ) )
+            print("\t - key: %s" % keyName)
+            print("\t - Type: %s" % type( self.rDict[keyName] ) )
             '''
             return None
 
@@ -997,8 +1015,8 @@ class run_info_class:
         # Check if info location have a file
         if not path.exists( oldLoc ):
             print("IM: Run.txt2Json: ERROR:") 
-            print("\t- info.txt file not found.")
-            print("\t- oldLoc: %s" % infoLoc)
+            print("\t - info.txt file not found.")
+            print("\t - oldLoc: %s" % infoLoc)
             return False
 
         infoData = gm.readFile( oldLoc )
@@ -1006,12 +1024,12 @@ class run_info_class:
         # Check if retrieved info
         if infoData == None:
             print("Error: IM: Info.txt file not found to create new info.json file")
-            print("\t oldLoc: %s" % oldLoc)
+            print("\t - oldLoc: %s" % oldLoc)
             return None
         
         # Go through info file and add appropriate information to json
         
-        if self.printAll: print("\t- Reading info.txt")
+        if self.printAll: print("\t - Reading info.txt")
 
         tid = None
         rNum = None
@@ -1046,7 +1064,7 @@ class run_info_class:
         # check if all infor information found
         if ( tid == None or rNum == None or mData == None or wins == None or hScore == None ):
             print("Error: IM: Needed information not found in info.txt")
-            print("\t infoLoc: %s" % infoLoc)
+            print("\t - infoLoc: %s" % infoLoc)
             return None
        
         # build lower structures first
@@ -1135,9 +1153,9 @@ class run_info_class:
             # Else any other file?
             else:
                 print("IM: Run.updateInfo: WARNING!")
-                print("\t- You shouldn't be seeing me!")
-                print("\t- runDir: %s" % self.runDir)
-                print("\t- ptsFile: %s" % ('particle_files/' + name ))
+                print("\t - You shouldn't be seeing me!")
+                print("\t - runDir: %s" % self.runDir)
+                print("\t - ptsFile: %s" % ('particle_files/' + name ))
 
 
         # Done looping through images. 
@@ -1149,7 +1167,7 @@ class run_info_class:
         if self.printAll: print("IM: Run.saveInfoFile: Saving info data file...")
 
         if self.rDict == self.initDict:
-            if self.printAll: print("\t- No changes detected.")
+            if self.printAll: print("\t - No changes detected.")
             return True
 
         with open( self.infoLoc, 'w' ) as infoFile:
@@ -1157,11 +1175,6 @@ class run_info_class:
             retVal = True
 
         if saveBase:
-
-            self.baseDict = self.createBlank()
-            self.baseDict['run_identifier'] = self.rDict['run_identifier'] 
-            self.baseDict['model_data'] = self.rDict['model_data'] 
-            self.baseDict['human_scores'] = self.rDict['human_scores'] 
 
             with open( self.baseLoc, 'w' ) as bFile:
                 json.dump( self.baseDict, bFile, indent=4 )
