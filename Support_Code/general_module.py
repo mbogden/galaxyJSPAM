@@ -45,7 +45,7 @@ def readFile( fileLoc, stripLine=False ):
 
 class inArgClass:
 
-    def __init__( self, inArg=None ):
+    def __init__( self, inArg=None, argFile=None ):
 
         self.printBase = True
         self.printAll = False
@@ -60,7 +60,15 @@ class inArgClass:
         if inArg != None:
             self.updateArg( inArg )
 
-    def updateArg( self, inArg ):
+        elif argFile != None:
+            self.readArgFile( argFile )
+
+    def updateArg( self, inArg, printAll = False ):
+
+        if printAll:
+            print("GM: inArgClass.updateArg()")
+            print("\t - Before:")
+            self.printArg()
 
         n = len( inArg )
 
@@ -89,6 +97,13 @@ class inArgClass:
             # Save argument handle name and value
             setattr( self, argName, argVal )
 
+        self.checkBool()
+
+        if printAll:
+            print("GM: inArgClass.updateArg()")
+            print("\t - Before:")
+            self.printArg()
+
     # End update input arguments
 
     # For manual setting
@@ -106,13 +121,11 @@ class inArgClass:
             oldType = type( argVal )
 
             if oldType == str:
-                print( 'Old: %s - %s' % (argName,argVal) )
                 if   argVal == 'false': argVal = False
                 elif argVal == 'False': argVal = False
                 elif argVal == 'True': argVal = True
                 elif argVal == 'true': argVal = True
                 setattr( self, argName, argVal )
-                print( 'New: %s -' % argName,argVal )
 
             # End if string
         # End looping through arguments
@@ -126,6 +139,10 @@ class inArgClass:
         for a in allAttrs:
             print('\t- %s - %s : ' % (a, str(type(getattr(self,a))) ), getattr(self, a ) )
     # End print all arguments
+
+    def getArg( self, arg ):
+
+        return getattr( self, arg, None )
 
 
 
