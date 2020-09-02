@@ -1,83 +1,130 @@
 '''
     Author:     Matthew Ogden
-    Created:    21 Feb 2020
-Description:    This is my python template for how I've been making my python programs
+    Created:    01 Sep 2020
+Description:    Hopefully my primary code for calling all things Galaxy Simulation
 '''
 
-from os import path, listdir
-from sys import exit, argv, path as sysPath
+# Python module imports
+from os import path
 
 # For loading in Matt's general purpose python libraries
-supportPath = path.abspath( path.join( __file__ , "../../Support_Code/" ) )
-sysPath.append( supportPath )
-import general_module as gm
-import info_module as im
+import Support_Code.general_module as gm
+import Support_Code.info_module as im
+import Simulator.main_simulator as ss
 
 
 def main(arg):
 
-    print("Hi!  In Matthew's python template for creating new SPAM related code.")
+    if arg.printBase:
+        print("SIMR: Hi!  You're in Matthew's main program for all things galaxy collisions")
 
     if arg.printAll:
-
         arg.printArg()
         gm.test()
         im.test()
+        ss.test()
+
     # end main print
-    
+
+    # Read param file
+    param = pipeline_param_class( paramLoc = arg.getArg( 'paramLoc' ), printBase=arg.printBase, printAll = arg.printAll,  )
+
+    if param.status == False:
+        print("SIMR.main: Bad param file. Exiting....")
+        return
+
+    elif arg.printBase:
+        print("SIMR: param.status: Good")
+
     if arg.simple:
-        if arg.printAll: print("PT: Simple!~")
+        if arg.printBase: 
+            print("SIMR: Simple!~")
+            print("\t- Nothing else to see here")
 
     elif arg.runDir != None:
-        procRun( arg.runDir, printAll=arg.printAll )
+        procRun( arg.runDir, param, printAll=arg.printAll, )
 
     elif arg.targetDir != None:
-        procTarget( arg.targetDir, printAll=arg.printAll )
+        procTarget( arg.targetDir, param, printAll=arg.printAll )
 
     elif arg.dataDir != None:
-        procAllData( arg.dataDir, printAll=arg.printAll )
+        procAllData( arg.dataDir, param, printAll=arg.printAll )
 
     else:
-        print("PT: Nothing selected!")
-        print("PT: Recommended options")
-        print("\t -simple")
-        print("\t -runDir /path/to/dir/")
-        print("\t -targetDir /path/to/dir/")
-        print("\t -dataDir /path/to/dir/")
-
+        print("SIMR: Nothing selected!")
+        print("SIMR: Recommended options")
+        print("\t - simple")
+        print("\t - runDir /path/to/dir/")
+        print("\t - targetDir /path/to/dir/")
+        print("\t - dataDir /path/to/dir/")
 
 # End main
+    
 
+def procRun( rDir, param, printBase=True, printAll=False ):
 
-def procRun( rDir, printAll=False ):
+    if printBase:
+        print("SIMR.procRun: Inputs")
+        print("\t - rDir:", rDir)
 
-    rInfo = im.run_info_class( runDir=rDir, printAll=printAll )
+    rInfo = im.run_info_class( runDir=rDir, printBase = True, printAll=printAll )
+
+    if printBase:
+        print('SIMR.procRun: rInfo.status: ', rInfo.status )
+
+    if rInfo.status == False:
+        print("SIMR.procRun: WARNING: runInfo bad")
+        return
 
     if printAll:
-        print('PT: rInfo.status: ', rInfo.status )
+        rInfo.printInfo()
 
-    #rInfo.printInfo()
 
 # end processing run dir
 
 
 # Process target directory
-def procTarget( tDir, printAll=False ):
+def procTarget( tDir, printBase = True, printAll=False ):
+
+    if printBase:
+        print("SIMR.procTarget:")
+        print("\t - tDir: " , tDir)
 
     tInfo = im.target_info_class( targetDir=tDir, printAll=True )
 
-    for run in runDirs:
-        #procRun( rDir )
-        break
+    if printBase:
+        print("SIMR.procTarget:")
+        print("\t - tInfo.status: %s" % tInfo.status )
+
+    # Check if target is valid
+    if tInfo.status == False:
+        print("SIMR: WARNING: procTarget:")
+        print("\t - Target not good.")
+        return
+
+    if printAll:
+        tInfo.printInfo()
+
+    tInfo.gatherRunInfos()
+    
+    for r in tInfo.runDirs:
+        print("t")
+
+    
 
 # End processing sdss dir
 
-def procAllData( dataDir, printAll=False ):
-    if arg.printAll: print("PT: dataDir: %s" % arg.dataDir )
+def procAllData( dataDir, printBase=True, printAll=False ):
+
+    from os import listdir
+
+    if printBase: 
+        print("SIMR.procAllData")
+        print("\t - dataDir: %s" % arg.dataDir )
 
     # Check if directory exists
     if not path.exists( dataDir ):  
-        print("PT: WARNING: Directory not found")
+        print("SIMR.procAllData: WARNING: Directory not found")
         print('\t - ' , dataDir )
         return
 
@@ -95,10 +142,122 @@ def procAllData( dataDir, printAll=False ):
         # if a valid target directory
         if tempInfo.status:  tDirList.append( tempInfo )
 
-    print( 'PT.procAllData: ')
-    print( '\t - Found Dir: %d' % len( tDirList ) )
+    if printBase:
+        print( '\t - Target Directories: %d' % len( tDirList ) )
+
+class pipeline_param_class:
+
+    status = False
+
+    name = None
+    simArg = gm.inArgClass()
+    imgArg = gm.inArgClass()
+    machArg = gm.inArgClass()
+
+    def __init__( self, paramLoc = None, printBase = True, printAll = False ):
+
+        self.printBase = printBase
+        self.printAll = printAll
+        if self.printAll: self.printBase == True
+
+        if self.printBase:
+            print("SIMR: pipeline_param_class.__init__")
+            print("\t - paramLoc: ", paramLoc)
+
+        self.readParam( paramLoc )
+        
+        if self.printAll:
+            print("SIMR: pipeline_param_class.__init__")
+            print("\t - name: %s" % self.name)
+            print("SIMR: papam.simArg")
+            self.simArg.printArg()
+
+            print("SIMR: papam.imgArg")
+            self.imgArg.printArg()
+
+            print("SIMR: papam.machArg")
+            self.machArg.printArg()
+
+    def readParam( self, paramLoc ):
+        
+        if self.printAll:
+            print("SIMR: pipeline_param_class.readParam")
+            print("\t - paramLoc: ", paramLoc)
+        
+        # Check if param File is valid
+        if paramLoc == None:
+            print('SIMR: WARNING: Please give a param File Location')
+            print('\t -paramLoc /path/to/file.txt')
+            return
+
+        elif type( paramLoc) != type('String'):
+            print('SIMR: WARNING: paramLoc variable not string')
+            print('\t -paramLoc: %s ' % type(paramLoc), paramLoc)
+            return
+
+        elif not path.exists( paramLoc ):
+            print('SIMR: WARNING: Param File location not found')
+            print('\t -paramLoc: %s' % paramLoc)
+            return
+
+        # Read file Contents
+        pContents = gm.readFile( paramLoc, stripLine=True )
+
+        if pContents == None:
+            print('SIMR: WARNING: Failed to read param file')
+            print('\t -paramLoc: %s' % paramLoc)
+            return
+        
+
+        # Parse file contents
+        argPtr = None
+        args = []
+
+        for l in pContents:
+
+            # No content in line
+            if len(l) == 0:
+                continue
+            
+            sl = l.split()
+
+            # Save name of this parameter file
+            if sl[0] == 'paramName':
+                self.name = sl[1]
+                args = []
+
+            # append contents and switch to new inputs
+            elif sl[0] == 'Simulator_Input':
+                argPtr = self.simArg
+
+            elif sl[0] == 'Image_Creator_Input':
+                argPtr.updateArg( args )
+                args = []
+                argPtr = self.imgArg
+
+            elif sl[0] == 'Machine_Score_Input':
+                argPtr.updateArg( args )
+                args = []
+                argPtr = self.machArg
+
+            # gather contents if not special header
+            else:
+                args.extend( sl )
+
+        argPtr.updateArg( args )
+        # Finished looping throuh file contents
+
+        if self.name != None:
+            self.status = True
+
+    # End reading param file
+
+
+
+
 
 # Run main after declaring functions
 if __name__ == '__main__':
+    from sys import argv
     arg = gm.inArgClass( argv )
     main( arg )

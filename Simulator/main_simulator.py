@@ -1,12 +1,12 @@
 '''
     Author:     Matthew Ogden
-    Created:    19 May 2019
-    Altered:    22 Apr 2020
-Description:    *** Converting old to new code *** Main code for all things simulation related
+    Created:    10 May 2019
+Description:    This program is the main function that prepares galaxy models,
+                runs them through the JSPAM software and stores particle files
 '''
 
-from os import path, listdir
-from sys import exit, argv, path as sysPath
+from os import path
+from sys import path as sysPath
 
 # For loading in Matt's general purpose python libraries
 supportPath = path.abspath( path.join( __file__ , "../../Support_Code/" ) )
@@ -14,20 +14,23 @@ sysPath.append( supportPath )
 import general_module as gm
 import info_module as im
 
+def test():
+    print("SS: Hi!  You're in Matthew's main code for all things simulation.")
 
 def main(arg):
 
-    print("Hi!  In Matthew's python template for creating new SPAM related code.")
-
-    if arg.printAll:
-
+    if arg.printBase:
+        test()
         arg.printArg()
         gm.test()
         im.test()
+
     # end main print
     
     if arg.simple:
-        if arg.printAll: print("PT: Simple!~")
+        if arg.printBase: 
+            print("SS: Simple!~")
+            print("\t- Nothing else to see here")
 
     elif arg.runDir != None:
         procRun( arg.runDir, printAll=arg.printAll )
@@ -39,112 +42,114 @@ def main(arg):
         procAllData( arg.dataDir, printAll=arg.printAll )
 
     else:
-        print("PT: Nothing selected!")
-        print("PT: Recommended options")
-        print("\t -simple")
-        print("\t -runDir /path/to/dir/")
-        print("\t -targetDir /path/to/dir/")
-        print("\t -dataDir /path/to/dir/")
-
+        print("SS: Nothing selected!")
+        print("SS: Recommended options")
+        print("\t - simple")
+        print("\t - runDir /path/to/dir/")
+        print("\t - targetDir /path/to/dir/")
+        print("\t - dataDir /path/to/dir/")
 
 # End main
 
 
-def procRun( rDir, printAll=False ):
+def procRun( rDir, printBase=True, printAll=False ):
 
-    if type(rDir) != type('string'):
-        print("ERROR: PT: runDir not a string: %s - %s" % ( type(rDir), rDir ) )
-        return False
+    if printBase:
+        print( "SS.procRun: Inputs" )
+        print( "\t - rDir:", rDir )
 
-    if not path.exists( rDir ):
-        print("ERROR: PT: runDir not found: " % rDir )
-        return False
+    #rInfo = im.run_info_class( runDir=rDir, printBase = False, printAll=printAll )
+    rInfo = im.run_info_class( runDir=rDir, printBase = True, printAll=False )
 
-    if arg.printAll: print("PT: runDir: %s" % arg.runDir )
 
-    modelDir = rDir + 'model_images/'
-    miscDir = rDir + 'misc_images/'
-    ptsDir = rDir + 'particle_files/'
-    infoLoc = rDir + 'info.json'
+    # Check if run is valid
+    if rInfo.status == False:
+        print("SS: WARNING:")
+        print("\t - Run directory not good.")
+        return
 
-    if not path.exists( modelDir ) or not path.exists( ptsDir ) or not path.exists( infoLoc):
-        print("ERROR: PT: A directory was not found in runDir")
-        print("\t- modelDir: " , path.exists( modelDir ) )
-        print("\t-  miscDir: " , path.exists( miscDir ) )
-        print("\t-  partDir: " , path.exists( ptsDir ) )
-        return False
+    elif printBase:
+        print( 'SS: rInfo.status: ', rInfo.status )
 
-    rInfo = im.run_info_class( runDir=rDir, printAll=printAll )
-    #rInfo.printInfo()
+    if printAll:
+        rInfo.printInfo()
+        pass
 
 # end processing run dir
 
 
 # Process target directory
-def procTarget( tDir, printAll=False ):
+def procTarget( tDir, printBase = True, printAll=False ):
 
-    if arg.printAll: print("PT: sdssDir: %s" % arg.sdssDir )
+    if printBase:
+        print("SS.procTarget:")
+        print("\t - tDir: " , tDir)
 
-    if type(tDir) != type('string'):
-        print("ERROR: PT: Target: targetDir not a string: %s - %s" % ( type(tDir), tDir ) )
-        return False
+    #tInfo = im.target_info_class( targetDir=tDir, printAll=True )
+    tInfo = im.target_info_class( targetDir=tDir, printAll=False )
 
-    if not path.exists( tDir ):
-        print("ERROR: PT: Target: targetDir not found: " % tDir )
-        return False
+    if printBase:
+        print("SS.procTarget:")
+        print("\t - tInfo.status: %s" % tInfo.status )
 
-    iDir = tDir + 'information/'
-    gDir = tDir + 'gen000/'
-    pDir = tDir + 'plots/'
+    # Check if target is valid
+    if tInfo.status == False:
+        print("SS: WARNING: procTarget:")
+        print("\t - Target not good.")
+        return
 
-    infoLoc = iDir + 'target_info.json'
+    if printAll:
+        tInfo.printInfo()
 
-    # If not a target folder
-    if not path.exists( iDir ) or not path.exists( gDir ):
-        print("ERROR: PT: Couldn't find needed folders in targetDir.")
-        print("\t- infoDir: " , path.exists( iDir ) )
-        print("\t-  genDir: " , path.exists( gDir ) )
-        return False
-
-    tInfo = im.target_info_class( infoLoc )
-
-    runDirs = listdir( gDir )
-    runDirs.sort()
-
-    for run in runDirs:
-        rDir = gDir + run + '/'
-        procRun( rDir )
+    tInfo.gatherRunInfos()
+    
+    for r in tInfo.runDirs:
+        print("t")
 
 # End processing sdss dir
 
-def procAllData( dataDir, printAll=False ):
-    if arg.printAll: print("PT: dataDir: %s" % arg.dataDir )
-    print("All data")
 
+def procAllData( dataDir, printBase=True, printAll=False ):
+
+    from os import listdir
+
+    if printBase: 
+        print("SS.procAllData")
+        print("\t - dataDir: %s" % arg.dataDir )
+
+    # Check if directory exists
+    if not path.exists( dataDir ):  
+        print("SS.procAllData: WARNING: Directory not found")
+        print('\t - ' , dataDir )
+        return
+
+    # Append trailing '/' if needed
+    if dataDir[-1] != '/': dataDir += '/'  
+
+    dataList = listdir( dataDir )   # List of items found in folder
+    tDirList = []  # List of folders that are target directories
+
+    # Find target directories
+    for folder in dataList:
+        tDir = dataDir + folder
+        tempInfo = im.target_info_class( targetDir=tDir, printAll=False )
+
+        # if a valid target directory
+        if tempInfo.status:  tDirList.append( tempInfo )
+
+    if printBase:
+        print( '\t - Target Directories: %d' % len( tDirList ) )
+
+# End of procAllData
 
 # Run main after declaring functions
 if __name__ == '__main__':
+    from sys import argv
     arg = gm.inArgClass( argv )
     main( arg )
 
 
-# everything after this is old and not used.  Please delete or repurpose.
-exit()
-
-
-from sys import (
-    argv,
-    exit
-)
-
-from os import (
-    path,
-    system,
-    getcwd,
-    mkdir,
-    chdir,
-    remove
-)
+'''
 
 from re import (
     compile,
@@ -156,9 +161,6 @@ from zipfile import (
     ZIP_DEFLATED,
     ZIP_STORED
 )
-
-# Global/Input Variables
-printAll = True
 
 basicRun = ""  # Set with the required flag -basicRun in new_readArg
 if path.isfile("./Simulator/bin/basic_run"):
@@ -174,16 +176,8 @@ overWrite = False
 
 # SE_TODO: Work with this function for main
 # Variables are checked to exist in new_readArg function, and sets exitEarly as needed
+
 def simulator_v2(argList):
-    # Takes path to info.txt file and returns that file as a list of strings
-    def readInfoFile(f):
-        if not path.exists(f):
-            print("No info.txt found: " + f)
-            return []
-        file = open(f, 'r')
-        res = file.read()
-        file.close()
-        return list(filter(None, res.split("\n")))
 
     # Takes list of strings that is the info.txt (As generated by readInfoFile) in question and extracts the model_data
     # information, and returns that
@@ -353,3 +347,5 @@ if __name__ == "__main__":
     argList = argv
     simulator_v2(argList)
 print('')
+
+'''
