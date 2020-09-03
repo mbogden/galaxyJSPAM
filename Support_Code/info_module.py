@@ -10,6 +10,10 @@ import json
 from copy import deepcopy
 
 
+from pprint import PrettyPrinter
+pp = PrettyPrinter( indent = 2 )
+pprint = pp.pprint
+
 # For loading in Matt's general purpose python libraries
 import general_module as gm
 
@@ -94,8 +98,141 @@ def main(arg):
         with open( saveLoc, 'w' ) as oFile:
             json.dump( dataJson, oFile )
 
+    if arg.tFile != None:
+        print('yAY')
+        sp = pipeline_parameter_class( paramLoc = arg.tFile, printBase = arg.printBase, printAll = arg.printAll ) 
 
 # End main
+
+
+class pipeline_parameter_class:
+
+    ppParam = {
+            'name' : None,
+            'simArg' : {
+                    'name' : '100k',
+                    'nPts' : '100k',
+                },
+            'imgArg' : {
+                    'name' : 'default',
+                    'pType' : 'default',
+                },
+            'scrArg' : {
+                    'cmpName' : 'correlation',
+                },
+        }
+
+    status = False
+
+    name = None
+    simArg = gm.inArgClass()
+    imgArg = gm.inArgClass()
+    machArg = gm.inArgClass()
+
+    #sp = pipeline_parameter_class( paramLoc = None, printBase = True, printAll = False ) 
+    def __init__( self, paramLoc = None, printBase = True, printAll = False ):
+
+        self.printBase = printBase
+        self.printAll = printAll
+        if self.printAll: self.printBase == True
+
+        if self.printBase:
+            print("SIMR: pipeline_param_class.__init__")
+            print("\t - paramLoc: ", paramLoc)
+
+        self.readParam( paramLoc )
+        
+        if self.printAll:
+            print("SIMR: pipeline_param_class.__init__")
+            print("\t - name: %s" % self.name)
+            print("SIMR: papam.simArg")
+            self.simArg.printArg()
+
+            print("SIMR: papam.imgArg")
+            self.imgArg.printArg()
+
+            print("SIMR: papam.machArg")
+            self.machArg.printArg()
+
+            print('SIMR: ppParam:')
+            pprint( self.ppParam )
+
+    def readParam( self, paramLoc ):
+        
+        if self.printAll:
+            print("SIMR: pipeline_param_class.readParam")
+            print("\t - paramLoc: ", paramLoc)
+        
+        # Check if param File is valid
+        if paramLoc == None:
+            print('SIMR: WARNING: Please give a param File Location')
+            print('\t -paramLoc /path/to/file.txt')
+            return
+
+        elif type( paramLoc) != type('String'):
+            print('SIMR: WARNING: paramLoc variable not string')
+            print('\t -paramLoc: %s ' % type(paramLoc), paramLoc)
+            return
+
+        elif not path.exists( paramLoc ):
+            print('SIMR: WARNING: Param File location not found')
+            print('\t -paramLoc: %s' % paramLoc)
+            return
+
+        # Read file Contents
+        pContents = gm.readFile( paramLoc, stripLine=True )
+
+        if pContents == None:
+            print('SIMR: WARNING: Failed to read param file')
+            print('\t -paramLoc: %s' % paramLoc)
+            return
+        
+
+        # Parse file contents
+        argPtr = None
+        args = []
+
+        for l in pContents:
+
+            # No content in line
+            if len(l) == 0:
+                continue
+            
+            sl = l.split()
+
+            # Save name of this parameter file
+            if sl[0] == 'paramName':
+                self.name = sl[1]
+                args = []
+
+            # append contents and switch to new inputs
+            elif sl[0] == 'Simulator_Input':
+                argPtr = self.simArg
+
+            elif sl[0] == 'Image_Creator_Input':
+                argPtr.updateArg( args )
+                args = []
+                argPtr = self.imgArg
+
+            elif sl[0] == 'Machine_Score_Input':
+                argPtr.updateArg( args )
+                args = []
+                argPtr = self.machArg
+
+            # gather contents if not special header
+            else:
+                args.extend( sl )
+
+        argPtr.updateArg( args )
+        # Finished looping throuh file contents
+
+        if self.name != None:
+            self.status = True
+
+    # End reading param file
+
+        
+
 
 class target_info_class:
 
@@ -231,10 +368,8 @@ class target_info_class:
 
     def printProg( self, ):
 
-        from pprint import PrettyPrinter
-        pp = PrettyPrinter( indent = 2 )
         print( 'IM: Target: printing target progression.\n' )
-        pp.pprint( self.tDict['progress'] )
+        pprint( self.tDict['progress'] )
         print( '\nIM: Target: Done printing target progression.\n' )
 
     # End print info
@@ -399,9 +534,7 @@ class target_info_class:
     # End deconstructor
 
     def printInfo( self ):
-        from pprint import PrettyPrinter
-        pp = PrettyPrinter( indent = 2 )
-        pp.pprint( self.tDict )
+        pprint( self.tDict )
     # End print info
 
     def printStatus( self ):
@@ -964,13 +1097,13 @@ class run_info_class:
         print( "IM: run_info_class.printInfo():")
 
         if allInfo:
-            pp.pprint( self.rDict )
+            pprint( self.rDict )
 
         else: 
             if self.baseDict == None:
                 self.createBase()
             
-            pp.pprint( self.baseDict )
+            pprint( self.baseDict )
 
     # Create dict of basic info for printing
     def createBase( self, ):
@@ -1196,3 +1329,4 @@ if __name__=='__main__':
     main( arg )
 
 # End main
+

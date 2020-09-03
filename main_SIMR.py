@@ -187,9 +187,7 @@ def procTarget( tDir, printBase = True, printAll=False ):
     for r in tInfo.runDirs:
         print("t")
 
-    
-
-# End processing sdss dir
+# End processing target dir
 
 def procAllData( dataDir, printBase=True, printAll=False ):
 
@@ -221,116 +219,6 @@ def procAllData( dataDir, printBase=True, printAll=False ):
 
     if printBase:
         print( '\t - Target Directories: %d' % len( tDirList ) )
-
-class pipeline_param_class:
-
-    status = False
-
-    name = None
-    simArg = gm.inArgClass()
-    imgArg = gm.inArgClass()
-    machArg = gm.inArgClass()
-
-    def __init__( self, paramLoc = None, printBase = True, printAll = False ):
-
-        self.printBase = printBase
-        self.printAll = printAll
-        if self.printAll: self.printBase == True
-
-        if self.printBase:
-            print("SIMR: pipeline_param_class.__init__")
-            print("\t - paramLoc: ", paramLoc)
-
-        self.readParam( paramLoc )
-        
-        if self.printAll:
-            print("SIMR: pipeline_param_class.__init__")
-            print("\t - name: %s" % self.name)
-            print("SIMR: papam.simArg")
-            self.simArg.printArg()
-
-            print("SIMR: papam.imgArg")
-            self.imgArg.printArg()
-
-            print("SIMR: papam.machArg")
-            self.machArg.printArg()
-
-    def readParam( self, paramLoc ):
-        
-        if self.printAll:
-            print("SIMR: pipeline_param_class.readParam")
-            print("\t - paramLoc: ", paramLoc)
-        
-        # Check if param File is valid
-        if paramLoc == None:
-            print('SIMR: WARNING: Please give a param File Location')
-            print('\t -paramLoc /path/to/file.txt')
-            return
-
-        elif type( paramLoc) != type('String'):
-            print('SIMR: WARNING: paramLoc variable not string')
-            print('\t -paramLoc: %s ' % type(paramLoc), paramLoc)
-            return
-
-        elif not path.exists( paramLoc ):
-            print('SIMR: WARNING: Param File location not found')
-            print('\t -paramLoc: %s' % paramLoc)
-            return
-
-        # Read file Contents
-        pContents = gm.readFile( paramLoc, stripLine=True )
-
-        if pContents == None:
-            print('SIMR: WARNING: Failed to read param file')
-            print('\t -paramLoc: %s' % paramLoc)
-            return
-        
-
-        # Parse file contents
-        argPtr = None
-        args = []
-
-        for l in pContents:
-
-            # No content in line
-            if len(l) == 0:
-                continue
-            
-            sl = l.split()
-
-            # Save name of this parameter file
-            if sl[0] == 'paramName':
-                self.name = sl[1]
-                args = []
-
-            # append contents and switch to new inputs
-            elif sl[0] == 'Simulator_Input':
-                argPtr = self.simArg
-
-            elif sl[0] == 'Image_Creator_Input':
-                argPtr.updateArg( args )
-                args = []
-                argPtr = self.imgArg
-
-            elif sl[0] == 'Machine_Score_Input':
-                argPtr.updateArg( args )
-                args = []
-                argPtr = self.machArg
-
-            # gather contents if not special header
-            else:
-                args.extend( sl )
-
-        argPtr.updateArg( args )
-        # Finished looping throuh file contents
-
-        if self.name != None:
-            self.status = True
-
-    # End reading param file
-
-
-
 
 
 # Run main after declaring functions
