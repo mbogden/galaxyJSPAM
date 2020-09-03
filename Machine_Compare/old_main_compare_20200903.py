@@ -1,8 +1,8 @@
 '''
     Author:     Matthew Ogden
     Created:    21 Feb 2020
-    Altered:    03 Sep 2020
-Description:    This is hopefully my final attempt at impliementing a pipeline scoring method.
+    Altered:    21 Feb 2020
+Description:    This is my new attempt at having a comparison program for implementing comparison methods.
 '''
 
 from os import path, listdir
