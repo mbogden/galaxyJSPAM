@@ -8,8 +8,8 @@ from os import path
 from sys import path as sysPath
 
 # For loading in Matt's general purpose python libraries
-supportPath = path.abspath( path.join( __file__ , "../../Support_Code/" ) )
-sysPath.append( supportPath )
+sysPath.append( path.abspath( "Support_Code/" ) )
+sysPath.append( path.abspath( path.join( __file__ , "../../Support_Code/" ) ) )
 import general_module as gm
 import info_module as im
 
