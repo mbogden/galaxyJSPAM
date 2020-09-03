@@ -42,7 +42,7 @@ def main(arg):
             print("\t- Nothing else to see here")
 
     elif arg.runDir != None:
-        procRun( arg.runDir, param, printAll=arg.printAll, )
+        pipelineRun( arg.runDir, param, printAll=arg.printAll, )
 
     elif arg.targetDir != None:
         procTarget( arg.targetDir, param, printAll=arg.printAll )
@@ -61,21 +61,20 @@ def main(arg):
 # End main
     
 
-def procRun( rDir, param, printBase=True, printAll=False ):
+def pipelineRun( rDir, param, printBase=True, printAll=False ):
 
     if printBase:
-        print("SIMR.procRun: Inputs")
+        print("SIMR.pipelineRun: Inputs")
         print("\t - rDir:", rDir)
 
     rInfo = im.run_info_class( runDir=rDir, printBase = True, printAll=printAll )
 
     if printBase:
-        print('SIMR.procRun: ')
+        print('SIMR.pipelineRun: ')
         print('\t - rInfo.status: ', rInfo.status )
 
-
     if rInfo.status == False:
-        print("SIMR.procRun: WARNING: runInfo bad")
+        print("SIMR.pipelineRun: WARNING: runInfo bad")
         return
 
     ptsLoc = procRunSim( rInfo, param, printBase = printBase, printAll = printAll )
@@ -83,13 +82,54 @@ def procRun( rDir, param, printBase=True, printAll=False ):
         return 
 
     imgLoc = procRunImg( rInfo, param, printBase = printBase, printAll = printAll )
+    if imgLoc == None:
+        return
+
+    score = procRunMach( rInfo, param, printBase = printBase, printAll = printAll )
+    if score == None:
+        return
 
 # end processing run
 
 
+# end procRunMach
+def procRunMach( rInfo, param, printBase = True, printAll = False, createPlots=True ):
+
+    # Get desired number of particles for simulation
+    sName = getattr( param.machArg, 'score', None )
+
+    if sName == None:
+        print("SIMR.procRunMach: WARNING:")
+        print("\t - Please specifcy score name")
+        print("\t -score: score_absolute_difference")
+        return None
+
+
 def procRunImg( rInfo, param, printBase = True, printAll = False ):
 
-    return
+    # Get desired number of particles for simulation
+    imgParam = getattr( param.imgArg, 'imgParam', None )
+
+    if imgParam == None:
+        print("SIMR.procRunImg: WARNING:")
+        print("\t - Please specificy imgParam")
+        return None
+
+    imgLoc = rInfo.findImgFile( imgParam )
+    imgLoc, initLoc = rInfo.findImgFile( imgParam, initImg = True )
+
+    if printBase:
+        print('\t - imgParam: ' , imgParam)
+        print('\t - imgLoc: %s' % imgLoc)
+        print('\t - initLoc: %s' % initLoc)
+
+    if imgLoc == None:
+        print("SIMR.procRunImg: WARNING:")
+        print("\t - image not found")
+        print("\t - creating new image not yet implemented")
+        return None
+
+    return imgLoc
 
 def procRunSim( rInfo, param, printBase = True, printAll = False ):
 

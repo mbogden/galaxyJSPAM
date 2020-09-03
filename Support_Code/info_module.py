@@ -31,12 +31,13 @@ def main(arg):
         gm.test()
 
     if arg.runDir != None:
+
         rInfo = run_info_class( \
                 runDir = arg.runDir, \
                 printAll = True, \
                 rmInfo = getattr( arg, 'rmInfo', None ), \
-                newRun = getattr( arg, 'newRun', None ), \
-                )
+                newRun = getattr( arg, 'newRun', False ), \
+            )
 
         rInfo.printInfo()
 
@@ -49,7 +50,7 @@ def main(arg):
                 rmInfo = getattr( arg, 'rmInfo', False ), \
                 gatherRuns = getattr( arg, 'gatherRuns', False ), \
                 gatherScores = getattr( arg, 'gatherScores', False ), \
-                )
+            )
 
         if tInfo.status:
             print("IM: target_info_class good")
@@ -858,6 +859,39 @@ class run_info_class:
             return None
 
     # End findPtsFile
+
+    def getMachScore( self, sName ):
+
+        self.printInfo( )
+
+        mScores = self.rDict['machine_scores']
+        print( type( mScores) )
+        print( len( mScores ) )
+        print( mScores[0] )
+
+        return None
+
+
+    def findImgFile( self, pName, initImg = True ):
+
+        imgLoc = self.imgDir + pName + '_model.png'
+
+        if not initImg:
+            if path.exists( imgLoc ):
+                return imgLoc
+            else:
+                return None
+
+        else: 
+
+            initLoc = self.miscDir + pName + '_init.png'
+
+            if path.exists( imgLoc ) and path.exists( initLoc ):
+                return imgLoc, initLoc
+            else:
+                return None, None
+   
+    # End findImgFile
 
     def initRunDir( self, runDir, newDir = False, ):
 
