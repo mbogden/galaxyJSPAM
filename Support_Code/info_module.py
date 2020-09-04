@@ -43,6 +43,9 @@ def main(arg):
                 newRun = getattr( arg, 'newRun', False ), \
             )
 
+        if rInfo.status == False:
+            return
+
         rInfo.printInfo()
 
 
@@ -98,16 +101,19 @@ def main(arg):
         with open( saveLoc, 'w' ) as oFile:
             json.dump( dataJson, oFile )
 
-    if arg.tFile != None:
+    if getattr( arg, 'param', None ) != None:
         print('yAY')
-        sp = pipeline_parameter_class( paramLoc = arg.tFile, printBase = arg.printBase, printAll = arg.printAll ) 
+        sp = pipeline_parameter_class( paramLoc = arg.param, printBase = arg.printBase, printAll = arg.printAll ) 
 
 # End main
 
 
 class pipeline_parameter_class:
 
-    ppParam = {
+    pDict = None
+    status = False
+
+    baseDict = {
             'name' : None,
             'simArg' : {
                     'name' : '100k',
@@ -122,15 +128,7 @@ class pipeline_parameter_class:
                 },
         }
 
-    status = False
-
-    name = None
-    simArg = gm.inArgClass()
-    imgArg = gm.inArgClass()
-    machArg = gm.inArgClass()
-
-    #sp = pipeline_parameter_class( paramLoc = None, printBase = True, printAll = False ) 
-    def __init__( self, paramLoc = None, printBase = True, printAll = False ):
+    def __init__( self, paramLoc = None, new=False, printBase = True, printAll = False ):
 
         self.printBase = printBase
         self.printAll = printAll
@@ -140,22 +138,18 @@ class pipeline_parameter_class:
             print("SIMR: pipeline_param_class.__init__")
             print("\t - paramLoc: ", paramLoc)
 
-        self.readParam( paramLoc )
-        
+        # If creating param new from scratch
+        if new:
+            self.pDict = self.baseDict
+
+        # Else reading a param file
+        else:
+            self.readParam( paramLoc )
+
         if self.printAll:
-            print("SIMR: pipeline_param_class.__init__")
-            print("\t - name: %s" % self.name)
-            print("SIMR: papam.simArg")
-            self.simArg.printArg()
+            pprint( self.pDict )
 
-            print("SIMR: papam.imgArg")
-            self.imgArg.printArg()
 
-            print("SIMR: papam.machArg")
-            self.machArg.printArg()
-
-            print('SIMR: ppParam:')
-            pprint( self.ppParam )
 
     def readParam( self, paramLoc ):
         
@@ -165,69 +159,34 @@ class pipeline_parameter_class:
         
         # Check if param File is valid
         if paramLoc == None:
-            print('SIMR: WARNING: Please give a param File Location')
-            print('\t -paramLoc /path/to/file.txt')
+            if self.printBase: 
+                print('SIMR: WARNING: Please give a param File Location')
+                print('\t -paramLoc /path/to/file.txt')
             return
 
         elif type( paramLoc) != type('String'):
-            print('SIMR: WARNING: paramLoc variable not string')
-            print('\t -paramLoc: %s ' % type(paramLoc), paramLoc)
+            if self.printBase: 
+                print('SIMR: WARNING: paramLoc variable not string')
+                print('\t -paramLoc: %s ' % type(paramLoc), paramLoc)
             return
 
         elif not path.exists( paramLoc ):
-            print('SIMR: WARNING: Param File location not found')
-            print('\t -paramLoc: %s' % paramLoc)
+            if self.printBase: 
+                print('SIMR: WARNING: Param File location not found')
+                print('\t -paramLoc: %s' % paramLoc)
             return
 
         # Read file Contents
-        pContents = gm.readFile( paramLoc, stripLine=True )
+        with open( paramLoc ) as iFile:
+            self.pDict = json.load( iFile )
 
-        if pContents == None:
-            print('SIMR: WARNING: Failed to read param file')
-            print('\t -paramLoc: %s' % paramLoc)
+        if self.pDict == None:
+            if self.printBase: 
+                print('SIMR: WARNING: Failed to read param file')
+                print('\t -paramLoc: %s' % paramLoc)
             return
         
-
-        # Parse file contents
-        argPtr = None
-        args = []
-
-        for l in pContents:
-
-            # No content in line
-            if len(l) == 0:
-                continue
-            
-            sl = l.split()
-
-            # Save name of this parameter file
-            if sl[0] == 'paramName':
-                self.name = sl[1]
-                args = []
-
-            # append contents and switch to new inputs
-            elif sl[0] == 'Simulator_Input':
-                argPtr = self.simArg
-
-            elif sl[0] == 'Image_Creator_Input':
-                argPtr.updateArg( args )
-                args = []
-                argPtr = self.imgArg
-
-            elif sl[0] == 'Machine_Score_Input':
-                argPtr.updateArg( args )
-                args = []
-                argPtr = self.machArg
-
-            # gather contents if not special header
-            else:
-                args.extend( sl )
-
-        argPtr.updateArg( args )
-        # Finished looping throuh file contents
-
-        if self.name != None:
-            self.status = True
+        status = True
 
     # End reading param file
 
