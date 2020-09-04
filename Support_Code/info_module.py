@@ -135,7 +135,7 @@ class pipeline_parameter_class:
         if self.printAll: self.printBase == True
 
         if self.printBase:
-            print("SIMR: pipeline_param_class.__init__")
+            print("IM: pipeline_param_class.__init__")
             print("\t - paramLoc: ", paramLoc)
 
         # If creating param new from scratch
@@ -154,25 +154,25 @@ class pipeline_parameter_class:
     def readParam( self, paramLoc ):
         
         if self.printAll:
-            print("SIMR: pipeline_param_class.readParam")
+            print("IM: pipeline_param_class.readParam")
             print("\t - paramLoc: ", paramLoc)
         
         # Check if param File is valid
         if paramLoc == None:
             if self.printBase: 
-                print('SIMR: WARNING: Please give a param File Location')
+                print('IM: WARNING: Please give a param File Location')
                 print('\t -paramLoc /path/to/file.txt')
             return
 
         elif type( paramLoc) != type('String'):
             if self.printBase: 
-                print('SIMR: WARNING: paramLoc variable not string')
+                print('IM: WARNING: paramLoc variable not string')
                 print('\t -paramLoc: %s ' % type(paramLoc), paramLoc)
             return
 
         elif not path.exists( paramLoc ):
             if self.printBase: 
-                print('SIMR: WARNING: Param File location not found')
+                print('IM: WARNING: Param File location not found')
                 print('\t -paramLoc: %s' % paramLoc)
             return
 
@@ -182,11 +182,11 @@ class pipeline_parameter_class:
 
         if self.pDict == None:
             if self.printBase: 
-                print('SIMR: WARNING: Failed to read param file')
+                print('IM: WARNING: Failed to read param file')
                 print('\t -paramLoc: %s' % paramLoc)
             return
         
-        status = True
+        self.status = True
 
     # End reading param file
 
