@@ -64,6 +64,7 @@ IRB course?
   - tails and bridges
 
   - New Methods
+	- Zernike moments
 	- Mask
 	  - Solid mask for inner disk.
 	  - Sectioned weights of image. Radial function?
