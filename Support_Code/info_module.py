@@ -123,8 +123,9 @@ class pipeline_parameter_class:
                     'name' : 'default',
                     'pType' : 'default',
                 },
+            'tgtArg' : "zoo",
             'scrArg' : {
-                    'cmpName' : 'correlation',
+                    'name' : 'correlation',
                 },
         }
 
@@ -141,6 +142,7 @@ class pipeline_parameter_class:
         # If creating param new from scratch
         if new:
             self.pDict = self.baseDict
+            self.status = True
 
         # Else reading a param file
         else:
@@ -190,6 +192,11 @@ class pipeline_parameter_class:
 
     # End reading param file
 
+    def printParam( self, ):
+        pprint( self.pDict )
+    # end print
+
+# End pipeline parameter class
         
 
 
@@ -819,12 +826,13 @@ class run_info_class:
     miscDir = None
 
 
-    runHeaders = ( 'run_identifier', 'model_data', 'human_scores',  'particle_files', 
-            'model_images', 'misc_images', 'perturbation', 'initial_bias', 'machine_scores',)
+    runHeaders = ( 'run_identifier', 'model_data', 'human_scores',  \
+            'particle_files', 'model_images', 'misc_images', \
+            'perturbation', 'initial_bias', 'machine_scores',)
 
     # To-Do
-    baseHeaders = ( 'run_identifier', 'model_data', 'human_scores',  'particle_files', 
-            'model_images', 'misc_images', )
+    baseHeaders = ( 'run_identifier', 'model_data', 'human_scores',  \
+            'particle_files', 'model_images', 'misc_images', )
 
     modelImgHeaders = ( 'image_name', 'image_parameter_name' )
 
@@ -952,16 +960,11 @@ class run_info_class:
 
     # End findPtsFile
 
-    def getMachScore( self, sName ):
+    def getScore( self, sName,  ):
 
-        self.printInfo( )
-
-        mScores = self.rDict['machine_scores']
-        print( type( mScores) )
-        print( len( mScores ) )
-        print( mScores[0] )
-
-        return None
+        score = self.rDict['machine_scores'].get( sName, None )
+        
+        return score
 
 
     def findImgFile( self, pName, initImg = True ):
@@ -1072,6 +1075,19 @@ class run_info_class:
             self.baseDict[h] = self.rDict[h]
     # End create Base
 
+    def addScore( self, name=None, score=None ):
+
+        if name == None or score == None:
+            if self.printBase:
+                print("IM: WARNING: run.addScore. name or score not given")
+                print('\t - name: ', name)
+                print('\t - score: ', score)
+            return None
+
+        self.rDict['machine_scores'][name] = score
+
+        return self.rDict['machine_scores'][name]
+
     # For appending new information to a list in run info module
     def appendScores( self, keyName, addList ):
 
@@ -1111,9 +1127,9 @@ class run_info_class:
         for key in self.runHeaders:
             tempDict[key] = {}
 
-        tempDict['initial_bias'] = []
-        tempDict['perturbation'] = []
-        tempDict['machine_scores'] = []
+        tempDict['initial_bias'] = {}
+        tempDict['perturbation'] = {}
+        tempDict['machine_scores'] = {}
         
         return tempDict
     # End create Blank

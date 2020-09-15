@@ -50,11 +50,13 @@ def main(argList):
 
     elif arg.runDir != None:
 
+        print("MC: WARNING: Indevelopment to use new param file")
+
         pipelineRun( \
                 arg.runDir, \
                 printAll = arg.printAll, \
                 tLoc = getattr( arg, 'targetLoc', None), \
-                rmInfo= getattr( arg, 'rmInfo', None ) \
+                rmInfo= getattr( arg, 'rmInfo', None ), \
                 )
 
 
@@ -221,229 +223,123 @@ def pipelineTarget( tDir, printAll = False, nRuns=None, nProcs=1, rmInfo=False )
 # End processing sdss dir
 
 
-# Create perturbation and comparison scores for run. 
-def pipelineRun( rDir, printAll=False, rmInfo=False, tLoc=None, tImg=None, tName=None, paramName=None, overwriteScores=False ):
+# Create scores and comparison scores for run. 
+def pipelineRun( \
+        printBase=True, printAll=False, \
+        runDir = None, rInfo = None, param = None, \
+        tLoc=None, tImg=None, \
+        imgLoc = None, mImg = None, \
+        ):
+
+    if printBase: 
+        print("MC: pipelineRun:")
 
     if printAll: 
-        print("MC: pipelineRun:")
-        print("\t- printAll: %s" % printAll)
-        print("\t- rmInfo: %s" % rmInfo)
-        print("\t- tLoc: %s" % tLoc)
-        print("\t- tImg: %s" % tImg)
-        print("\t- tName: %s" % tName)
-        print("\t- paramName: %s" % paramName)
-        print("\t- overwriteScores: %s" % overwriteScores)
+        print("\t - printBase: %s" % printBase )
+        print("\t - printAll: %s" % printAll )
+        print("\t - rInfo: %s" % type(rInfo) )
+        print("\t - paramName: %s" % paramName )
+        print("\t - tLoc: %s" % tLoc )
+        print("\t - tImg: %s" % type(tImg) )
+        print("\t - imgLoc: %s" % imgLoc )
+        print("\t - mImg: %s" % type(mImg) )
 
-    mImgs = []  # List of images
-
-    # Check if target data was given
-    if tLoc == None and type(tImg) == type(None):
-        print("ERROR: MC: pipelineRun: ")
-        print("\t- No target image. runDir: %s" % arg.runDir)
-        return False
-
-
-    rInfo = im.run_info_class( runDir=rDir, printAll=printAll, rmInfo=rmInfo )
+    if rInfo == None:
+        rInfo = im.run_info_class( runDir=runDir, printAll=printAll, rmInfo=rmInfo )
 
     # Check if successfully read info data
     if rInfo.status == False:
-        print("Error: MC: pipelineRun: ")
+        print("MC: Error: pipelineRun: ")
         print("\t- Bad status from run_info_class.")
         print("\t- runDir: %s" % runDir)
-        return False
+        return None
+
     else: 
-        if printAll: print("MC: Obtained run info.")
+        if printBase: print("MC: Run info good.")
 
-    # Get info from run
-    mDictList = rInfo.rDict.get( 'model_images', None )
-    iDictList = rInfo.rDict.get( 'misc_images', None )
-    pScores = rInfo.rDict.get( 'perturbation', None )
-    mScores = rInfo.rDict.get( 'machine_scores', None )
-    iScores = rInfo.rDict.get( 'initial_bias', None )
+    # Check if score exists
+    score = rInfo.getScore( param['name'] ) 
 
+    if score != None:
+        if printBase: print("MC: Returning score")
+        return score
 
-    # Check list for needed run information
-    checkList = [ 'model_images', 'init_images' ]
-    #rInfo.checkList( checkList )
-    if printAll:
-        print("MC: pipelienRun: WARNING:")
-        print("\t- Consider placing checkList, overwrite, and image retreival inside info module.")
+    # Check if target image was given
+    if tLoc == None and type( tImg ) == type( None ):
+        print("MC: ERROR: pipelineRun: ")
+        print("\t- No target image given.")
+        return None
 
-    if mDictList == None or iDictList == None:
-        print("Error: MC: info json not complete")
-        print("\t- ", mDictList)
-        print("\t- ", iDictList)
-        rInfo.printInfo()
-        rInfo.updateInfo()
-        rInfo.printInfo()
+    # Check if model image was given
+    if imgLoc == None and type( mImg ) == type( None ):
+        print("MC: ERROR: pipelineRun: ")
+        print("\t- No image given.")
+        return None
 
-        mDictList = rInfo.rDict.get( 'model_images', None )
-        iDictList = rInfo.rDict.get( 'misc_images', None )
-        if mDictList == None or iDictList == None:
-
-           return False
-         
-
-    if pScores == None or mScores == None or iScores == None:
-        print("BLAH!")
-        return False
-
-    # Can't do anything if list is empty
-    if len( mDictList ) == 0:
-        print("WARNING: MC: Model Image list empty")
-        return False
-       # Check if machine scores need to be populated
-
-    # simple check if scores exist
-    compareList = ms.getScoreFunctions()
-    nScores = len( compareList )
-
-    doMachineScores = True
-    doMetaScores = True
-
-    if printAll: print("MC: pipelineRun(): Currently disabling overwrite settings")
-
-    '''
-    # check for existing machine scores
-    if not overwriteScores and len(mScores) >= nScores*len( mDictList ):
-        if printAll: print("MC: Machine fitness scores already found")
-        doMachineScores = False
-    else:
-        if printAll: print("MC: Creating machine scores")
-
-    # check for existing perturbness overwrite
-    if not overwriteScores and len(pScores) >= nScores*len( mDictList ):
-        if printAll: print("MC: Perturbedness scores already found")
-        doPerturbedness = False
-    else:
-        if printAll: print("MC: Creating perturbation scores")
-
-    if not doPerturbedness and not doMachineScores:
-        if printAll: print("MC: No scores needed")
-        return False
-    '''
 
     # Open Target image
-    if type(tImg) == type(None) and tLoc != None:
+    if type(tImg) == type(None):
         
         if printAll: print("\t- Getting target image...")
 
         # Check if target image exists
         if not path.exists( tLoc ):
             print("Error: MC: Target image does not exist at: %s" % tLoc)
-            return False
+            return None
 
-        # Open image.  Catch exception if something happens.
-        try:
-            tImg = cv2.imread( tLoc, 0 )
-        except:
-            print("Error: MC: Failed to open target image: %s" % tLoc)
-            return False
+        tImg = getImg( tLoc )
 
-        tName = tLoc.split('/')[-1]
+        if type( tImg ) == type( None ):
+            print("Error: MC: Target image error. %s" % tLoc)
+            return None
+
 
     # Should have target image by now
-    if printAll: print("\t- Target image good.")
-
-    # filter by image parameter name if needed
-    if paramName != None:
-        mDictList = [ mD for mD in mDictList if mD['image_parameter_name'] == paramName ]
-        if len( mDictList ) == 0:
-            print("MC: WARNING: No images with paramName: %s" % paramName )
-
-    # Go through model images and create scores
-    for mD in mDictList:
-
-        mName = mD
-        mParam = mDictList[mD]['image_parameter_name']
-
-        if mName == None or mParam == None:
-            print("MC: pipelineRun: WARNING: ")
-            print("\t- Bad image name found")
-            print("\t- ", mD)
-            continue
-
-        mLoc = rDir + 'model_images/' + mName
-        mImg = getImg( mLoc )
-
-        # Create and save machine scores
-        if doMachineScores:
-
-            if printAll: print("\t- Creating machine scores for %s" % mName)
-            sList, cList = allScores( mImg, tImg, printAll = printAll )
-
-            # append image names to machine score dict
-            for c in cList:
-                c['model_name'] = mName
-                c['target_name'] = tName
-
-            new_mScores = rInfo.appendScores( keyName='machine_scores', addList=cList )
-
-            if new_mScores != None:
-                mScores = new_mScores
-            else:
-                if printAll: print("MC: WARNING: Failed creating perturbation for %s" % mName)
+    if printBase: print("\t - Target image good.")
 
 
-        # create and saving perturbation scores
-        if doMetaScores:
+    # Open model image 
+    if type( mImg ) == type( None ):
 
-            if printAll: print("\t- Creating perturbation and initial bias for %s" % mName)
+        mImg = getImg( imgLoc )
 
-            # Find matching initial image
-            '''
-            iL = [ iD['image_name'] for iD in iDictList if iD['image_parameter_name'] == mParam ]
-            if len( iL ) == 0:
-                print("MC: WARNING: Found no matching initial images for model image")
-                continue
-            '''
+        if type( mImg ) == type( None ):
+            if printBase: print("Error: MC: Failed to read image: %s" % imgLoc)
+            return None
 
-            iLoc = rDir + 'misc_images/' + mName.replace('model','init')
-            iImg = getImg( iLoc )
-            if type(iImg) == type(None):
-                print("BAD")
-                continue
-
-            psList, pcList = allScores( mImg, iImg, printAll = printAll )
-            isList, icList = allScores( tImg, iImg, printAll = printAll )
-
-            # append image names to perturbation dict
-            for i,c in enumerate(pcList):
-                pcList[i]['model_name'] = mName
-                icList[i]['model_name'] = mName
-                icList[i]['target_name'] = tName
-
-            new_pScores = rInfo.appendScores( keyName='perturbation', addList=pcList )
-            new_iScores = rInfo.appendScores( keyName='initial_bias' , addList=icList )
-
-            if new_pScores == None:
-                 print("MC: WARNING: Failed creating perturbation for %s" % mName)
-                 print(pcList)
-                 print(new_pScores)
-                 print(rInfo.rDict['perturbation'])
-
-            if new_iScores == None:
-                 print("MC: WARNING: Failed creating initial_bias for %s" % mName)
-                 print(icList)
-                 print(new_iScores)
-                 print(rInfo.rDict['initial_bias'])
-
+    if printBase: print("\t - Model image good.")
 
     # Done with perturbation and machine scores
+
+    print( type( param ) )
+    print( param.keys() )
+    print( param )
+    print( param['scrArg'] )
+    print( param['scrArg']['name'] )
+
+    score = ms.createScore( tImg, mImg, scrName=param['scrArg']['name'] )
+
+    print("SCORE!: ", score )
+
+    print( param['name'] )
+
+    rInfo.addScore( name = param['name'], score=score )
 
     rInfo.saveInfoFile()
 
 # end processing run dir
 
-def getImg( imgLoc ):
+def getImg( imgLoc, printAll = False ):
 
     if not path.exists( imgLoc ):
-        print("MC: WARNING: image not found at path.")
-        print("\t- %s" % imgLoc)
+        if printAll:
+            print("MC: WARNING: image not found at path.")
+            print("\t- %s" % imgLoc)
         return None
 
     img = cv2.imread( imgLoc, 0 ) 
     return img
+
 # End get image
 
 

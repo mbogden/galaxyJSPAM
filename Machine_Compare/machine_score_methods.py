@@ -183,32 +183,34 @@ def getScoreFunctions():
 
 def getScoreFunc( funcName, printAll = False ):
 
-    allFunctions = getScoreFunctions()
+    allFunctions = getScoreFunctions( )
 
-    funcFound = False
     funcPtr = None
 
     for name, ptr in allFunctions:
 
         if name == funcName:
 
-            funcFound = True
+            funcPtr = ptr
+
+        elif 'score_' + funcName == name:
+
             funcPtr = ptr
     
-    if funcFound:
+    return funcPtr
+# End get score
 
-        if printAll:
-            print("Found score function: %s" % funcName)
+    
+def createScore( img1, img2, scrName='correlation' ):
 
-        return funcPtr
+    funcPtr = getScoreFunc( scrName )
 
+    if funcPtr != None:
+
+        return funcPtr( img1, img2 )
     else:
 
-        if printAll:
-            print("MS: WARNING: Did not find score function: %s" % funcName)
-
         return None
-    
 
 
 def allScores( img1, img2, printAll = False ):
