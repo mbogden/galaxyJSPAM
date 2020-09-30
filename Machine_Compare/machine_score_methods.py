@@ -201,9 +201,9 @@ def getScoreFunc( funcName, printAll = False ):
 # End get score
 
     
-def createScore( img1, img2, scrName='correlation' ):
+def createScore( img1, img2, cmpMethod='correlation' ):
 
-    funcPtr = getScoreFunc( scrName )
+    funcPtr = getScoreFunc( cmpMethod )
 
     if funcPtr != None:
 

@@ -249,9 +249,10 @@ def pipelineRun( \
 
     # Check if successfully read info data
     if rInfo.status == False:
-        print("MC: Error: pipelineRun: ")
-        print("\t- Bad status from run_info_class.")
-        print("\t- runDir: %s" % runDir)
+        if printBase:
+            print("MC: Error: pipelineRun: ")
+            print("\t- Bad status from run_info_class.")
+            print("\t- runDir: %s" % runDir)
         return None
 
     else: 
@@ -266,15 +267,20 @@ def pipelineRun( \
 
     # Check if target image was given
     if tLoc == None and type( tImg ) == type( None ):
-        print("MC: ERROR: pipelineRun: ")
-        print("\t- No target image given.")
+        if printBase:
+            print("MC: ERROR: pipelineRun: ")
+            print("\t- No target image given.")
         return None
-
+    
     # Check if model image was given
     if imgLoc == None and type( mImg ) == type( None ):
-        print("MC: ERROR: pipelineRun: ")
-        print("\t- No image given.")
-        return None
+        
+        imgName = param.get( 'imgArg' ).get('name')
+        imgLoc = rInfo.findImgFile( imgName, initImg = False )
+
+        if imgLoc == None:
+            print("MC: Failed to get image")
+            return None
 
 
     # Open Target image
@@ -297,33 +303,20 @@ def pipelineRun( \
     # Should have target image by now
     if printBase: print("\t - Target image good.")
 
-
     # Open model image 
     if type( mImg ) == type( None ):
 
         mImg = getImg( imgLoc )
-
         if type( mImg ) == type( None ):
             if printBase: print("Error: MC: Failed to read image: %s" % imgLoc)
             return None
 
     if printBase: print("\t - Model image good.")
 
-    # Done with perturbation and machine scores
+    score = ms.createScore( tImg, mImg, cmpMethod=param['scrArg']['cmpMethod'] )
 
-    print( type( param ) )
-    print( param.keys() )
-    print( param )
-    print( param['scrArg'] )
-    print( param['scrArg']['name'] )
+    newScore = rInfo.addScore( name = param['name'], score=score )
 
-    score = ms.createScore( tImg, mImg, scrName=param['scrArg']['name'] )
-
-    print("SCORE!: ", score )
-
-    print( param['name'] )
-
-    rInfo.addScore( name = param['name'], score=score )
 
     rInfo.saveInfoFile()
 

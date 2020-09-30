@@ -9,6 +9,9 @@ from os import path, listdir
 import json
 from copy import deepcopy
 
+import pandas as pd
+import numpy as np
+
 
 from pprint import PrettyPrinter
 pp = PrettyPrinter( indent = 2 )
@@ -18,8 +21,6 @@ pprint = pp.pprint
 import general_module as gm
 
 
-# Troubleshooting global variable
-rmAll = True
 
 def test():
     print("IM: Hi!  You're in Matthew Ogden's information module for SPAM")
@@ -39,24 +40,23 @@ def main(arg):
         rInfo = run_info_class( \
                 runDir = arg.runDir, \
                 printAll = True, \
-                rmInfo = getattr( arg, 'rmInfo', None ), \
-                newRun = getattr( arg, 'newRun', False ), \
-            )
+                newInfo = arg.get('newInfo', None ), \
+                newRun = arg.get( 'newRun', False ), \
+                )
 
         if rInfo.status == False:
             return
 
         rInfo.printInfo()
-
+        if getattr( arg, 'updateInfo', False ):
+            rInfo.updateInfo()
 
     if arg.targetDir != None:
 
         tInfo = target_info_class( \
                 targetDir = arg.targetDir, \
                 printAll = arg.printAll, \
-                rmInfo = getattr( arg, 'rmInfo', False ), \
-                gatherRuns = getattr( arg, 'gatherRuns', False ), \
-                gatherScores = getattr( arg, 'gatherScores', False ), \
+                newInfo = arg.get('newInfo', False ), \
             )
 
         if tInfo.status:
@@ -103,12 +103,12 @@ def main(arg):
 
     if getattr( arg, 'param', None ) != None:
         print('yAY')
-        sp = pipeline_parameter_class( paramLoc = arg.param, printBase = arg.printBase, printAll = arg.printAll ) 
+        sp = score_parameter_class( paramLoc = arg.param, printBase = arg.printBase, printAll = arg.printAll ) 
 
 # End main
 
 
-class pipeline_parameter_class:
+class score_parameter_class:
 
     pDict = None
     status = False
@@ -125,7 +125,7 @@ class pipeline_parameter_class:
                 },
             'tgtArg' : "zoo",
             'scrArg' : {
-                    'name' : 'correlation',
+                    'cmpMethod' : 'correlation',
                 },
         }
 
@@ -136,7 +136,7 @@ class pipeline_parameter_class:
         if self.printAll: self.printBase == True
 
         if self.printBase:
-            print("IM: pipeline_param_class.__init__")
+            print("IM: score_param_class.__init__")
             print("\t - paramLoc: ", paramLoc)
 
         # If creating param new from scratch
@@ -151,12 +151,24 @@ class pipeline_parameter_class:
         if self.printAll:
             pprint( self.pDict )
 
+    def get( self, inVal, defaultVal = None ):
+
+        cVal = getattr( self, inVal, defaultVal )
+
+        if cVal != defaultVal:
+            return cVal
+
+        dVal = self.pDict.get( inVal, defaultVal )
+        if dVal != defaultVal:
+            return dVal
+
+        return defaultVal
 
 
     def readParam( self, paramLoc ):
         
         if self.printAll:
-            print("IM: pipeline_param_class.readParam")
+            print("IM: score_param_class.readParam")
             print("\t - paramLoc: ", paramLoc)
         
         # Check if param File is valid
@@ -196,34 +208,42 @@ class pipeline_parameter_class:
         pprint( self.pDict )
     # end print
 
-# End pipeline parameter class
+# End score parameter class
         
 
 
 class target_info_class:
 
     tDict = None        # Primary dictionary of info for all data 
-    initDict = {}     # Copy of dictionary when read
+    initDict = {}       # Copy of dictionary when read
     baseDict = None     # Simple dictionary of info for basic info.
+    sFrame = None       # Score dataframe
+    runClassDict = None # List of run classes
 
     status = False      # State of this class.  For initiating.
+    printBase = True
     printAll = False
 
     targetDir = None
-    zModelDir = None
+    zooMergerDir = None
+    plotDir = None
+
     baseInfoLoc = None
     allInfoLoc = None
     scoreLoc = None
-    zModelLoc = None
-    plotDir = None
+    zooMergerLoc = None
+
+
 
     # For user to see headers.
-    targetHeaders = ( 'target_identifier', 'target_images', 'model_image_parameters', 'progress',  'model_sets',)
+    targetHeaders = ( 'target_identifier', 'target_images', 'model_image_parameters', 'model_sets',)
 
     progHeaders = ( 'initial_creation', 'galaxy_zoo_models', '100k_particle_files', 'zoo_default_model_images', 'machine_scores' )
 
-    def __init__( self, targetDir = None, printBase = True, printAll = False, rmInfo=False, \
-            gatherRuns=False, gatherScores = False ):
+    def __init__( self, targetDir = None, \
+            printBase = True, printAll = False, \
+            newInfo=False, newRunInfos = False, \
+            gatherRuns=False):
 
         # Tell class what to print
         self.printBase = printBase
@@ -235,9 +255,8 @@ class target_info_class:
             print('\t - targetDir: ', targetDir)
             print('\t - printBase: ', printBase)
             print('\t - printAll: ', printAll)
-            print('\t - rmInfo: ', rmInfo)
+            print('\t - newInfo: ', newInfo)
             print('\t - gatherRuns: ', gatherRuns)
-            print('\t - gatherScores: ', gatherScores)
 
         # if nothing given, complain
         if type(targetDir) == type(None):
@@ -270,7 +289,7 @@ class target_info_class:
             return
     
         # Remove info file if condition given
-        if rmInfo:
+        if newInfo:
 
             if self.printAll: print("IM: Target.__init__. Removing previous info file.")
             from os import remove
@@ -278,9 +297,11 @@ class target_info_class:
             if path.exists( self.allInfoLoc ):
                 remove( self.allInfoLoc )
 
-            if rmAll:
-                if path.exists( self.baseInfoLoc ):
-                    remove( self.baseInfoLoc )
+            if path.exists( self.baseInfoLoc ):
+                remove( self.baseInfoLoc )
+
+            if path.exists( self.scoreLoc ):
+                remove( self.scoreLoc )
 
         # end if
 
@@ -317,14 +338,12 @@ class target_info_class:
             self.newTargetInfo()
             self.saveInfoFile( baseFile=True )
 
-        if gatherRuns:
-            self.gatherRunInfos()
+        if gatherRuns or newInfo:
+            self.gatherRunInfos( newInfo = newRunInfos )
             self.saveInfoFile( )
 
-        if gatherScores:
-            self.getScores( newScores=True )
-            self.updateProgress()
-            self.saveInfoFile( )
+        if type(self.sFrame) == type(None) and path.exists( self.scoreLoc ):
+            self.sFrame = pd.read_csv( self.scoreLoc )
 
         self.status = True
         return
@@ -332,88 +351,7 @@ class target_info_class:
 
     # End target init 
 
-    def printProg( self, ):
-
-        print( 'IM: Target: printing target progression.\n' )
-        pprint( self.tDict['progress'] )
-        print( '\nIM: Target: Done printing target progression.\n' )
-
-    # End print info
-
-
-    def updateProgress( self, model_set='galaxy_zoo_mergers', ):
-
-        if self.printAll: print("IM: updateProgress")
-
-        if self.tDict['progress']['initial_creation'] == True:
-            pass
-        else:
-            print("IM: ERROR: You shouldn't be seeing this...")
-            return None
-
-        # If quantity exists, Good!
-        if type( self.tDict['progress']['galaxy_zoo_models'] ) == type( int(1) ):
-            pass
-
-        # If path exists but no quantity, find it!
-        elif path.exists( self.zModelLoc ):
-
-            mFile = gm.readFile( self.zModelLoc, stripLine=True )
-
-            if mFile != None:
-                c = 0
-                for l in mFile:
-                    sN = len( l.split('\t') )
-                    if sN == 2: c+= 1
-                    else: break
-
-                # If 1 or more models found
-                if c != 0: 
-                    self.tDict['progress']['galaxy_zoo_models'] = c
-                else:
-                    self.tDict['progress']['galaxy_zoo_models'] = None
-
-            # Else readFile returns None
-            else:
-                print("IM: updateProgress: Error reading galaxy zoo model file.")
-                self.tDict['progress']['galaxy_zoo_models'] = path.exists( self.zModelLoc )
-
-        # If you can't count the quantity of galaxy zoo models, then just say file exists
-        else:
-            self.tDict['progress']['galaxy_zoo_models'] = path.exists( self.zModelLoc )
-
-        print("IM: Target.updateProgress: Function still in progress!")
-
-        # Check number of models
-        self.tDict['progress']['100k_particle_files'] = None
-        self.tDict['progress']['model_images'] = None
-        self.tDict['progress']['machine_scores'] = None
-
-        pass
-    # End update proggress
-
-    def loopRuns( self, model_set='galaxy_zoo_mergers', checkFunc = None ):
-
-        if self.printAll: 
-            print( 'IM: loopRuns' )
-            print( '\t- model_set: %s' % model_set)
-            print( '\t- checkFunc: ', checkFunc )
-
-        if model_set != 'galaxy_zoo_mergers':
-            print("IM: WARNING: Target.loopRuns() not implemented for non galaxy zoo mergers")
-            return None
-
-        # If nothing given, return error
-        if type(checkFunc) == type(None):
-            print("IM: WARNING: Please give something to do when looping through runs.")
-            return None
-
-        runList = self.zModelDir
-        
-        # If given list
-        #if type( checkFunc ) == type( [] ): 
-
-
+    # initialize variables in target directory
     def initTargetDir( self, targetDir ):
 
         if self.printAll:
@@ -425,12 +363,12 @@ class target_info_class:
         if self.targetDir[-1] != '/': self.targetDir += '/'
 
         self.infoDir = self.targetDir + 'information/'
-        self.allInfoLoc = self.infoDir + 'all_target_info.json'
+        self.allInfoLoc = self.infoDir + 'target_info.json'
         self.baseInfoLoc = self.infoDir + 'base_target_info.json'
         self.scoreLoc = self.infoDir + 'scores.csv'
-        self.zModelLoc = self.infoDir + 'galaxy_zoo_models.txt'
+        self.zooMergerLoc = self.infoDir + 'galaxy_zoo_models.txt'
 
-        self.zooModelDir = self.targetDir + 'gen000/'
+        self.zooMergerDir = self.targetDir + 'gen000/'
 
         self.plotDir = self.targetDir + 'plots/'
 
@@ -441,7 +379,7 @@ class target_info_class:
             print("IM: WARNING: info directory not found!")
             status = False
 
-        if not path.exists( self.zooModelDir ):
+        if not path.exists( self.zooMergerDir ):
             print("IM: WARNING: zoo models directory not found!")
             status = False
 
@@ -454,204 +392,25 @@ class target_info_class:
             print( '\t - infoDir: (%s) %s' % ( path.exists( self.infoDir ), self.infoDir ) )
             print( '\t - baseInfoLoc: (%s) %s' % ( path.exists( self.baseInfoLoc ), self.baseInfoLoc ) )
             print( '\t - allInfoLoc: (%s) %s' % ( path.exists( self.allInfoLoc ), self.allInfoLoc ) )
-            print( '\t - zooModelDir: (%s) %s' % ( path.exists( self.zooModelDir ), self.zooModelDir ) )
+            print( '\t - zooMergerDir: (%s) %s' % ( path.exists( self.zooMergerDir ), self.zooMergerDir ) )
             print( '\t - plotDir: (%s) %s' % ( path.exists( self.plotDir ), self.plotDir ) )
 
         return status
 
-    # For code I want to make in the future but isn't needed now
-    def incomplete( self ):
 
-        # if given pre-existing rDict
-        if tDict != None:
-            self.tDict = deepcopy( tDict )
-            self.initDict = deepcopy( tDict )
-            self.status = True
-
-        else:
-            print("IM: ERROR: Umm.... You shouldn't be here...")
-            self.status = False
-            return 
-
-        '''
-        # Find model set with name of setID
-        for s in setList:
-            setName = s.get( 'set_identifier', None)
-            if setName == None: 
-                print("IM: WARNING: A target model set without identifier found")
-                continue
-
-            if setName == setId:
-                desiredSet = s
-                break
-
-        if desiredSet == None:
-            print("IM: WARNING: Model set not found: ", setId)
-            return None
-        '''
-
-    # End incomplete
-    
-    
     # Deconstructor
     def __del__( self ):
         if self.tDict != self.initDict:
             print("IM: WARNING: Target: target_info.json updated but not saved!")
     # End deconstructor
 
-    def printInfo( self ):
-        pprint( self.tDict )
+    def get( self, inVal, default = None ):
+        return getattr( self, inVal, None )
+
+    def printInfo( self, printAll=False ):
+        # INCOMPLETE
+        pprint( self.baseDict )
     # End print info
-
-    def printStatus( self ):
-
-        print("IM: Printing target info status.")
-        for h in self.tDict:
-            item = self.tDict[h]
-
-            if type( item ) == type([]):
-                print("\tLIST!")
-                for i in item:
-                    print(i)
-
-
-            print( '\t', h, len( item ) )
-
-    # Gather human and machine scores into pandas files and save as csv
-    def getScores( self, setId = 'galaxy_zoo_mergers', saveScores=True, newScores= False):
-
-        if self.printAll:
-            print("IM: Target.getScores():")
-            print("\t - setId: %s" % setId)
-            print("\t - saveScores: %s" % saveScores)
-            print("\t - newScores: %s" % newScores)
-
-        import pandas as pd
-        import numpy as np
-
-        if newScores or not path.exists( self.scoreLoc ):
-            
-            if self.printAll: 
-                print("IM: Gathering scores")
-            sFrame = self.gatherScores( setId=setId )
-               
-            pass
-
-                
-        if self.printAll: 
-            print("IM: Getting scores from csv file")
-            
-        sFrame = pd.read_csv( self.scoreLoc )
-
-        return sFrame
-
-
-    def gatherScores( self, setId = None ):
-
-        if self.printAll: print("IM: tareget.gatherScores():")
-
-        import pandas as pd
-        import numpy as np
-
-        desiredSet = self.tDict[ 'model_sets' ][setId]
-
-        # Create Frame and populate scores
-        mKeys = list(desiredSet.keys())
-        if self.printAll: print("IM: getScores: \n\t - %d models" % len(mKeys) )
-
-        if len(mKeys) == 0:
-            if self.printAll: print("\t - WARNING: No scores found.")
-            return None
-
-
-        # Calculate DataDrame size based on first mode1
-
-        m0 = desiredSet[ mKeys[0] ]
-
-        m0_id = m0['run_identifier']
-        m0_h = m0['human_scores']
-        m0_m = m0['machine_scores']
-        m0_p = m0['perturbation']
-        m0_i = m0['initial_bias']
-
-        # Check if model has populated values
-        if len( m0_m ) == 0 or  len( m0_p ) == 0 or len( m0_i ) == 0:
-            print('\t - WARNING: model 0 has no scores')
-            print('\t - Exiting gatherScores')
-            return None
-
-        headerNames = []
-
-        # human Scores
-        for hN in m0_h:
-            headerNames.append( 'human_' + hN )
-
-        # Machine Scores
-        for m in m0_m:
-            cN = m.get( 'comparison_name', None )
-            headerNames.append( 'machine_' + cN )
-
-        # Perturbedness Scores
-        for p in m0_p:
-            cN = p.get( 'comparison_name', None )
-            headerNames.append( 'perturbation_' + cN )
-
-        # Initial bias Scores
-        for i in m0_i:
-            cN = i.get( 'comparison_name', None )
-            headerNames.append( 'initialBias_' + cN )
-
-        if self.printAll: 
-            print( '\t - %d headers' % len(headerNames) )
-            print( '\t -', headerNames )
-
-
-        # Create Empty dataframe and populate
-        sFrame = pd.DataFrame( index = np.arange( len( mKeys ) ), columns=headerNames)
-
-        nModels = len( mKeys )
-
-        for i, k in enumerate(mKeys):
-
-            print('%d / %d     ' % ( i, nModels ), end='\r' )
-
-            
-            m = desiredSet[k]
-
-            for h in headerNames:
-
-                if h == 'run_id':
-                    sFrame.loc[ i, h ] = m[ 'run_identifier' ]
-
-                if 'galaxy_zoo' in h:
-                    sFrame.loc[ i, h ] = m[ 'human_scores' ]['galaxy_zoo_mergers']['score']
-
-                if 'machine_' in h:
-                    for ms in m['machine_scores']:
-                        if ms['comparison_name'] in h:
-                            sFrame.loc[ i, h] =  ms['score'] 
-                            break
-
-                if 'perturbation_' in h:
-                    for ps in m['perturbation']:
-                        if ps['comparison_name'] in h:
-                            sFrame.loc[ i, h] = ps['score']
-                            break 
-
-                if 'initialBias_' in h:
-                    for ps in m['initial_bias']:
-                        if ps['comparison_name'] in h:
-                            sFrame.loc[ i, h] = ps['score']
-                            break 
-
-
-        if self.scoreLoc != None: 
-            sFrame.to_csv( self.scoreLoc, index = False )
-
-
-        # End going through models
-        
-        return sFrame
 
     # Create blank dictionary
     def createBlank( self, ):
@@ -666,38 +425,9 @@ class target_info_class:
         if self.printAll: print('IM: Target: info:\n' % self.rDict)
     # End creating blank target info
 
-
-    # For appending new information to a list in target info module
-    def appendList( self, keyName, aList ):
-
-        if self.printAll: print("IM: Extending %s list" % keyName)
-
-        if type( aList ) != type( [] ):
-            print("ERROR: IM: Given non-list in appendList: %s" % type(aList))
-            return None
-
-        keyGood = keyName in self.tDict
-
-        if not keyGood: 
-            print("IM: WARNING: key %s does not exist in info module")
-            return None
-
-        # Check if key is list
-        if type( self.tDict[keyName] ) != type( [] ):
-            print("ERROR: IM: Key value not a list in appendList: %s" )
-            print("\t - key: %s" % keyName)
-            print("\t - Type: %s" % type( self.tDict[keyName] ) )
-            return None
-
-        # All is good. 
-        self.tDict[keyName].extend( aList ) 
-        return self.tDict[keyName]
-
-    # end append list
-
     def newTargetInfo( self, ):
 
-        if self.printAll: 
+        if self.printBase: 
             print("IM: newtargetInfo: Creating new target info file")
 
         # Create blank dict
@@ -738,31 +468,166 @@ class target_info_class:
             print('\t - Created new info file')
             self.printInfo()
 
-
     # End new target info dictionary
 
+    def getScores( self, scrName = None ):
 
-    def gatherRunInfos( self, model_key = 'galaxy_zoo_models' ):
+        if type(self.sFrame) == type(None):
+            if self.printAll: print( "IM: WARNING: Target.getScores:" )
+            return None
 
-        if self.printAll: print( "IM: Target.gatherRunInfos." )
+        if scrName in self.sFrame.columns:
+            return self.sFrame[ scrName ]
+        
+        return self.sFrame
 
-        self.runDirs = listdir( self.zooModelDir )
+    def getTargetImage( self, tName = None ):
+
+        if tName == None:
+            print("target is none")
+            return
+
+        tLoc = self.infoDir + 'target_%s.png' % tName
+        if path.exists( tLoc ):
+            return tLoc
+        else:
+            return None
+
+    def getRunClass( self, runID ):
+
+        if type( runID ) != type( 'string' ):
+            runID = str( runID ).zfill(5)
+
+        if self.get( 'runCLassDict', None ) == None:
+            self.runClassDict = {}
+
+        if self.runClassDict.get( runID ) != None:
+            return self.runClassDict[runID]
+
+        runDir = self.zooMergerDir + 'run_%s/' % runID
+
+        rInfo = run_info_class( runDir = runDir, printBase=False)
+
+        if rInfo.status:
+            self.runClassDict[ runID ] = rInfo
+            return self.runClassDict[ runID ]
+
+        else:
+            return None
+
+        
+
+
+    # Read in classes for run infos
+    def readRunInfos( self, newInfo = False, model_key = 'galaxy_zoo_models', n = np.inf ):
+
+        if model_key != 'galaxy_zoo_models':
+            print("IM: WARNING: Target.readRunInfos")
+            print('\t - gathering non zoo merger models not yet implemented')
+            return
+
+        self.runClassDict = {}
+
+        # Get list of run directories
+        self.runDirs = listdir( self.zooMergerDir )
         self.runDirs.sort()
         nRuns = len( self.runDirs )
 
-        rInfoList = []
-
         for i,run in enumerate(self.runDirs):
 
-            rInfo = run_info_class( runDir = self.zooModelDir + run, printBase=False)
-            rInfo.updateInfo()
+            rInfo = run_info_class( runDir = self.zooMergerDir + run, newInfo = newInfo, printBase=False)
+
+            if rInfo.status == False:
+                continue
+
             rId = rInfo.rDict['run_identifier']
-            self.tDict['model_sets']['galaxy_zoo_mergers'][rId] = rInfo.rDict
+            self.runClassDict[rId] = rInfo
 
-            if self.printBase: print("\t- %d/%d" % ( i, nRuns ), end='\r' )
-        
-        if self.printAll: print( '\n\t- Gathered %d run info files' % len( self.tDict['model_sets']['galaxy_zoo_mergers'] ) )
+            if self.printBase: print("IM: readRunInfos: %d/%d" % ( i, nRuns ), end='\r' )
 
+            # used for troubleshooting quickly
+            if i >= n: break
+
+    # End reading run info classes
+
+    #def updateRunInfo( self, rId, newInfo = False ):
+
+
+
+    # Gather information from classes
+    def gatherRunInfos( self, newInfo = False, model_key = 'galaxy_zoo_models' ):
+
+        if self.printAll: print( "IM: Target.gatherRunInfos." )
+
+        if model_key != 'galaxy_zoo_models':
+            print("IM: WARNING: Target.gatherRunInfos")
+            print('\t - gathering non zoo merger models not yet implemented')
+            return
+
+        if self.runClassDict == None:
+            self.readRunInfos( newInfo = newInfo )
+
+        nRuns = len( self.runClassDict )
+
+        # shortened link to model set
+        self.tDict['model_sets'][model_key] = {}
+        modelSet = self.tDict['model_sets'][model_key]
+
+        # For getting scores
+        scoreHeaders = set( [ 'run_id', 'zoo_merger_score' ] )
+
+        # Loop through collecting run dictionaries and score headers
+        for i,rId in enumerate( self.runClassDict ):
+
+            rInfo = self.runClassDict[rId]
+            modelSet[rId] = rInfo.rDict
+
+            # prep score headers 
+            scrKeys = list( modelSet[rId].get('machine_scores').keys() ) 
+            for key in scrKeys:
+                scoreHeaders.add( key )
+
+            if self.printBase: print("IM: gatherRunInfos: %d/%d" % ( i, nRuns ), end='\r' )
+
+        self.tDict['model_sets']['galaxy_zoo_mergers'] = modelSet
+        self.saveInfoFile()
+
+        if self.printAll: 
+            print( 'SIMR: GatherInfoRuns: Gathered %d run info files' % len( self.tDict['model_sets'][model_key] ) )
+
+        # Gather scores
+
+        nRuns = len( modelSet )
+
+        self.sFrame = pd.DataFrame( \
+                index = np.arange( nRuns ), \
+                columns = list( scoreHeaders ) 
+                )
+
+        # Go back through and gather scores
+        for i,rId in enumerate (modelSet ):
+            rDict = modelSet[rId]
+
+            # go through columns of frame
+            for h in scoreHeaders:
+
+                # Get run id
+                if h == 'run_id':
+                    self.sFrame.iloc[i]['run_id'] = rDict.get('run_identifier')
+
+                # Get human score
+                elif h == 'zoo_merger_score':
+                    self.sFrame.iloc[i]['zoo_merger_score'] = rDict.get('zoo_merger_score')
+
+                # get machine scores
+                else:
+                    self.sFrame.iloc[i][h] = rDict['machine_scores'].get( h )
+
+        self.sFrame.to_csv( self.scoreLoc, index = False )
+        if self.printAll:
+            print( self.sFrame ) 
+
+    # end gather Run Infos
 
     def saveInfoFile( self, saveLoc = None, baseFile=False ):
 
@@ -780,15 +645,13 @@ class target_info_class:
 
         if self.tDict == self.initDict:
             if self.printAll: print("\t - No changes detected...")
-            #return True
+            return True
 
         retVal = False
 
         with open( self.allInfoLoc, 'w' ) as infoFile:
             json.dump( self.tDict, infoFile )
             retVal = True
-
-        if retVal:
             self.initDict = deepcopy( self.tDict )
 
         if baseFile:
@@ -799,15 +662,16 @@ class target_info_class:
             self.baseDict['target_identifier'] = self.tDict['target_identifier']
             self.baseDict['target_images'] = self.tDict['target_images']
             self.baseDict['model_image_parameters'] = self.tDict['model_image_parameters']
-            self.baseDict['progress'] = self.tDict['progress']
-            self.baseDict['model_sets'] = { 'galaxy_zoo_mergers' : {} }
+            self.baseDict['zoo_merger_models'] = {}
 
             with open( self.baseInfoLoc, 'w' ) as infoFile:
                 json.dump( self.baseDict, infoFile, indent=4 )
                 if self.printAll: print("\t - Saved base info file")
 
         return retVal
-    
+   # End Target info class
+
+
 
 class run_info_class: 
 
@@ -826,22 +690,10 @@ class run_info_class:
     miscDir = None
 
 
-    runHeaders = ( 'run_identifier', 'model_data', 'human_scores',  \
-            'particle_files', 'model_images', 'misc_images', \
-            'perturbation', 'initial_bias', 'machine_scores',)
+    runHeaders = ( 'run_identifier', 'model_data', \
+            'zoo_merger_score', 'machine_scores',)
 
-    # To-Do
-    baseHeaders = ( 'run_identifier', 'model_data', 'human_scores',  \
-            'particle_files', 'model_images', 'misc_images', )
-
-    modelImgHeaders = ( 'image_name', 'image_parameter_name' )
-
-    pHeaders = ( 'image_name', 'pertrubedness' )
-
-    machineScoreHeaders = ( 'image_name', 'scores' )
-
-
-    def __init__( self, runDir=None, printBase=True, printAll=False, rmInfo=False, newRun=False
+    def __init__( self, runDir=None, printBase=True, printAll=False, newInfo=False, newRun=False
            ):
 
         # print 
@@ -856,7 +708,7 @@ class run_info_class:
             print("\t - runDir: " , runDir )
             print("\t - printBase: ", printBase )
             print("\t - printAll: ", printAll )
-            print("\t - rmInfo: ", rmInfo )
+            print("\t - newInfo: ", newInfo )
             print("\t - newRun: ", newRun )
 
         # Double check if run directory is valid
@@ -877,7 +729,7 @@ class run_info_class:
         if self.printAll: print("IM: Run.__init__")
 
         # Remove info file if condition given
-        if rmInfo:
+        if newInfo:
 
             if self.printAll: print('\t- Removing Info file.')
             from os import remove
@@ -885,9 +737,9 @@ class run_info_class:
             if path.exists( self.infoLoc ):
                 remove( self.infoLoc )
 
-            if rmAll and path.exists( self.baseLoc ):
+            if path.exists( self.baseLoc ):
                 remove( self.baseLoc )
- 
+
         # Read info file
         if path.exists( self.infoLoc ):
 
@@ -923,7 +775,6 @@ class run_info_class:
 
                
             self.initDict = deepcopy( self.rDict )
-            self.updateInfo()
 
             if self.printAll: 
                 print("\t - Initialized run score file")
@@ -960,14 +811,7 @@ class run_info_class:
 
     # End findPtsFile
 
-    def getScore( self, sName,  ):
-
-        score = self.rDict['machine_scores'].get( sName, None )
-        
-        return score
-
-
-    def findImgFile( self, pName, initImg = True ):
+    def findImgFile( self, pName, initImg = False ):
 
         imgLoc = self.imgDir + pName + '_model.png'
 
@@ -1061,19 +905,11 @@ class run_info_class:
         if allInfo:
             pprint( self.rDict )
 
-        else: 
-            if self.baseDict == None:
-                self.createBase()
-            
-            pprint( self.baseDict )
+    def getScore( self, sName,  ):
 
-    # Create dict of basic info for printing
-    def createBase( self, ):
-
-        self.baseDict = self.createBlank()
-        for h in self.baseHeaders:
-            self.baseDict[h] = self.rDict[h]
-    # End create Base
+        score = self.rDict['machine_scores'].get( sName, None )
+        
+        return score
 
     def addScore( self, name=None, score=None ):
 
@@ -1084,42 +920,14 @@ class run_info_class:
                 print('\t - score: ', score)
             return None
 
+        print( self.rDict['machine_scores'] )
         self.rDict['machine_scores'][name] = score
+        print( self.rDict['machine_scores'] )
+        print( self.getScore( name ) )
 
         return self.rDict['machine_scores'][name]
 
-    # For appending new information to a list in run info module
-    def appendScores( self, keyName, addList ):
-
-        if self.printAll: print("IM: Extending list: '%s'" % keyName)
-
-        if type( addList ) != type( [] ):
-            print("ERROR: IM: Given non-list in appendList: %s" % type(addList))
-            return None
-
-        if keyName in self.rDict and keyName in ['machine_scores', 'perturbation', 'initial_bias']:
-            keyGood = True
-        else:
-            keyGood = False
-
-        if not keyGood: 
-            print("IM: WARNING: key %s does not exist in info module")
-            return None
-
-        # Check if key is list
-        if type( self.rDict[keyName] ) != type( [] ):
-            self.rDict[keyName] = []
-            '''
-            print("ERROR: IM: Key value not a list in appendList: %s" )
-            print("\t - key: %s" % keyName)
-            print("\t - Type: %s" % type( self.rDict[keyName] ) )
-            '''
-            return None
-
-        # All is good. 
-        self.rDict[keyName].extend( addList ) 
-        return self.rDict[keyName]
-    
+   
     def createBlank( self, ):
         
         # Create blank dictionary
@@ -1127,10 +935,6 @@ class run_info_class:
         for key in self.runHeaders:
             tempDict[key] = {}
 
-        tempDict['initial_bias'] = {}
-        tempDict['perturbation'] = {}
-        tempDict['machine_scores'] = {}
-        
         return tempDict
     # End create Blank
        
@@ -1205,12 +1009,7 @@ class run_info_class:
 
         self.rDict['run_identifier'] = rNum
         self.rDict['model_data'] = mData
-        self.rDict['human_scores'] = { 
-                    'galaxy_zoo_mergers' : {
-                            'score' : hScore,
-                            'score_info' : 'wins/total: %s' % wins
-                        } 
-                    }
+        self.rDict['zoo_merger_score'] = hScore
 
         # created initial info.json file from info.txt
 
@@ -1219,58 +1018,6 @@ class run_info_class:
 
     # End txt2Json
 
-    def updateInfo( self, ):
-
-        # If init images found in model_images, move to misc
-        from os import system
-
-        # grab model images
-        for name in listdir( self.imgDir ):
-
-            if type( self.rDict['model_images'].get( name, None ) ) == type( None ):
-
-                if 'model' in name:
-                    param = name.split('_')[0]
-                    self.rDict['model_images'][name] = { 'image_parameter_name' : param } 
-
-                elif 'init' in name:
-                    mvCmd = "mv %s %s" % (self.imgDir + name, self.miscDir + name)
-                    system(mvCmd)
-
-                else:
-                    print("IM: Run.updateInfo: WARNING: Found unusual image in 'model_images")
-                    print("\t- %s" % name )
-
-
-        # Grab misc images
-        for name in listdir( self.miscDir):
-
-            # If initial image
-            if 'init' in name:
-                param = name.split('_')[0]
-                self.rDict['misc_images'][name] = { 'image_parameter_name' : param } 
-
-            # Else any other image
-            else:
-                self.rDict['misc_images'][name] = name
-
-        # Grab particle files
-        for name in listdir( self.ptsDir):
-
-            # If initial image
-            if 'pts.zip' in name:
-                nPts = name.split('_')[0]
-                self.rDict['particle_files'][nPts] = nPts 
-
-            # Else any other file?
-            else:
-                print("IM: Run.updateInfo: WARNING!")
-                print("\t - You shouldn't be seeing me!")
-                print("\t - runDir: %s" % self.runDir)
-                print("\t - ptsFile: %s" % ('particle_files/' + name ))
-
-
-        # Done looping through images. 
 
     # end info2Dict
 

@@ -76,6 +76,10 @@ class inArgClass:
         if self.printAll:
             self.printBase = True
 
+    def get( self, inVal, default = None ):
+
+        return getattr( self, inVal, default )
+
     def updateArg( self, inArg, printAll = False ):
 
         if printAll:

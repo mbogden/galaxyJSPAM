@@ -8,6 +8,10 @@ Description:    Hopefully my primary code for calling all things Galaxy Simulati
 from os import path, listdir
 from sys import path as sysPath
 
+import pandas as pd
+import numpy as np
+import cv2
+
 # For loading in Matt's general purpose python libraries
 import Support_Code.general_module as gm
 import Support_Code.info_module as im
@@ -31,7 +35,7 @@ def main(arg):
     # end main print
 
     # Read param file
-    pClass = im.pipeline_parameter_class( \
+    pClass = im.score_parameter_class( \
             paramLoc = getattr( arg, 'paramLoc', None ), \
             printBase = arg.printBase, \
             printAll = arg.printAll, \
@@ -51,12 +55,22 @@ def main(arg):
             print("\t- Nothing else to see here")
 
     elif arg.runDir != None:
-        pipelineRun( arg.runDir, pClass, \
-                newScore = getattr( arg, 'newScore', False ), \
-                printAll=arg.printAll, )
+        pipelineRun( \
+                rDir = arg.runDir, \
+                pClass = pClass, \
+                printAll=arg.printAll, 
+                newInfo = arg.get('newInfo', False ), \
+                newScore = arg.get('newScore', False ), \
+                targetLoc = arg.get( 'targetLoc', None ), \
+                )
 
     elif arg.targetDir != None:
-        procTarget( arg.targetDir, param, printAll=arg.printAll )
+        pipelineTarget( arg.targetDir, \
+                pClass = pClass, \
+                newScore = arg.get('newScore', False ), \
+                newInfo = arg.get('newInfo', False ), \
+                newRunInfos = arg.get('newRunInfos', False ), \
+                printAll=arg.printAll, )
 
     elif arg.dataDir != None:
         procAllData( arg.dataDir, param, printAll=arg.printAll )
@@ -71,19 +85,89 @@ def main(arg):
 
 # End main
     
+# Process target directory
+def pipelineTarget( \
+        tDir = None, pClass = None, \
+        printBase = True, printAll=False, \
+        newInfo = False, newRunInfos=False, \
+        newScore = False, \
+        ):
 
-def pipelineRun( rDir, pClass, \
+    if printBase:
+        print("SIMR: pipelineTarget:")
+        print("\t - tDir: " , tDir)
+
+    tInfo = im.target_info_class( targetDir=tDir, \
+            printBase = printBase, printAll=printAll, \
+            newInfo = newInfo, newRunInfos = newRunInfos )
+
+    if printBase:
+        print("SIMR: pipelineTarget status:")
+        print("\t - tInfo.status: %s" % tInfo.status )
+        print("\t - param.status: %s" % pClass.status )
+
+    # Check if target is valid
+    if tInfo.status == False or pClass.status == False:
+        print("SIMR: WARNING: pipelineTarget:  Bad status")
+        return
+
+    scores = tInfo.getScores()
+    sName = pClass.get('name')
+    pScores = scores[pClass.get('name')].values
+    gScores = pScores[ np.invert( pd.isna( pScores ) ) ]
+
+    nonScores = scores[ pd.isna( pScores ) ]
+
+    print("SIMR: Target: Results: ")
+    print("\t - score: %s" % pClass.get('name') )
+    print('\t - found: %d / %d' % (len( gScores), len(pScores)))
+    print('\t - create: %d' % len( nonScores ) )
+    print( nonScores )
+
+    if newScore:
+        newTargetScores( tInfo, pClass, nonScores )
+
+
+def newTargetScores( tInfo, pClass, nonScores ):
+
+    sName = pClass.get('name')
+    print("Creating new score")
+
+    # Get target image
+    tName = pClass.pDict['tgtArg']
+    tLoc = tInfo.getTargetImage( tName = tName )
+    tImg = mc.getImg( tLoc )
+
+    for i, row in enumerate( nonScores.iterrows() ):
+
+        runId = nonScores.run_id.iloc[ i]
+
+        rInfo = tInfo.getRunClass( runId )
+
+        mc.pipelineRun( rInfo = rInfo, param = pClass.pDict, tImg=tImg, printBase = True )
+
+        tInfo.updateRunInfo( runId )
+
+# End processing target dir
+
+
+def pipelineRun( rDir = None, rInfo = None, \
+        pClass = None, \
         printBase=True, printAll=False, \
-        newScore = False, newImg = False, newSim = False, \
-        tLoc = None, \
+        newScore = False, newInfo = False, \
+        targetLoc = None, tImg = None, \
         ):
 
     if printBase:
         print("SIMR.pipelineRun: Inputs")
         print("\t - rDir:", rDir)
+        print("\t - rInfo:", type(rInfo) )
         print("\t - param:", pClass != None)
 
-    rInfo = im.run_info_class( runDir=rDir, printBase = False, printAll=printAll )
+    if rInfo == None:
+        rInfo = im.run_info_class( runDir=rDir, \
+                printBase = printBase, printAll=printAll,\
+                newInfo = newInfo )
 
     if printBase:
         print('SIMR.pipelineRun: ')
@@ -94,13 +178,11 @@ def pipelineRun( rDir, pClass, \
         print("SIMR.pipelineRun: WARNING: runInfo bad")
         return
 
-    score = rInfo.getScore( pClass.pDict['name'] )
-
-    if score == None:
-        print("Oh no~")
-
+    score = rInfo.getScore( pClass.pDict.get('name') )
 
     if score != None:
+        if printBase:
+            print("SIMR: Score found:",score)
         return score
 
     else:
@@ -119,29 +201,34 @@ def pipelineRun( rDir, pClass, \
                     printBase = printBase, printAll = printAll )
 
             if ptsLoc == None:
+                print("SIMR: WARNING: pipelineRun: ")
+                print("\t - New particle file not implemented")
                 return 
 
             imgLoc = procRunImg( rInfo, pClass.pDict['imgArg'], \
                     printBase = printBase, printAll = printAll )
 
             if imgLoc == None:
+                print("SIMR: WARNING: pipelineRun: ")
+                print("\t - New image file not implemented")
                 return
 
-            tLoc = getattr( arg, 'tLoc', None )
-
-            if tLoc == None:
+            if targetLoc == None and type(tImg) == type(None):
                 print("SIMR: WARNING: pipelineRun: No target image given")
+                print("\t -targetLoc path/to/target.png")
                 return None
+
+            if targetLoc != None:
     
-            newScore = mc.pipelineRun( rInfo = rInfo, param = pClass.pDict, \
-                    tLoc = tLoc, imgLoc = imgLoc )
+                mc.pipelineRun( rInfo = rInfo, param = pClass.pDict, \
+                        tLoc = targetLoc, imgLoc = imgLoc, printBase = printBase )
 
-            if newScore == None:
-                print("SIMR:  procRunMach:  Still no new Score")
-            else:
-                print("SIMR:  procRunMach:  NEW SCORE!")
+            elif type(tImg) != type(None):
 
+                mc.pipelineRun( rInfo = rInfo, param = pClass.pDict, \
+                        tImg = tImg, imgLoc = imgLoc, printBase = printBase )
 
+            newScore = rInfo.getScore( pClass.pDict.get('name') )
 
             return newScore
 
@@ -214,36 +301,6 @@ def procRunSim( rInfo, simArg, printBase = True, printAll = False ):
 
 
 # end processing run dir
-
-
-# Process target directory
-def procTarget( tDir, printBase = True, printAll=False ):
-
-    if printBase:
-        print("SIMR.procTarget:")
-        print("\t - tDir: " , tDir)
-
-    tInfo = im.target_info_class( targetDir=tDir, printAll=True )
-
-    if printBase:
-        print("SIMR.procTarget:")
-        print("\t - tInfo.status: %s" % tInfo.status )
-
-    # Check if target is valid
-    if tInfo.status == False:
-        print("SIMR: WARNING: procTarget:")
-        print("\t - Target not good.")
-        return
-
-    if printAll:
-        tInfo.printInfo()
-
-    tInfo.gatherRunInfos()
-    
-    for r in tInfo.runDirs:
-        print("t")
-
-# End processing target dir
 
 def procAllData( dataDir, printBase=True, printAll=False ):
 
