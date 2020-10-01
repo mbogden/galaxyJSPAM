@@ -493,7 +493,7 @@ class target_info_class:
         if scrName not in self.sFrame.columns:
             return (0, totalCount)
 
-        count = len( scores[ np.invert( pd.isna( self.sFrame ) ) ] )
+        count = len( self.sFrame[ np.invert( pd.isna( self.sFrame ) ) ] )
         
         return ( count, totalCount )
 
@@ -576,7 +576,7 @@ class target_info_class:
             rId = rInfo.rDict['run_identifier']
             self.runClassDict[rId] = rInfo
 
-            if self.printBase: print("IM: reading: %s - %d/%d" % ( self.tDict['target_identifier'], i, nRuns ), end='\r' )
+            if self.printBase: print("IM: reading: %s - %d/%d                   " % ( self.tDict['target_identifier'], i, nRuns ), end='\r' )
 
             # used for troubleshooting quickly
             if i >= n: break
@@ -953,13 +953,9 @@ class run_info_class:
                 print('\t - score: ', score)
             return None
 
-        print( self.rDict['machine_scores'] )
         self.rDict['machine_scores'][name] = score
-        print( self.rDict['machine_scores'] )
-        print( self.getScore( name ) )
 
         return self.rDict['machine_scores'][name]
-
    
     def createBlank( self, ):
         
