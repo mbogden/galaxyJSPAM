@@ -73,7 +73,7 @@ def main(arg):
                 printAll=arg.printAll, )
 
     elif arg.dataDir != None:
-        procAllData( arg.dataDir, param, printAll=arg.printAll )
+        procAllData( arg.dataDir, pClass=pClass, arg=arg )
 
     else:
         print("SIMR: Nothing selected!")
@@ -85,9 +85,94 @@ def main(arg):
 
 # End main
     
+
+def procAllData( dataDir, pClass=None, arg = gm.inArgClass() ):
+
+    printBase=arg.printBase
+    printAll=arg.printAll 
+    newScore = arg.get( 'newScore', False )
+    
+
+    if printBase: 
+        print("SIMR.procAllData")
+        print("\t - dataDir: %s" % arg.dataDir )
+        print("\t - pClass: %s" % pClass.status )
+
+    # Check if valid string
+    if type( dataDir ) != type( 'string' ):
+        print("SIMR.procAllData: WARNING:  dataDir not a string")
+        print('\t - %s - %s' %(type(dataDir), dataDir ) )
+        return
+
+    # Check if directory exists
+    if not path.exists( dataDir ):  
+        print("SIMR.procAllData: WARNING: Directory not found")
+        print('\t - ' , dataDir )
+        return
+
+    dataDir = path.abspath( dataDir )
+
+    # Append trailing '/' if needed
+    if dataDir[-1] != '/': dataDir += '/'  
+
+    dataList = listdir( dataDir )   # List of items found in folder
+    tInfoList = []  # List of folders that are target directories
+
+    # Find target directories
+    for folder in dataList:
+        tDir = dataDir + folder
+        tInfo = im.target_info_class( targetDir=tDir, \
+                printBase=False, printAll = arg.printAll, \
+                newInfo = arg.get( 'newInfo', False ), \
+                newRunInfos = arg.get('newRunInfos',False), \
+                )
+
+        # if a valid target directory
+        if tInfo.status:  tInfoList.append( tInfo )
+
+    if printBase:
+        print( '\t - Target Directories: %d' % len( tInfoList ) )
+
+
+    tArgList = []
+
+    for tInfo in tInfoList:
+
+        tArg = dict( tInfo = tInfo, pClass = pClass, \
+                printBase = False, printAll = printAll, \
+                newScore = newScore,)
+
+        tArgList.append( tArg )
+
+        print("\n********************\n")
+        print( tArgList[-1] )
+
+    #pipelineTarget( **tArgList[-1] )
+
+    # Initiate Pallel Processing
+    nProcs = int( arg.get( 'pp', 1 ) )
+    print("SIMR: Requested %d cores" % nProcs)
+
+    mp = gm.ppClass( nProcs )
+    mp.printProgBar()
+    mp.loadQueue( pipelineTarget, tArgList )
+    mp.runCores()
+
+    print("SIMR: Printing Results")
+    for tInfo in tInfoList:
+        c, tc = tInfo.getScoreCount( pClass.get('name',None ) )
+
+        print( '%5d / %5d - %s ' % ( c, tc, tInfo.get( 'target_identifier', 'BLANK' ) ) )
+
+
+    
+# End data dir
+
+
 # Process target directory
 def pipelineTarget( \
-        tDir = None, pClass = None, \
+        tDir = None, tInfo = None, \
+        pClass = None, \
         printBase = True, printAll=False, \
         newInfo = False, newRunInfos=False, \
         newScore = False, \
@@ -95,11 +180,20 @@ def pipelineTarget( \
 
     if printBase:
         print("SIMR: pipelineTarget:")
-        print("\t - tDir: " , tDir)
+        print("\t - tDir: %s" % tDir )
+        print("\t - tInfo: %s" % type(tInfo) )
+        print("\t - pClass: %s" % type(pClass) )
 
-    tInfo = im.target_info_class( targetDir=tDir, \
-            printBase = printBase, printAll=printAll, \
-            newInfo = newInfo, newRunInfos = newRunInfos )
+    if tInfo == None and tDir == None:
+        print("SIMR: WARNING: pipelineTarget")
+        print("\t - Please provide either target directory or target_info_class")
+        return
+
+    elif tInfo == None:
+
+        tInfo = im.target_info_class( targetDir=tDir, \
+                printBase = printBase, printAll=printAll, \
+                newInfo = newInfo, newRunInfos = newRunInfos )
 
     if printBase:
         print("SIMR: pipelineTarget status:")
@@ -113,40 +207,71 @@ def pipelineTarget( \
 
     scores = tInfo.getScores()
     sName = pClass.get('name')
-    pScores = scores[pClass.get('name')].values
-    gScores = pScores[ np.invert( pd.isna( pScores ) ) ]
+    
+    if sName not in scores.columns:
+        print("\t - No scores for: %s" % sName )
 
-    nonScores = scores[ pd.isna( pScores ) ]
+        if not newScore:  return
+        
+        if newScore: newTargetScores( tInfo, pClass )
 
-    print("SIMR: Target: Results: ")
-    print("\t - score: %s" % pClass.get('name') )
-    print('\t - found: %d / %d' % (len( gScores), len(pScores)))
-    print('\t - create: %d' % len( nonScores ) )
-    print( nonScores )
+    else:
 
-    if newScore:
-        newTargetScores( tInfo, pClass, nonScores )
+        pScores = scores[pClass.get('name')].values
+        gScores = pScores[ np.invert( pd.isna( pScores ) ) ]
+        nonScores = scores[ pd.isna( pScores ) ]
+
+        if printBase:
+            print("SIMR: Target: Results: ")
+            print("\t - score: %s" % pClass.get('name') )
+            print('\t - found: %d / %d' % (len( gScores), len(pScores)))
+            print('\t - create: %d' % len( nonScores ) )
+
+        if newScore:
+            newTargetScores( tInfo, pClass, nonScores )
 
 
-def newTargetScores( tInfo, pClass, nonScores ):
+def newTargetScores( tInfo, pClass, printBase = True, printAll = False, nonScores = None ):
+
+    if printBase:
+        print("SIMR: newTargetScores:")
+        print("\t - tInfo: %s" % tInfo.status )
+        print("\t - pClass: %s" % pClass.status )
 
     sName = pClass.get('name')
-    print("Creating new score")
 
     # Get target image
     tName = pClass.pDict['tgtArg']
     tLoc = tInfo.getTargetImage( tName = tName )
     tImg = mc.getImg( tLoc )
 
-    for i, row in enumerate( nonScores.iterrows() ):
 
-        runId = nonScores.run_id.iloc[ i]
+    # Go throug hall runs if nothing specified
+    if type(nonScores) == type(None):
+    
+        tInfo.readRunInfos( )
 
-        rInfo = tInfo.getRunClass( runId )
+        for rKey in tInfo.runClassDict:
 
-        mc.pipelineRun( rInfo = rInfo, param = pClass.pDict, tImg=tImg, printBase = True )
+            rInfo = tInfo.runClassDict[ rKey ]
+            mc.pipelineRun( rInfo = rInfo, param = pClass.pDict, \
+                    tImg = tImg, printBase = printAll )
 
-        tInfo.updateRunInfo( runId )
+        tInfo.gatherRunInfos()
+
+
+    # only go through specific runs
+    else: 
+        for i, row in enumerate( nonScores.iterrows() ):
+
+            runId = nonScores.run_id.iloc[ i]
+
+            rInfo = tInfo.getRunClass( runId )
+
+            mc.pipelineRun( rInfo = rInfo, param = pClass.pDict, \
+                    tImg=tImg, printBase = printAll )
+
+            tInfo.updateRunInfo( runId )
 
 # End processing target dir
 
@@ -301,38 +426,6 @@ def procRunSim( rInfo, simArg, printBase = True, printAll = False ):
 
 
 # end processing run dir
-
-def procAllData( dataDir, printBase=True, printAll=False ):
-
-    from os import listdir
-
-    if printBase: 
-        print("SIMR.procAllData")
-        print("\t - dataDir: %s" % arg.dataDir )
-
-    # Check if directory exists
-    if not path.exists( dataDir ):  
-        print("SIMR.procAllData: WARNING: Directory not found")
-        print('\t - ' , dataDir )
-        return
-
-    # Append trailing '/' if needed
-    if dataDir[-1] != '/': dataDir += '/'  
-
-    dataList = listdir( dataDir )   # List of items found in folder
-    tDirList = []  # List of folders that are target directories
-
-    # Find target directories
-    for folder in dataList:
-        tDir = dataDir + folder
-        tempInfo = im.target_info_class( targetDir=tDir, printAll=False )
-
-        # if a valid target directory
-        if tempInfo.status:  tDirList.append( tempInfo )
-
-    if printBase:
-        print( '\t - Target Directories: %d' % len( tDirList ) )
-
 
 # Run main after declaring functions
 if __name__ == '__main__':

@@ -9,10 +9,10 @@ IRB course?
 
 ## Big picture
 - Create automatic pipeline
-  - (DONE) Generate points.  
-  - (Mostly Done) Generate Images
-  - Generate machine scores.
-  - Check for runs missing points/imgs/scores
+  - (ReDo) Generate points.  
+  - (ReDo) Generate Images
+  - (in prog) Generate machine scores.
+  - (in prog) Check for runs missing points/imgs/scores
 
 ## Now...
 - Add instructions/readme for everything.

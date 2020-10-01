@@ -183,7 +183,6 @@ class ppClass:
 
         self.nCores = nCore
         self.printProg = printProg
-        print(self.nCores)
 
     def printProgBar(self):
         self.printProg = True
@@ -204,20 +203,24 @@ class ppClass:
         if self.nCores == 1:
             print("Why use parallel processing with 1 core?")
 
-        coreList = []
+        self.coreList = []
 
         # Start all processes
         for i in range( self.nCores ):
             p = self.mp.Process( target=self.coreFunc )
-            coreList.append( p )
+            self.coreList.append( p )
             p.start()
 
         # Wait until all processes are complete
-        for p in coreList:
+        for p in self.coreList:
+            self.coreList.pop()
             p.join()
 
     # Blah
 
+    def __del__( self, ):
+        # check if queue is still full
+        pass
 
     def displayTime( sec ):
         result = ''
@@ -239,10 +242,6 @@ class ppClass:
 
     def coreFunc( self ):
 
-        #from datetime.datetime import now
-        #from datetime import datetime as dt
-        #now = dt.now
-        #startTime = now()
         n = int( self.nQueue )
 
         # Keep core running until shared queue is empty
@@ -256,14 +255,11 @@ class ppClass:
                 print('%s - queue empty' % self.mp.current_process().name)
                 break
 
-            #if self.printProg:
-            if False:
+            if self.printProg:
+            #if False:
                 p = n - int( self.jobQueue.qsize() )
                 perc = ( p / n ) * 100
-                etaSec = ( n - p ) * ( now() - startTime ) / p
-                print('FINDME: ', type(etaSec), etaSec)
-                etaStr = self.displayTime( etaSec )
-                print("%.1f%% - %d / %d   ETA: %s           " % ( perc, p, n, etaStr ), end='\r' )
+                print("%.1f%% - %d / %d          " % ( perc, p, n ), end='\r' )
 
             # Run desired function on core
             self.funcPtr(**funcArgs)

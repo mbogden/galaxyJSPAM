@@ -404,8 +404,20 @@ class target_info_class:
             print("IM: WARNING: Target: target_info.json updated but not saved!")
     # End deconstructor
 
-    def get( self, inVal, default = None ):
-        return getattr( self, inVal, None )
+    
+    def get( self, inVal, defaultVal = None ):
+
+        cVal = getattr( self, inVal, defaultVal )
+
+        if cVal != defaultVal:
+            return cVal
+
+        dVal = self.tDict.get( inVal, defaultVal )
+        if dVal != defaultVal:
+            return dVal
+
+        return defaultVal
+
 
     def printInfo( self, printAll=False ):
         # INCOMPLETE
@@ -470,6 +482,22 @@ class target_info_class:
 
     # End new target info dictionary
 
+    def getScoreCount( self, scrName = None ):
+
+        if type(self.sFrame) == type(None):
+            if self.printAll: print( "IM: WARNING: Target.getScores:" )
+            return (0, 0)
+
+        totalCount = len( self.sFrame )
+
+        if scrName not in self.sFrame.columns:
+            return (0, totalCount)
+
+        count = len( scores[ np.invert( pd.isna( self.sFrame ) ) ] )
+        
+        return ( count, totalCount )
+
+
     def getScores( self, scrName = None ):
 
         if type(self.sFrame) == type(None):
@@ -525,13 +553,18 @@ class target_info_class:
             print("IM: WARNING: Target.readRunInfos")
             print('\t - gathering non zoo merger models not yet implemented')
             return
-
-        self.runClassDict = {}
+        
+        if self.get('runClassDict') == None:
+            self.runClassDict = {}
 
         # Get list of run directories
         self.runDirs = listdir( self.zooMergerDir )
         self.runDirs.sort()
         nRuns = len( self.runDirs )
+
+        # Check if current dict has all runs, return if they do
+        if len( self.runClassDict ) == nRuns:
+            return
 
         for i,run in enumerate(self.runDirs):
 

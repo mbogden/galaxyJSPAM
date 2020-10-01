@@ -56,7 +56,7 @@ def main(argList):
                 arg.runDir, \
                 printAll = arg.printAll, \
                 tLoc = getattr( arg, 'targetLoc', None), \
-                rmInfo= getattr( arg, 'rmInfo', None ), \
+                newInfo= getattr( arg, 'newInfo', None ), \
                 )
 
 
@@ -67,7 +67,7 @@ def main(argList):
         pipelineTarget( \
                 arg.targetDir, \
                 printAll = arg.printAll, \
-                rmInfo = getattr( arg, 'rmInfo', False), \
+                newInfo = getattr( arg, 'newInfo', False), \
                 nProcs = int( arg.nProc ), \
                 nRuns = getattr( arg, 'nRuns', None ),                
                 )
@@ -75,7 +75,7 @@ def main(argList):
         # process entire data directory
     elif arg.dataDir != None: 
 
-        pipelineAllData( arg.dataDir, printAll = arg.printAll, rmInfo=arg.new, nProcs=int(arg.nProc) )
+        pipelineAllData( arg.dataDir, printAll = arg.printAll, newInfo=arg.new, nProcs=int(arg.nProc) )
 
 
     #  Option not chosen 
@@ -119,7 +119,7 @@ def procSimple( img1 = None, img2 = None, printAll = True ):
 
 
 
-def pipelineAllData( dataDir, printAll = False, nProcs=1, rmInfo=False ):
+def pipelineAllData( dataDir, printAll = False, nProcs=1, newInfo=False ):
 
     sdssDirs = listdir( dataDir )
     nDirs = len( sdssDirs )
@@ -127,14 +127,14 @@ def pipelineAllData( dataDir, printAll = False, nProcs=1, rmInfo=False ):
     for i,sDir in enumerate(sdssDirs):
         if printAll: print("CM: ***** TARGET DIR %d / %d *****" % ( i, nDirs ) )
         sdssDir = dataDir + sDir + '/'
-        pipelineSdss( sdssDir, printAll = False, rmInfo=rmInfo, nProcs=nProcs )
+        pipelineSdss( sdssDir, printAll = False, newInfo=newInfo, nProcs=nProcs )
 
 
     #print("TEST: Found %d dirs" % len( sdssDirs ) )
 
 
  
-def pipelineTarget( tDir, printAll = False, nRuns=None, nProcs=1, rmInfo=False ):
+def pipelineTarget( tDir, printAll = False, nRuns=None, nProcs=1, newInfo=False ):
 
     if tDir[-1] != '/': tDir += '/'
 
@@ -143,9 +143,9 @@ def pipelineTarget( tDir, printAll = False, nRuns=None, nProcs=1, rmInfo=False )
         print("\t- printAll: %s" % printAll)
         print("\t- nRuns: %s" % nRuns)
         print("\t- nProcs: %s" % nProcs)
-        print("\t- rmInfo: %s" % rmInfo)
+        print("\t- newInfo: %s" % newInfo)
 
-    tInfo = im.target_info_class( targetDir = tDir, printAll = printAll, rmInfo=rmInfo )
+    tInfo = im.target_info_class( targetDir = tDir, printAll = printAll, newInfo=newInfo )
 
     if tInfo.status == False:
         print("BAD!")
@@ -192,7 +192,7 @@ def pipelineTarget( tDir, printAll = False, nRuns=None, nProcs=1, rmInfo=False )
         for i,run in enumerate(runDirs):
             if printAll: print('CM: runs: ', i, end='\r')
             rDir = gDir + run + '/'
-            pipelineRun( rDir, tImg=tImg, tName=tName, printAll=False, rmInfo=rmInfo )
+            pipelineRun( rDir, tImg=tImg, tName=tName, printAll=False, newInfo=newInfo )
         if printAll: print('')
 
     # If running in parallel
@@ -207,11 +207,11 @@ def pipelineTarget( tDir, printAll = False, nRuns=None, nProcs=1, rmInfo=False )
             if printAll: print('CM: runs: ', i, end='\r')
             rDir = gDir + run + '/'
             
-            runArg = dict( rDir=rDir, tImg=tImg, tName=tName, printAll=False, rmInfo=rmInfo )
-            #runArg = dict( rDir=rDir, tImg=tImg, tName=tName, printAll=False, rmInfo=rmInfo )
+            runArg = dict( rDir=rDir, tImg=tImg, tName=tName, printAll=False, newInfo=newInfo )
+            #runArg = dict( rDir=rDir, tImg=tImg, tName=tName, printAll=False, newInfo=newInfo )
             runArgList.append( runArg )
 
-            #pipelineRun( rDir, tImg=tImg, tName=tName, printAll=False, rmInfo=rmInfo )
+            #pipelineRun( rDir, tImg=tImg, tName=tName, printAll=False, newInfo=newInfo )
 
         pClass.loadQueue( pipelineRun, runArgList )
 
@@ -245,7 +245,7 @@ def pipelineRun( \
         print("\t - mImg: %s" % type(mImg) )
 
     if rInfo == None:
-        rInfo = im.run_info_class( runDir=runDir, printAll=printAll, rmInfo=rmInfo )
+        rInfo = im.run_info_class( runDir=runDir, printAll=printAll, )
 
     # Check if successfully read info data
     if rInfo.status == False:

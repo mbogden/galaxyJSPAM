@@ -6,129 +6,85 @@ Description:    *** Inital creation of code ***
 '''
 
 from os import path, listdir
-from sys import exit, argv, path as sysPath
-import matplotlib.pyplot as plt
-import numpy as np
+from sys import path as sysPath
 
 # For loading in Matt's general purpose python libraries
-supportPath = path.abspath( path.join( __file__ , "../../Support_Code/" ) )
-sysPath.append( supportPath )
+sysPath.append( path.abspath( "Support_Code/" ) )
+sysPath.append( path.abspath( path.join( __file__ , "../../Support_Code/" ) ) )
 import general_module as gm
 import info_module as im
 
-def test():
-    print("SA: Hi!  You're in Matthew's Main program for score analysis")
-print('test')
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 
+def test():
+    print("SA: Hi!  You're in Matthew's Main program for score analysis!")
 
 def main(arg):
-
-    print("Hi!  In Matthew's python template for creating new SPAM related code.")
 
     if arg.printAll:
 
         arg.printArg()
         gm.test()
         im.test()
+
     # end main print
     
     if arg.simple:
-        if arg.printAll: print("PT: Simple!~")
-
-    elif arg.runDir != None:
-        procRun( arg.runDir, printAll=arg.printAll )
+        if arg.printBase: 
+            print("PT: Simple!~")
+            print("\t- Nothing else to see here")
 
     elif arg.targetDir != None:
         procTarget( arg.targetDir, printAll=arg.printAll )
 
-    elif arg.dataDir != None:
-        procAllData( arg.dataDir, printAll=arg.printAll )
-
     else:
         print("PT: Nothing selected!")
         print("PT: Recommended options")
-        print("\t -simple")
-        print("\t -runDir /path/to/dir/")
-        print("\t -targetDir /path/to/dir/")
-        print("\t -dataDir /path/to/dir/")
+        print("\t - simple")
+        print("\t - targetDir /path/to/dir/")
 
+    return
+
+    # OLD
+    if newSdss:
+        initSdss()
+
+    else:
+        newMain()
 
 # End main
 
 
-def procRun( rDir, printAll=False ):
-
-    if type(rDir) != type('string'):
-        print("ERROR: PT: runDir not a string: %s - %s" % ( type(rDir), rDir ) )
-        return False
-
-    if not path.exists( rDir ):
-        print("ERROR: PT: runDir not found: " % rDir )
-        return False
-
-    if arg.printAll: print("PT: runDir: %s" % arg.runDir )
-
-    modelDir = rDir + 'model_images/'
-    miscDir = rDir + 'misc_images/'
-    ptsDir = rDir + 'particle_files/'
-    infoLoc = rDir + 'info.json'
-
-    if not path.exists( modelDir ) or not path.exists( ptsDir ) or not path.exists( infoLoc):
-        print("ERROR: PT: A directory was not found in runDir")
-        print("\t- modelDir: " , path.exists( modelDir ) )
-        print("\t-  miscDir: " , path.exists( miscDir ) )
-        print("\t-  partDir: " , path.exists( ptsDir ) )
-        return False
-
-    rInfo = im.run_info_class( runDir=rDir, printAll=printAll )
-    #rInfo.printInfo()
-
-# end processing run dir
-
-
 # Process target directory
-def procTarget( tDir, printAll=False ):
+def procTarget( tDir, printBase = True, printAll=False ):
 
-    if printAll: print("PT: tDir: %s" % tDir )
+    if printBase:
+        print("SA: procTarget:")
+        print("\t - tDir: " , tDir)
 
-    if type(tDir) != type('string'):
-        print("ERROR: PT: Target: targetDir not a string: %s - %s" % ( type(tDir), tDir ) )
-        return False
+    tInfo = im.target_info_class( targetDir=tDir, printBase = printBase, printAll=printAll )
 
-    if not path.exists( tDir ):
-        print("ERROR: PT: Target: targetDir not found: " % tDir )
-        return False
+    if printBase:
+        print("SA: procTarget:")
+        print("\t - tInfo.status: %s" % tInfo.status )
 
-    iDir = tDir + 'information/'
-    gDir = tDir + 'gen000/'
-    pDir = tDir + 'plots/'
+    # Check if target is valid
+    if tInfo.status == False:
+        print("SA: WARNING: procTarget:")
+        print("\t - Target not good.")
+        return
 
-    infoLoc = iDir + 'target_info.json'
+    if printAll:
+        tInfo.printInfo( )
 
-    # If not a target folder
-    if not path.exists( iDir ) or not path.exists( gDir ):
-        print("ERROR: PT: Couldn't find needed folders in targetDir.")
-        print("\t- infoDir: " , path.exists( iDir ) )
-        print("\t-  genDir: " , path.exists( gDir ) )
-        return False
+    scores = tInfo.getScores()
+    print(scores)
 
-    tInfo = im.target_info_class( targetDir = tDir, printAll = printAll )
-
-    if tInfo.plotDir == None or not path.exists(tInfo.plotDir):
-        print("SA: WARNING. Plot directory not found for target.")
-        print("\t - targetDir: %s" % tDir )
-        print("\t - plotDir: %s" % tInfo.plotDir )
-        print("SA: Exiting early")
-        return None
-
-    allFrame = tInfo.getScores()
-    allFrame = allFrame.sort_values( 'human_galaxy_zoo_mergers', ascending=True)
-
-
-    if False and printAll:
-        print("SA: Found scores with headers")
-        for c in allFrame.columns:
-            print('\t - ',c)
+   
+# Process target directory
+def old_procTarget( tDir, printAll=False ):
 
     print("Only using correlation for now")
 
@@ -332,33 +288,6 @@ def createHeatPlot( hScores, mScores, pScores = None, saveLoc = None, titleName=
         plt.savefig( saveLoc )
 
 # End plot creation
-
-
-
-def procAllData( dataDir, printAll=False ):
-    if arg.printAll: print("PT: dataDir: %s" % arg.dataDir )
-    print("All data function not available")
-
-
-# Run main after declaring functions
-if __name__ == '__main__':
-    arg = gm.inArgClass( argv )
-    main( arg )
-
-
-# global input variables
-plotDir = ''
-scoreDir = ''
-sdssDir = ''
-sdssName = ''
-targetLoc = ''
-filterDir = ''
-newSdss = False
-
-imgDir = ''
-
-nProc = 1
-everyN = 1
 
 
 def newMain():
@@ -1668,18 +1597,10 @@ def readFile( fileLoc ):
 # End simple read file
 
 # Run main after declaring functions
-if __name__=='__main__':
+if __name__ == '__main__':
 
-    endEarly = readArg()
+    from sys import argv
+    arg = gm.inArgClass( argv )
+    main( arg )
 
-    if newSdss:
-        initSdss()
-
-    else:
-        newMain()
-
-    #runSpread()
-    #make_plots()
-    #make_plots2()
-    #main_old()
 
