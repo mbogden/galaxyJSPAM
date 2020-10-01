@@ -172,7 +172,7 @@ def procAllData( dataDir, pClass=None, arg = gm.inArgClass() ):
 # Process target directory
 def pipelineTarget( \
         tDir = None, tInfo = None, \
-        pClass = None, \
+        pClass = None, srcName = None, \
         printBase = True, printAll=False, \
         newInfo = False, newRunInfos=False, \
         newScore = False, \
@@ -195,6 +195,12 @@ def pipelineTarget( \
                 printBase = printBase, printAll=printAll, \
                 newInfo = newInfo, newRunInfos = newRunInfos )
 
+    # Chect for if score parameter is valid
+    if pClass == None and pName == None:
+        print("SIMR: WARNING: pipelineTarget")
+        print("\t - Please provide a parameter file or ")
+        return
+
     if printBase:
         print("SIMR: pipelineTarget status:")
         print("\t - tInfo.status: %s" % tInfo.status )
@@ -215,8 +221,10 @@ def pipelineTarget( \
         
         if newScore: newTargetScores( tInfo, pClass )
 
+    
     else:
-
+        pass
+        '''
         pScores = scores[pClass.get('name')].values
         gScores = pScores[ np.invert( pd.isna( pScores ) ) ]
         nonScores = scores[ pd.isna( pScores ) ]
@@ -225,10 +233,10 @@ def pipelineTarget( \
             print("SIMR: Target: Results: ")
             print("\t - score: %s" % pClass.get('name') )
             print('\t - found: %d / %d' % (len( gScores), len(pScores)))
-            print('\t - create: %d' % len( nonScores ) )
 
         if newScore:
             newTargetScores( tInfo, pClass, nonScores )
+        '''
 
 
 def newTargetScores( tInfo, pClass, printBase = True, printAll = False, nonScores = None ):
