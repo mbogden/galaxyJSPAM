@@ -576,7 +576,7 @@ class target_info_class:
             rId = rInfo.rDict['run_identifier']
             self.runClassDict[rId] = rInfo
 
-            if self.printBase: print("IM: readRunInfos: %d/%d" % ( i, nRuns ), end='\r' )
+            if self.printBase: print("IM: reading: %s - %d/%d" % ( self.tDict['target_identifier'], i, nRuns ), end='\r' )
 
             # used for troubleshooting quickly
             if i >= n: break

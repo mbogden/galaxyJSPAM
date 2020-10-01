@@ -122,7 +122,7 @@ def procAllData( dataDir, pClass=None, arg = gm.inArgClass() ):
     for folder in dataList:
         tDir = dataDir + folder
         tInfo = im.target_info_class( targetDir=tDir, \
-                printBase=False, printAll = arg.printAll, \
+                printBase=printBase, printAll = arg.printAll, \
                 newInfo = arg.get( 'newInfo', False ), \
                 newRunInfos = arg.get('newRunInfos',False), \
                 )
