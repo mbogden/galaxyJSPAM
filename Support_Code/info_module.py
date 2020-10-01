@@ -955,6 +955,8 @@ class run_info_class:
 
         self.rDict['machine_scores'][name] = score
 
+        self.saveInfoFile()
+
         return self.rDict['machine_scores'][name]
    
     def createBlank( self, ):

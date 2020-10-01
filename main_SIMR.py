@@ -90,7 +90,6 @@ def procAllData( dataDir, pClass=None, arg = gm.inArgClass() ):
 
     printBase=arg.printBase
     printAll=arg.printAll 
-    newScore = arg.get( 'newScore', False )
     
 
     if printBase: 
@@ -114,52 +113,55 @@ def procAllData( dataDir, pClass=None, arg = gm.inArgClass() ):
 
     # Append trailing '/' if needed
     if dataDir[-1] != '/': dataDir += '/'  
-
     dataList = listdir( dataDir )   # List of items found in folder
-    tInfoList = []  # List of folders that are target directories
-
-    # Find target directories
-    for folder in dataList:
-        tDir = dataDir + folder
-        tInfo = im.target_info_class( targetDir=tDir, \
-                printBase=printBase, printAll = arg.printAll, \
-                newInfo = arg.get( 'newInfo', False ), \
-                newRunInfos = arg.get('newRunInfos',False), \
-                )
-
-        # if a valid target directory
-        if tInfo.status:  tInfoList.append( tInfo )
-
-    if printBase:
-        print( '\t - Target Directories: %d' % len( tInfoList ) )
-
 
     tArgList = []
 
-    for tInfo in tInfoList:
+    if int( arg.get('nProc') ) == 1:
 
-        tArg = dict( tInfo = tInfo, pClass = pClass, \
-                printBase = False, printAll = printAll, \
-                newScore = newScore,)
+        # Find target directories
+        for folder in dataList:
+            tDir = dataDir + folder
 
-        tArgList.append( tArg )
+            pipelineTarget( tDir = tDir, pClass = pClass, \
+                    printBase = False, \
+                    printAll = printAll, \
+                    newInfo = arg.get( 'newInfo', False ), \
+                    newRunInfos = arg.get('newRunInfos',False), \
+                    newScore = arg.get('newScore', False), \
+                    )
 
-        print("\n********************\n")
-        print( tArgList[-1] )
+    # Prepare parellal processing
+    else:
 
-    #pipelineTarget( **tArgList[-1] )
+        # Find target directories
+        for folder in dataList:
+            tDir = dataDir + folder
 
-    # Initiate Pallel Processing
-    nProcs = int( arg.get( 'pp', 1 ) )
-    print("SIMR: Requested %d cores" % nProcs)
+            tArg = dict( tDir = tDir, pClass = pClass, \
+                    printBase = False, \
+                    printAll = printAll, \
+                    newInfo = arg.get( 'newInfo', False ), \
+                    newRunInfos = arg.get('newRunInfos',False), \
+                    newScore = arg.get('newScore', False), \
+                    )
 
-    mp = gm.ppClass( nProcs )
-    mp.printProgBar()
-    mp.loadQueue( pipelineTarget, tArgList )
-    mp.runCores()
+            tArgList.append( tArg )
+
+        # Initiate Pallel Processing
+        nProcs = int( arg.get( 'pp', 1 ) )
+        print("SIMR: Requested %d cores" % nProcs)
+
+        mp = gm.ppClass( nProcs )
+        mp.printProgBar()
+        mp.loadQueue( pipelineTarget, tArgList )
+        mp.runCores()
 
     print("SIMR: Printing Results")
-    for tInfo in tInfoList:
+    for folder in dataList:
+        tDir = dataDir + folder
+
+        tInfo = im.target_info_class( targetDir = tDir, )
         c, tc = tInfo.getScoreCount( pClass.get('name',None ) )
 
         print( '%5d / %5d - %s ' % ( c, tc, tInfo.get( 'target_identifier', 'BLANK' ) ) )
@@ -221,7 +223,6 @@ def pipelineTarget( \
         
         if newScore: newTargetScores( tInfo, pClass )
 
-    
     else:
         pass
         '''
@@ -259,11 +260,14 @@ def newTargetScores( tInfo, pClass, printBase = True, printAll = False, nonScore
     
         tInfo.readRunInfos( )
 
-        for rKey in tInfo.runClassDict:
+        for i, rKey in enumerate(tInfo.runClassDict):
 
             rInfo = tInfo.runClassDict[ rKey ]
             mc.pipelineRun( rInfo = rInfo, param = pClass.pDict, \
                     tImg = tImg, printBase = printAll )
+
+            if i%100 == 0:
+                tInfo.saveInfoFile()
 
         tInfo.gatherRunInfos()
 
