@@ -149,7 +149,7 @@ def procAllData( dataDir, pClass=None, arg = gm.inArgClass() ):
             tArgList.append( tArg )
 
         # Initiate Pallel Processing
-        nProcs = int( arg.get( 'pp', 1 ) )
+        nProcs = int( arg.get( 'nProc', 1 ) )
         print("SIMR: Requested %d cores" % nProcs)
 
         mp = gm.ppClass( nProcs )
@@ -217,7 +217,7 @@ def pipelineTarget( \
     sName = pClass.get('name')
     
     if sName not in scores.columns:
-        print("\t - No scores for: %s" % sName )
+        #print("\t - No scores for: %s" % sName )
 
         if not newScore:  return
         
