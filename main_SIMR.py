@@ -166,8 +166,6 @@ def procAllData( dataDir, pClass=None, arg = gm.inArgClass() ):
 
         print( '%5d / %5d - %s ' % ( c, tc, tInfo.get( 'target_identifier', 'BLANK' ) ) )
 
-
-    
 # End data dir
 
 
@@ -260,6 +258,8 @@ def newTargetScores( tInfo, pClass, printBase = True, printAll = False, nonScore
     
         tInfo.readRunInfos( )
 
+        n = len( tInfo.runClassDict )
+
         for i, rKey in enumerate(tInfo.runClassDict):
 
             rInfo = tInfo.runClassDict[ rKey ]
@@ -268,6 +268,9 @@ def newTargetScores( tInfo, pClass, printBase = True, printAll = False, nonScore
 
             if i%100 == 0:
                 tInfo.saveInfoFile()
+
+            if printBase:
+                print(" New Scores: %d / %d" % ( i, n ) )
 
         tInfo.gatherRunInfos()
 

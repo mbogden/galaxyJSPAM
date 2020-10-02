@@ -39,11 +39,15 @@ def main(arg):
     elif arg.targetDir != None:
         procTarget( arg.targetDir, printAll=arg.printAll )
 
+    elif arg.dataDir != None:
+        procDataDir( arg.dataDir, arg )
+
     else:
         print("PT: Nothing selected!")
         print("PT: Recommended options")
         print("\t - simple")
         print("\t - targetDir /path/to/dir/")
+        print("\t - dataDir /path/to/dir/")
 
     return
 
@@ -55,10 +59,126 @@ def main(arg):
         newMain()
 
 # End main
+ 
+
+def procDataDir( dataDir, arg = gm.inArgClass() ):
+
+    printBase=arg.printBase
+    printAll=arg.printAll 
+    pltPath = arg.get( 'pltDir', None )
+    
+    if printBase: 
+        print("SA.procAllData")
+        print("\t - dataDir: %s" % arg.dataDir )
+
+    dataDir = gm.validPath( dataDir, pathType='dir' )
+
+    # exit if invalid directory
+    if dataDir == None:
+        if printBase: 
+            print("SA.procAllData: WARNING")
+            print("\t - dataDir not found" )
+            print("\t - dataDir: %s - '%s'" % (type(arg.dataDir), arg.dataDir) )
+        return
+
+    allScores = gatherAllScores( dataDir, )    
+    
+    if printBase:
+        print("SA: Printing Return Scores")
+
+    for tInfo, tScores in allScores:
+        print( '%s : %s' % ( tInfo.get('target_identifier'), list(tScores.columns) ) )
+    
+    pLoc = 'param/t.json'
+    path.exists( pLoc )
+    param = im.score_parameter_class( paramLoc = pLoc )
+    
+    plotAll( allScores, param = param, pltPath = pltPath )    
+    
+
+def plotAll( allScores, param = None, pltPath = None ):
+    
+    if param == None:
+        print("SA.plotAll: WARNING: Please give param")
+        return 
+    
+    pName = param.get('name')
+    
+    newPath = gm.validPath( pltPath, pathType = 'dir' )
+    if newPath == None:
+        print("SA.plotAll: WARNING: Plots path not found: %s" % pltPath)
+        return
+    else:
+        pltPath = newPath
+    
+    for tInfo, tScores in allScores:
+        
+        if pName not in tScores.columns:
+            print("not found")
+            continue
+        
+        tName = tInfo.get('target_identifier')
+        tImgName = param.get('tgtArg')
+        
+        hScores = { 'name': 'zoo_merger_score' , 'scores': tScores['zoo_merger_score'].values }
+        mScores = { 'name': pName, 'scores': tScores[pName].values }
+        
+        tLoc = tInfo.getTargetImage( tName = tImgName )
+        #print('tLoc: ',tLoc)
+        tImg = gm.getImg( tLoc )
+        
+        plotName = '%s:\n%s' % (tName, pName)
+        
+        fig, (ax1, ax2) = plt.subplots(1,2, figsize=(12,6))
+        plt.title( plotName)
+        
+        basicSubPlot( ax2, hScores, mScores )
+        ax1.imshow( tImg, cmap=plt.gray())
+        plt.show()
+        
+        pltLoc = pltPath + '/%s_%s.png' % ( tName, pName )
+        fig.savefig( pltLoc )
+        print(pltLoc)
+
+
+def basicSubPlot( ax, s1, s2, titleName=None, plotLoc = None ):
+
+
+    # Add points and trendline to plot
+    ax.scatter( s1['scores'], s2['scores'] )
+
+    # Setup plot
+    ax.set( xlabel = s1['name'], ylabel = s2['name'] )
+
+    if titleName != None:
+        ax.set_title( '%s' % titleName)
+
+    return ax
+
+
+def gatherAllScores( dataDir, printBase = True):
+
+    tScoreList = []
+
+    dataList = listdir( dataDir )
+    if dataDir[-1] != '/': dataDir += '/'
+
+    # Find target directories
+    for folder in dataList:
+        tDir = dataDir + folder
+
+        tReturn = gatherTargetScores( tDir = tDir, \
+                    printBase = printBase, )
+
+        if tReturn != None:
+            tScoreList.append( tReturn )
+
+
+    return tScoreList
 
 
 # Process target directory
-def procTarget( tDir, printBase = True, printAll=False ):
+def gatherTargetScores( tDir, printBase = True, printAll=False ):
 
     if printBase:
         print("SA: procTarget:")
@@ -80,7 +200,8 @@ def procTarget( tDir, printBase = True, printAll=False ):
         tInfo.printInfo( )
 
     scores = tInfo.getScores()
-    print(scores)
+
+    return tInfo, scores
 
    
 # Process target directory
@@ -235,16 +356,17 @@ def incomplete():
 
 # End processing target dir
 
-def createMethodPlot( hScores, mScores, titleName=None, saveLoc = None ):
+def createMethodPlot( hScores, mScores, titleName=None, plotLoc = None ):
+
+    plt.clf()
 
     # Add points and trendline to plot
-    plt.scatter( hScores, mScores )
+    r = plt.scatter( hScores, mScores )
 
     # Setup plot
     plt.xlabel( 'Human Score' )
     plt.ylabel( 'Machine Score' )
     plt.tight_layout()
-
 
     if titleName != None:
         plt.title( '%s' % titleName)
@@ -252,7 +374,8 @@ def createMethodPlot( hScores, mScores, titleName=None, saveLoc = None ):
     if plotLoc != None:
         print( plotLoc )
         plt.savefig( plotLoc )
-    plt.clf()
+
+    return r
 
 
 
@@ -1604,3 +1727,4 @@ if __name__ == '__main__':
     main( arg )
 
 
+   
