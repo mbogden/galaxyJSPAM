@@ -31,13 +31,13 @@ def main(arg):
             print("\t- Nothing else to see here")
 
     elif arg.runDir != None:
-        procRun( arg.runDir, printAll=arg.printAll )
+        procRun( arg )
 
     elif arg.targetDir != None:
-        procTarget( arg.targetDir, printAll=arg.printAll )
+        procTarget( arg.targetDir )
 
     elif arg.dataDir != None:
-        procAllData( arg.dataDir, printAll=arg.printAll )
+        procAllData( arg.dataDir )
 
     else:
         print("PT: Nothing selected!")
@@ -50,19 +50,23 @@ def main(arg):
 # End main
 
 
-def procRun( rDir, printBase=True, printAll=False ):
+def procRun( arg, ):
+    
+    printBase = arg.printBase
+    printAll = arg.printAll
+    rDir = arg.runDir
 
     if printBase:
         print("PT.procRun: Inputs")
         print("\t - rDir:", rDir)
 
-    rInfo = im.run_info_class( runDir=rDir, printBase = False, printAll=printAll )
+    rInfo = im.run_info_class( runDir=rDir, printAll=printAll )
 
     if printBase:
-        print('PT.procFun: rInfo.status: ', rInfo.status )
+        print('PT: rInfo.status: ', rInfo.status )
 
     if rInfo.status == False:
-        print('PT.procRun: WARNGING:\n\t - rInfo status not good. Exiting...' )
+        print('PT: WARNGING:\n\t - rInfo status not good. Exiting...' )
         return
 
     if printAll:
@@ -73,13 +77,16 @@ def procRun( rDir, printBase=True, printAll=False ):
 
 
 # Process target directory
-def procTarget( tDir, printBase = True, printAll=False ):
+def procTarget( arg, ):
+    tDir = arg.targetDir
+    printBase = arg.printBase
+    printAll = arg.printAll
 
     if printBase:
         print("PT.procTarget:")
-        print("\t - tDir: " , tDir)
+        print("\t - targetDir: " , tDir)
 
-    tInfo = im.target_info_class( targetDir=tDir, printAll=True )
+    tInfo = im.target_info_class( targetDir=tDir, printAll=printAll )
 
     if printBase:
         print("PT.procTarget:")
@@ -94,16 +101,14 @@ def procTarget( tDir, printBase = True, printAll=False ):
     if printAll:
         tInfo.printInfo()
 
-    tInfo.gatherRunInfos()
-    
-    for r in tInfo.runDirs:
-        print("t")
-
     
 
 # End processing sdss dir
 
-def procAllData( dataDir, printBase=True, printAll=False ):
+def procAllData( arg, ):
+    dataDir = arg.dataDir
+    printBase = arg.printBase
+    printAll = arg.printAll
 
     from os import listdir
 
