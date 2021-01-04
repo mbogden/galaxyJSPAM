@@ -6,19 +6,58 @@ IRB course?
 - To not preserve any information that can identify the user.
 
 # Matt's To-Do
+- Pipeline
+  - Automate new target creation
+  - Get list of score parameter dicts
+  - load tInfo
+  - loop through run directories
+	- create rInfo and hold all info import to run
+	- Loop through score parameters an dmaybe list of targetImgs
+	- Once complete, return rDict to tInfo
+  - Once finished, tInfo can loop through giant dict structure to obtain info
+
 
 ## Big picture
-- Create automatic pipeline
-  - (ReDo) Generate points.  
-  - (ReDo) Generate Images
-  - (in prog) Generate machine scores.
-  - (in prog) Check for runs missing points/imgs/scores
+- Create automatic pipeline for evolution
+  - General 
+	- Include instructions/readme to everything?
+	- (in prog) Have target keep track of data progress
+	  - pts files
+	  - images made
+	  - scores created
+
+  - Simulator
+	- Encorporate new code layout
+	- Integrate with pipeline
+	- Produce initial impact approximation w/o points
+	  - Stop if impact is too low.
+	- Opimize,  #pts, heat value, & score quality
+
+  - Image Creator
+	- Ecorporate new code layout
+	- Intergrate with pipeline
+	- Use Numpy's 2D histogram for MUCH faster image creation
+	- Optimize  image size, image_parameters, & score quality
+	- Creat images for all targets
+
+  - Automated Machine scores.
+	- (Done-ish) Implement score parameters file
+	- (Done-ish) Implement basic Machine score with target image
+	- (In-Prog) Implemenet perturbedness Score
+	- Get graphs for all targets
+
+  - New Machine Score Methods
+	- use boxes to look at select regions of image
+	- Single layer nueral networks for 
+	- Use wndcharm to extract image features
+	  - Use Data Mining to find new scoring method on features
+		- 
+
+  - Score Analysis
+	- Incorporate score analysis to be based on new score parameters
 
 ## Now...
-- Add instructions/readme for everything.
 - Finish auto pipeline
-  - Fix info module
-  - Update Simulator to work with new code and info.  
 - Create Auto Generated Score Analysis report 
 - Create checker
   - Checks for pts, images, scores

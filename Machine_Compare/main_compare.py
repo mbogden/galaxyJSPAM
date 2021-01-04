@@ -24,7 +24,7 @@ import machine_score_methods as ms
 # compare global variables
 
 def test():
-    print("MC: You are in main_compare.py")
+    print("MC: Hi!  You're in Matthew Ogden's module for all things machine comparing images")
 
 def main(argList):
 
@@ -58,7 +58,6 @@ def main(argList):
                 tLoc = getattr( arg, 'targetLoc', None), \
                 newInfo= getattr( arg, 'newInfo', None ), \
                 )
-
 
 
     # If given a target directory
@@ -226,7 +225,7 @@ def pipelineTarget( tDir, printAll = False, nRuns=None, nProcs=1, newInfo=False 
 # Create scores and comparison scores for run. 
 def pipelineRun( \
         printBase=True, printAll=False, \
-        runDir = None, rInfo = None, param = None, \
+        runDir = None, rInfo = None, pClass = None, \
         tLoc=None, tImg=None, \
         imgLoc = None, mImg = None, \
         ):
@@ -238,7 +237,6 @@ def pipelineRun( \
         print("\t - printBase: %s" % printBase )
         print("\t - printAll: %s" % printAll )
         print("\t - rInfo: %s" % type(rInfo) )
-        print("\t - paramName: %s" % paramName )
         print("\t - tLoc: %s" % tLoc )
         print("\t - tImg: %s" % type(tImg) )
         print("\t - imgLoc: %s" % imgLoc )
@@ -248,22 +246,28 @@ def pipelineRun( \
         rInfo = im.run_info_class( runDir=runDir, printAll=printAll, )
 
     # Check if successfully read info data
-    if rInfo.status == False:
+    if rInfo.status == False or pClass.status == False:
         if printBase:
-            print("MC: Error: pipelineRun: ")
-            print("\t- Bad status from run_info_class.")
-            print("\t- runDir: %s" % runDir)
+            print("MC: Error: pipelineRun: Base status")
+            print("\t- rInfo: ", rInfo.status)
+            print("\t- pClass: ", pClass.status)
         return None
 
-    else: 
-        if printBase: print("MC: Run info good.")
-
     # Check if score exists
-    score = rInfo.getScore( param['name'] ) 
+    score = rInfo.getScore( pClass.get('name') ) 
 
     if score != None:
         if printBase: print("MC: Returning score")
         return score
+
+    # Get target image
+    scoreType = pClass.get('scoreType',None)
+    if scoreType == None:
+        print("MC: run: cmpTyscoreTypepe == None")
+        return 
+
+    elif scoreType == 'perturbation':
+        tLoc = rInfo.findImgFile( pClass.get('imgArg')['name'], initImg=True )
 
     # Check if target image was given
     if tLoc == None and type( tImg ) == type( None ):
@@ -275,13 +279,12 @@ def pipelineRun( \
     # Check if model image was given
     if imgLoc == None and type( mImg ) == type( None ):
         
-        imgName = param.get( 'imgArg' ).get('name')
-        imgLoc = rInfo.findImgFile( imgName, initImg = False )
+        imgName = pClass.get( 'imgArg' ).get('name')
+        imgLoc = rInfo.findImgFile( imgName )
 
         if imgLoc == None:
             print("MC: Failed to get image")
             return None
-
 
     # Open Target image
     if type(tImg) == type(None):
@@ -313,12 +316,12 @@ def pipelineRun( \
 
     if printBase: print("\t - Model image good.")
 
-    score = ms.createScore( tImg, mImg, cmpMethod=param['scrArg']['cmpMethod'] )
+    score = ms.createScore( tImg, mImg, cmpMethod=pClass.get('cmpArg')['cmpMethod'] )
 
-    newScore = rInfo.addScore( name = param['name'], score=score )
-
+    newScore = rInfo.addScore( name = pClass.get('name'), score=score )
 
     rInfo.saveInfoFile()
+    return score
 
 # end processing run dir
 

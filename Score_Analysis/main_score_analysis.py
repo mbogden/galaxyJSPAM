@@ -139,7 +139,31 @@ def plotAll( allScores, param = None, pltPath = None ):
         pltLoc = pltPath + '/%s_%s.png' % ( tName, pName )
         fig.savefig( pltLoc )
         print(pltLoc)
+        
+def basicHeatPlot( s1, s2, s3, titleName=None, ):
 
+    # Specify heat colors
+    cMap = plt.cm.get_cmap('RdYlBu_r')
+    
+    # Add points and trendline to plot
+    plot = plt.scatter( s1['scores'], s2['scores'], c=s3['scores'], s=5, cmap=cMap ) 
+    
+    # Add colorbar
+    cBar = plt.colorbar(plot)
+    
+    # Setup plot
+    plt.xlabel(s1['name'])
+    plt.ylabel(s2['name'])
+    cBar.set_label( s3['name'] )
+    
+    ax = plt.gca()
+    #ax.set_facecolor("xkcd:grey")
+    ax.set_facecolor("gray")
+
+    if titleName != None:
+        plt.set_title( '%s' % titleName)
+
+    return plot
 
 def basicSubPlot( ax, s1, s2, titleName=None, plotLoc = None ):
 

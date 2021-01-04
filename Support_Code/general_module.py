@@ -216,9 +216,8 @@ class inArgClass:
 
         return getattr( self, arg, None )
 
-
-
 # Global input arguments
+
 
 class ppClass:
 
@@ -233,10 +232,17 @@ class ppClass:
     nQueue = 0
 
     funcPtr = None
+    manager = mp.Manager()
 
     def __init__(self, nCore, printProg=False):
 
-        self.nCores = nCore
+        # 0 for all, negative all minus negative
+        if nCore < 1:
+            self.nCores = self.mp.cpu_count() + nCore
+            if self.nCores < 1: self.nCores = 1
+        else:
+            self.nCores = nCore
+
         self.printProg = printProg
 
     def printProgBar(self):
@@ -252,7 +258,6 @@ class ppClass:
 
             self.jobQueue.put(args)
 
-
     def runCores( self ):
 
         if self.nCores == 1:
@@ -262,7 +267,7 @@ class ppClass:
 
         # Start all processes
         for i in range( self.nCores ):
-            p = self.mp.Process( target=self.coreFunc )
+            p = self.mp.Process( target=self.coreFunc, )
             self.coreList.append( p )
             p.start()
 
@@ -277,23 +282,6 @@ class ppClass:
         # check if queue is still full
         pass
 
-    def displayTime( sec ):
-        result = ''
-
-        # Calculate Hrs
-        Hr = sec // 3600
-        if Hr > 0:
-            sec -= Hr * 3600
-            result += '%dH:' % Hr
-
-        Min = sec // 60
-        if Min > 0:
-            sec -= Min * 60
-            result += '%dM:' % Min
-
-        result += '%dS' % sec
-        return result
-
 
     def coreFunc( self ):
 
@@ -303,7 +291,7 @@ class ppClass:
         while True:
 
             try:
-                funcArgs = self.jobQueue.get( block=True,timeout=1 )
+                funcArgs = self.jobQueue.get( block=True, timeout=1 )
             
             # Will exist loop if queue is empty
             except self.Empty:
@@ -311,7 +299,6 @@ class ppClass:
                 break
 
             if self.printProg:
-            #if False:
                 p = n - int( self.jobQueue.qsize() )
                 perc = ( p / n ) * 100
                 print("%.1f%% - %d / %d          " % ( perc, p, n ), end='\r' )
@@ -355,6 +342,28 @@ def checkPP(arg):
 
     pHolder.runCores()
 
+def readImg( imgLoc, printAll = False, toSize=None ):
+    
+    import cv2
+
+    # Check if path is valid
+    if not path.exists( imgLoc ):
+        if printAll:
+            print("MC: WARNING: image not found at path.")
+            print("\t- %s" % imgLoc)
+        return None
+
+    # Read image from disk
+    img = cv2.imread( imgLoc, 0 ) 
+    
+    # Resize if requested
+    if toSize != None:
+        img = cv2.resize(img, toSize, interpolation = cv2.INTER_AREA)
+    
+    # Return image
+    return img
+
+# End get image
 
 # Run main after declaring functions
 if __name__ == '__main__':
