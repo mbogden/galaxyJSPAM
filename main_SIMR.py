@@ -162,6 +162,7 @@ def pipelineTarget( pClass=None, arg=gm.inArgClass(), tInfo = None ):
     printBase = arg.printBase
     printAll = arg.printAll
     newScore = arg.get('newScore',False)
+    newImage = arg.get('newImage',False)
 
     if printBase:
         print("SIMR: pipelineTarget: input")
@@ -190,10 +191,6 @@ def pipelineTarget( pClass=None, arg=gm.inArgClass(), tInfo = None ):
         print("SIMR: WARNING: pipelineTarget:  Target Info status bad")
         return
 
-    if printBase:
-        print("SIMR: Target prog before")
-        #tInfo.printProg()
-
     # Get scores
     scores = tInfo.getScores()
     if type(scores) == type(None):
@@ -210,8 +207,6 @@ def pipelineTarget( pClass=None, arg=gm.inArgClass(), tInfo = None ):
     # Create new scores if called upon
     if newScore:
         newTargetScores( tInfo, pClass )
-        print("SIMR: Target progress after")
-        tInfo.printProg()
 
 
 def newTargetScores( tInfo, pClass, printBase = True, printAll = False, nonScores = None ):
