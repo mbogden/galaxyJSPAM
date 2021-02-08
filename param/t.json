@@ -1,0 +1,15 @@
+{
+  "name": "test_v0",
+  "simArg": {
+    "name": "100k",
+    "nPts": "100k"
+  },
+  "imgArg": {
+    "name": "default",
+    "pType": "default"
+  },
+  "tgtArg": "zoo",
+  "scrArg": {
+    "cmpMethod": "correlation"
+  }
+}

@@ -4,19 +4,19 @@
 Description:    This is my python template for how I've been making my python programs
 '''
 
-from os import path, listdir
-from sys import exit, argv, path as sysPath
+from os import path
+from sys import path as sysPath
 
 # For loading in Matt's general purpose python libraries
-supportPath = path.abspath( path.join( __file__ , "../../Support_Code/" ) )
-sysPath.append( supportPath )
+sysPath.append( path.abspath( "Support_Code/" ) )
+sysPath.append( path.abspath( path.join( __file__ , "../../Support_Code/" ) ) )
 import general_module as gm
 import info_module as im
 
 
 def main(arg):
 
-    print("Hi!  In Matthew's python template for creating new SPAM related code.")
+    print("PT: Hi!  In Matthew's python template for creating new SPAM related code.")
 
     if arg.printAll:
 
@@ -26,101 +26,121 @@ def main(arg):
     # end main print
     
     if arg.simple:
-        if arg.printAll: print("PT: Simple!~")
+        if arg.printBase: 
+            print("PT: Simple!~")
+            print("\t- Nothing else to see here")
 
     elif arg.runDir != None:
-        procRun( arg.runDir, printAll=arg.printAll )
+        procRun( arg )
 
     elif arg.targetDir != None:
-        procTarget( arg.targetDir, printAll=arg.printAll )
+        procTarget( arg.targetDir )
 
     elif arg.dataDir != None:
-        procAllData( arg.dataDir, printAll=arg.printAll )
+        procAllData( arg.dataDir )
 
     else:
         print("PT: Nothing selected!")
         print("PT: Recommended options")
-        print("\t -simple")
-        print("\t -runDir /path/to/dir/")
-        print("\t -targetDir /path/to/dir/")
-        print("\t -dataDir /path/to/dir/")
-
+        print("\t - simple")
+        print("\t - runDir /path/to/dir/")
+        print("\t - targetDir /path/to/dir/")
+        print("\t - dataDir /path/to/dir/")
 
 # End main
 
 
-def procRun( rDir, printAll=False ):
+def procRun( arg, ):
+    
+    printBase = arg.printBase
+    printAll = arg.printAll
+    rDir = arg.runDir
 
-    if type(rDir) != type('string'):
-        print("ERROR: PT: runDir not a string: %s - %s" % ( type(rDir), rDir ) )
-        return False
-
-    if not path.exists( rDir ):
-        print("ERROR: PT: runDir not found: " % rDir )
-        return False
-
-    if arg.printAll: print("PT: runDir: %s" % arg.runDir )
-
-    modelDir = rDir + 'model_images/'
-    miscDir = rDir + 'misc_images/'
-    ptsDir = rDir + 'particle_files/'
-    infoLoc = rDir + 'info.json'
-
-    if not path.exists( modelDir ) or not path.exists( ptsDir ) or not path.exists( infoLoc):
-        print("ERROR: PT: A directory was not found in runDir")
-        print("\t- modelDir: " , path.exists( modelDir ) )
-        print("\t-  miscDir: " , path.exists( miscDir ) )
-        print("\t-  partDir: " , path.exists( ptsDir ) )
-        return False
+    if printBase:
+        print("PT.procRun: Inputs")
+        print("\t - rDir:", rDir)
 
     rInfo = im.run_info_class( runDir=rDir, printAll=printAll )
-    #rInfo.printInfo()
+
+    if printBase:
+        print('PT: rInfo.status: ', rInfo.status )
+
+    if rInfo.status == False:
+        print('PT: WARNGING:\n\t - rInfo status not good. Exiting...' )
+        return
+
+    if printAll:
+        rInfo.printInfo()
+
 
 # end processing run dir
 
 
 # Process target directory
-def procTarget( tDir, printAll=False ):
+def procTarget( arg, ):
+    tDir = arg.targetDir
+    printBase = arg.printBase
+    printAll = arg.printAll
 
-    if arg.printAll: print("PT: sdssDir: %s" % arg.sdssDir )
+    if printBase:
+        print("PT.procTarget:")
+        print("\t - targetDir: " , tDir)
 
-    if type(tDir) != type('string'):
-        print("ERROR: PT: Target: targetDir not a string: %s - %s" % ( type(tDir), tDir ) )
-        return False
+    tInfo = im.target_info_class( targetDir=tDir, printAll=printAll )
 
-    if not path.exists( tDir ):
-        print("ERROR: PT: Target: targetDir not found: " % tDir )
-        return False
+    if printBase:
+        print("PT.procTarget:")
+        print("\t - tInfo.status: %s" % tInfo.status )
 
-    iDir = tDir + 'information/'
-    gDir = tDir + 'gen000/'
-    pDir = tDir + 'plots/'
+    # Check if target is valid
+    if tInfo.status == False:
+        print("PT: WARNING: procTarget:")
+        print("\t - Target not good.")
+        return
 
-    infoLoc = iDir + 'target_info.json'
+    if printAll:
+        tInfo.printInfo()
 
-    # If not a target folder
-    if not path.exists( iDir ) or not path.exists( gDir ):
-        print("ERROR: PT: Couldn't find needed folders in targetDir.")
-        print("\t- infoDir: " , path.exists( iDir ) )
-        print("\t-  genDir: " , path.exists( gDir ) )
-        return False
-
-    tInfo = im.target_info_class( infoLoc )
-
-    runDirs = listdir( gDir )
-    runDirs.sort()
-
-    for run in runDirs:
-        rDir = gDir + run + '/'
-        procRun( rDir )
+    
 
 # End processing sdss dir
 
-def procAllData( dataDir, printAll=False ):
-    if arg.printAll: print("PT: dataDir: %s" % arg.dataDir )
-    print("All data")
+def procAllData( arg, ):
+    dataDir = arg.dataDir
+    printBase = arg.printBase
+    printAll = arg.printAll
+
+    from os import listdir
+
+    if printBase: 
+        print("PT.procAllData")
+        print("\t - dataDir: %s" % arg.dataDir )
+
+    # Check if directory exists
+    if not path.exists( dataDir ):  
+        print("PT.procAllData: WARNING: Directory not found")
+        print('\t - ' , dataDir )
+        return
+
+    # Append trailing '/' if needed
+    if dataDir[-1] != '/': dataDir += '/'  
+
+    dataList = listdir( dataDir )   # List of items found in folder
+    tDirList = []  # List of folders that are target directories
+
+    # Find target directories
+    for folder in dataList:
+        tDir = dataDir + folder
+        tempInfo = im.target_info_class( targetDir=tDir, printAll=False )
+
+        # if a valid target directory
+        if tempInfo.status:  tDirList.append( tempInfo )
+
+    if printBase:
+        print( '\t - Target Directories: %d' % len( tDirList ) )
 
 # Run main after declaring functions
 if __name__ == '__main__':
+    from sys import argv
     arg = gm.inArgClass( argv )
     main( arg )

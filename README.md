@@ -1,4 +1,4 @@
-# WallinCode
+# galaxyJSPAM
 
 ## Table of Contents
 - [Overview](#overview)
@@ -13,21 +13,9 @@
 - [References](#references)
 
 ## Overview<a id="overview">
-This is the development branch of a fork of
-[Wallincode](https://github.com/JSPAM-Manga/WallinCode).
 
 This README.md is also incomplete and in-progress
 
-The recent developments in this fork of JSPAM-Manga focus on creating a machine
-scoring mechanism for comparing
-rendered galaxy merger models to the morphology of their real counterparts.
-These machine scores can then be used in conjunction with citizen science
-efforts to score these same models, effectively reducing the human interaction
-time needed to determine whether a particular model is "good" or "bad." Further,
-the availability of a machine scoring mechanism will open the door to
-incorporation of various machine learning algorithms to immediately recognize
-and remove obviously "bad" models,
-thereby removing the need for a human-in-the-loop altogether.
 
 ## Getting Started<a id="gettingstarted">
 
@@ -42,6 +30,28 @@ make
 
 If you are making modifications, checkout a different branch
 - For Software Engineering execute `git checkout working_SE` 
+
+####Python install
+I am currently testing virtual environments with this package.  To initialize please run the following. This should create a new virtual environment, and install needed python packages.
+
+```
+python3 -m venv env
+source env/bin/activate
+python -m pip install -r requirements.txt
+```
+
+Once you have installed the required packages, you will need to activate the environment whenever you want to run SIMR.
+
+DAILY INSTRUCTIONS - Start up
+```
+source env/vin/activate
+```
+
+DAILY INSTRUCTIONS - Close
+```
+deactivate
+```
+
 
 ## *Add test and daily instructions for...*
 - Simulation

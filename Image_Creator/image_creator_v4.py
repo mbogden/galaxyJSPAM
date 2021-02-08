@@ -191,6 +191,7 @@ def shiftPoints_v3( g1pts, g2pts, ptsCenters, imgCenters, imgHeight, printTR=Fal
     tv_angle = np.arctan2( tv[1], tv[0] )
     
     # signed angle from v1 to v2
+    #theta = tv_angle - fv_angle
     theta = tv_angle - fv_angle
     
     # Create Rotation Matrix from theta

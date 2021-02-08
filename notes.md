@@ -3,134 +3,53 @@ These are written by Matthew Ogden for Matthew Ogden while creating and organizi
 May be good for others to view.
 
 IRB course? 
-- Do not preserve any information that can identify the user.
+- To not preserve any information that can identify the user.
 
-## Matt's To-Do
+# Matt's Start up To-Do
+- (When do-able) Read Me files? 
+- (Working) Virtual Environment?
+- (Working) Cluster to use?
+- (Later) wndchrm
+- (Now) Pipeline
+- (Later) Have 100 models from each target on my machine
+- Create Target status report?
 
-Image Creator
+## Big picture
+- Create automatic pipeline for evolution
+	- Get function to create status update!
+	- Create reports for any missing items. 
+	- Implement NN for each target
 
-- Use np.histogram to autobin giant list of points optimially.
+- Simulator
+	- Produce initial impact approximation w/o points
+	- Stop if impact is too low.
 
-- Get targets ready for pipeline
-  - gather targets all together
-  - create default param file
-	- modify galaxy centers and img size to best match galaxy
+- Image Creator
+	- Rotating galaxies still not working
+	- Do Total variation denoising on Model images
 
-- Get Master and other branches merged together
+- Image Comparison.
+	- Implement new low hanging machine score
+	- Reimplement WNDCHRM
+	- Weighted Mask
+	- ? Seperate function will return difference images
 
-- Create automatic pipeline for all 62 pairs
-  - (DONE) Generate points.  
-  - (Working) Generate Images
-	- Found bug with rotating galaxy centers.... working
-  - Generate machine scores.
+- Score Analysis
+	- Incorporate score analysis to be based on new score parameters
 
-- Particle files were zipped with entire directory path saved....  Fix that.
+## Now...
+- Create single layer NN for all targets
+- Create pts, imgs, scores for ALL
 
-- Optimize a random weighted mask for human vs machine score correlation.
-  - pixel diff
-  - correlation
-  - Binary correlation
+### Future
 
-- Analyze image, where is the highly weighted regions?
-  - radial distance from galaxy?
-  - Edges of galaxy?
-  - Random? Dependent on galaxy pair?  
-- Can we recreate this mask? 
-  - Analyze it wiht 1614, recreate with results and apply to rest.
+- Analyze Weighted NN image, where is the highly weighted regions?
+  - Can we recreate this mask? 
+  - radial distance from galaxy centers?
+  - tails and bridges
 
-- Comparison methods
-  -MachiceMethod class
-	- Seperate function will return difference images
-	- Seperate function for writing/appending score to csv file
-	  - will need to pass run directory
-
-## Modify image_creator_v4.py
-- Tasks
-  - Save model image and init image in 'model_images' folder.  All other images go to 'misc_images' folder.
-
-
-## compare_v2.py
-- Tasks
-  - Retrieve Target information from info.txt
-	- target location
-	- target pixel centers
-  - Check if comparison method has already been applied to model image in scores.csv file
-  - (Matthew/Optional) Image preperation: Analyze brigtness of photo and adjust to match model image to target image
-  - (Matthew) Redo all comparison methods to only return machine score
-  - (Matthew) Create seperate function to return images from comparison method program 
-  - (Matthew) Implement mask comparison with pixel differences
-
-
-## Begin Building Model Pipeline Code
-- Core Pipeline
-  - Simulate 100k pts -> Image Creations -> Machine Score
-
-- Filter Pipeline ( Once filter is ready to test )
-  - Run before core.
-  - Simulate 10k pts -> apply filter
-  - If filter decides model is "good", apply basic pipeline
-
-
-## Future Things To-Do
-
-- Add instructions/readme for everything.
-  - Simulator
-  - image creator
-  - Image refinement
-  - comparison methods
-  - sdss wrapper for everything
-- General purpose 2d and 3d plot
-  - Allows users to select axis values from dropdown. 
-  - Clicking a point shows image and data about that run.
-  - View runs from 3d? 
-
-- Perturbedness score
-  - Consider making both pure white before comparing
-  - Try radial brightness correlation
-
-- Target Images
-  - Not all target info files are there
-	- Manually get from site?
-	- Did jackson make a script to auto get images from site?
-	- Do they need to be 'calibrated' like the others?
-
-- Image_Creator
-  - Do Total variation denoising on Model images!
-  - look into different normalization options
-	- Add original normalization 
-	- Possibly completing remove in favor of additional radial constant
-  - Radial_Constants
-	- Make seperate radial constant for both galaxies
-	- Add second radial brightness constant
-  - clean up code
-	- make galaxy class
-
-
-- Refine_Image
-  - Finding Local Max does not work...  
-  - May need to find better comparison methods first.
-  - Future methods
-	- RSAP
-	- EigenValue max finding via grid search
- 
-- Add more image preperation!
-  - Adjust brightnesss so mean is the same
-	- Maybe mean standard deviation is same too
-  - Analyze Histogram and adjust? ( Ask Laurel )
-
-- Comparison_Methods
-
-  - Add way to check score.csv to check if comparison on image has already been used
-
-  - currently views galaxy points as [[x1,y1],[x2,y2]]
-	- needs to be transposed
-
-  - Auto bin image in 10x10, 124x124 etc.
-	- Drastic difference between resolution? 
-	- Easier to create weighted mask.
-	- Apply score of different resolutions together? 
-
-  - Methods
+  - New Methods
+	- Zernike moments
 	- Mask
 	  - Solid mask for inner disk.
 	  - Sectioned weights of image. Radial function?
@@ -148,20 +67,20 @@ Image Creator
 	  - wndchrm 
 	- Extract spiral from galaxy center and do correlation
 	  - Extract radial polar function from galaxy centers
-	- Look at moments of the image? 
-	  - Ask Wallin for clarification
 	- Use wandering mask to view brightness base on radial coordinate system on galaxies. 
 	  - characterize with functions or hard point and lines. 
 	  - Use line to determine direction of brightness.
 	- Weigh all machine scores together. 
 	  - Take score of all comparison methods and send through machine learning.
 
-## Score Analysis
-- Statistics and graphs!
-  - Stop storing images.  (Should be as simple as commenting out 1 line)
-  - Save all the scores in a single csv file.
-	- Change code to either read from this big file or a directory containing sdss dir
 
+## MISC Items
+- General purpose 2d and 3d plot
+  - Allows users to select axis values from dropdown. 
+  - Clicking a point shows image and data about that run.
+  - View runs from 3d? 
+
+## Score Analysis
 - New graphs
   - comparing different comparison methods
   - Comparing same comparison method between different galaxy pairs
@@ -172,13 +91,3 @@ Image Creator
 
 - SVD on images and see which show most variance>? 
 
-
-- General purpose simulated annealing program.
-  - Build special modules that contain
-	- cost function
-	- List of things to change
-	- list of size for changes
-	- plot function
-
-## sdss directories with no particle zip file in first run
-Found 11k run directories missing particle files.  Will need to generate at some point.
