@@ -107,6 +107,12 @@ class group_score_parameter_class:
     
     group = {}
     
+    def __init__( self, pLoc = None ):
+        
+        if pLoc != None:            
+            with open( pLoc, 'r' ) as iFile:
+                self.group = json.load( iFile )
+    
     def addGroupParam( self, inDict ):
         self.group = inDict
     
@@ -263,7 +269,6 @@ class run_info_class:
     initDict = None    # State of json upon initial reading.
     baseDict = None
 
-    tInfoPtr = None
 
     status = False  # State of this class.  For initiating.
 
@@ -282,13 +287,11 @@ class run_info_class:
     def __init__( self, runDir=None, \
             printBase=True, printAll=False, \
             newInfo=False, newRun=False, \
-            tInfoPtr = None, \
            ):
 
         # print 
         self.printAll = printAll
         self.printBase = printBase
-        self.tInfoPtr = tInfoPtr
 
         # Avoiding confusing things
         if self.printAll: self.printBase = True
@@ -526,17 +529,13 @@ class run_info_class:
     def addScore( self, name=None, score=None ):
 
         if name == None or score == None:
-            if self.printBase:
+            if self.printAll:
                 print("IM: WARNING: run.addScore. name or score not given")
                 print('\t - name: ', name)
                 print('\t - score: ', score)
             return None
 
         self.rDict['machine_scores'][name] = score
-
-        if self.tInfoPtr != None:
-            tInfoPtr.addScore( name, score )
-
 
         self.saveInfoFile()
 
@@ -705,7 +704,6 @@ class old_target_info_class:
     # For user to see headers.
     targetHeaders = ( 'target_id', 'target_images', 'image_parameters', 'model_sets', 'score_parameters', 'progress', 'zoo_merger_models')
 
-    progHeaders = ( 'target_id', 'target_images', 'image_parameters', 'scores_parameters', 'progress' )
 
     baseHeaders = ( 'target_id', )
 
@@ -784,7 +782,6 @@ class old_target_info_class:
         # Open score file
         if path.exists( self.scoreLoc ):
             self.sFrame = pd.read_csv( self.scoreLoc )
-            self.sFrame['run_id'] = self.sFrame['run_id'].astype(str)
 
         if newInfo:
             self.populateBaseInfo()
@@ -893,43 +890,6 @@ class old_target_info_class:
         pprint( self.tDict )
     # End print info
 
-
-    def addScoreParam( self, pClass ):
-    
-        if pClass == None:
-            if self.printBase: print("IM: Invalid name")
-            return None
-
-        sName = pClass.get('name')
-
-        if sName == None:
-            if self.printBase: print("IM: Invalid name")
-            return None
-        
-        if self.get('score_parameters',None) == None:
-            self.tDict['score_parameters'] = {}
-
-        
-        # Add score parameter values to target info
-        self.tDict['score_parameters'][sName] = pClass.pDict
-
-        # Add progress count
-        self.tDict['progress']['score_parameters'][sName] = 0
-
-        # Add score parameter as a column to score dataframe
-
-        print(self.sFrame)
-
-        self.sFrame[sName] = [ None ] * len( self.sFrame )
-        print(self.sFrame)
-
-        self.saveInfoFile()
-
-
-    def getProg( self, ):
-        return self.get('progress')
-
-
     def printProg( self, ):
 
         # Create shortcut
@@ -958,18 +918,6 @@ class old_target_info_class:
     # End print progress
 
 
-    def updateScoreProg( self, ):
-
-        sDict = self.tDict['progress']['score_parameters']
-        scrCount = self.sFrame.count( numeric_only=True )
-
-        for sName in sDict:
-            sDict[sName] = int( scrCount[sName] )
-
-    def addScore( self, rID, sName, score):
-
-        sid = self.sFrame.index[ self.sFrame['run_id'] == rID ]
-        self.sFrame.at[sid,sName] = score
 
     def updateFileProg( self, pType='all' ):
 
@@ -1211,7 +1159,7 @@ class target_info_class:
     # For user to see headers.
     targetHeaders = ( 'target_id', 'target_images', 'simulation_parameters', 'image_parameters', 'zoo_merger_models', 'score_parameters', 'progress', 'model_sets' )
 
-    progHeaders = ( 'target_id', 'target_images', 'simulation_parameters', 'image_parameters', 'scores_parameters', 'progress' )
+    progHeaders  = ( 'machine_scores' )
 
     baseHeaders = ( 'target_id', )
 
@@ -1283,21 +1231,32 @@ class target_info_class:
         # Open score file
         if path.exists( self.scoreLoc ):
             # Read all as string
-            self.sFrame = pd.read_csv( self.scoreLoc, dtype=str )
-            #convert most to float
-            for c in self.sFrame.columns:
-                if c != 'run_id':
-                    self.sFrame[c] = self.sFrame[c].astype(float)
+            self.sFrame = pd.read_csv( self.scoreLoc )
 
         if newInfo:
             self.gatherRunInfos()
-            #self.getScoresUpdateProg()
+            self.createBaseScore()
+            self.updateScores()
             self.saveInfoFile( )
 
         self.status = True
         return
 
     # End target init 
+    
+    
+    def findTargetImage( self, tName = None ):
+
+        if tName == None:
+            print("target is none")
+            return
+
+        tLoc = self.infoDir + 'target_%s.png' % tName
+        if path.exists( tLoc ):
+            return tLoc
+        else:
+            return None
+
     
     def addScoreParam( self, paramLoc = None, paramDict = None, overwrite = False):
         
@@ -1332,45 +1291,72 @@ class target_info_class:
                 self.sFrame = pd.read_csv( self.scoreLoc )
             else:
                 if self.printAll: print( "IM: WARNING: Target.getScores:" )
-                self.createBlankScore()
+                self.createBaseScore()
 
         return self.sFrame
 
+    def createBaseScore( self, ):
 
-    def updateScoreProgress( self, ):
+        zDict = self.tDict['zoo_merger_models']
+        nRuns = len(zDict)
 
-        # Construct bare sFrame
         scoreHeaders = [ 'run_id', 'zoo_merger_score' ]
-
-        for sKey in self.tDict['score_parameters']:
-            scoreHeaders.append(sKey)
-
-        nRuns = len( self.get('zoo_merger_models') )
 
         self.sFrame = pd.DataFrame( \
                 index = np.arange( nRuns ), \
                 columns = scoreHeaders 
             )
 
-        modelSet = self.tDict['zoo_merger_models']
+        for i, rKey in enumerate( zDict ):
+            rDict = zDict[rKey]
+            self.sFrame.at[i,'run_id'] = rDict['run_id'] 
+            self.sFrame.at[i,'zoo_merger_score'] = rDict['zoo_merger_score']
+
+        self.sFrame.to_csv( self.baseScoreLoc, index = False, quoting=2 )
+        self.sFrame.to_csv( self.scoreLoc, index = False, quoting=2 )
+
+    # End create Base Score file
+
+    def updateScores( self, ):
+
+        # Construct bare sFrame
+        if type(self.sFrame) == type(None):
+            print("Oh NOOO")
+            return
+
+        zDict = self.tDict['zoo_merger_models']
+        nRuns = len(zDict)
 
         # Loop through run directories and increment count
-        for i, rKey in enumerate( modelSet ):
+        for i, row in self.sFrame.iterrows():
 
-            # Print interation for the impatient
-            if self.printBase: tabprint("%5d/%d"%(i,nRuns),end='\r')
+            rKey = row['run_id']
+            rDict = zDict[rKey]
+            rScores = rDict['machine_scores']
 
-            rDict = modelSet[rKey]
+            for sKey in rScores:
+                self.sFrame.at[i,sKey] = rScores[sKey]
 
             # Save score info
-            self.sFrame.at[i,'run_id'] = str(rDict.get('run_id'))
-            self.sFrame.at[i,'zoo_merger_score'] = rDict.get('zoo_merger_score')
 
             continue
 
-        self.saveInfoFile()
 
-        self.sFrame['run_id'] = self.sFrame['run_id'].astype(str)
+        # Update progress in tInfo
+        if self.tDict['progress'].get('machine_scores') == None:
+            self.tDict['progress']['machine_scores'] = {}
+
+        scoreHeaders = list( self.sFrame.columns )
+        for sName in scoreHeaders:
+            if 'zoo_merger_score' in sName:
+                continue
+            
+            sCount = self.sFrame[sName].count()
+            self.tDict['progress']['machine_scores'][sName] = int( sCount )
+
+        print(self.tDict['progress'])
+
+        self.saveInfoFile()
         self.sFrame.to_csv( self.baseScoreLoc, index = False, quoting=2 )
         self.sFrame.to_csv( self.scoreLoc, index = False, quoting=2 )
 
@@ -1399,7 +1385,10 @@ class target_info_class:
         nRuns = len(runDirList)
         
         # Prepare model Set
-        self.fluffInfo()
+        for h in self.targetHeaders:
+            if self.tDict.get(h,None) == None:
+                self.tDict[h] = {}
+
         modelSet = self.tDict['zoo_merger_models']
 
         # Generate parellel processing class
@@ -1430,6 +1419,12 @@ class target_info_class:
 
         # Save info
         rID = rInfo.get('run_id')
+
+        if 'r' not in rID:
+            rInfo.run_id = 'r'+str(rID)
+            rInfo.rDict['run_id'] = 'r'+str(rID)
+            rInfo.saveInfoFile()
+
         modelSet[rID] = rInfo.rDict
 
         # update progress
@@ -1437,11 +1432,6 @@ class target_info_class:
         return modelSet[rID]
 
     # End get Run Dir Info
-
-    def fluffInfo(self,):
-        for h in self.targetHeaders:
-            if self.tDict.get(h,None) == None:
-                self.tDict[h] = {}
 
     def saveInfoFile( self, baseFile=False ):
 

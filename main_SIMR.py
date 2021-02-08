@@ -39,28 +39,19 @@ def main(arg):
 
     # end main print
 
-    # Read param file
-    pClass = im.score_parameter_class( \
-            paramLoc = getattr( arg, 'paramLoc', None ), \
-            printBase = arg.printBase, \
-            printAll = arg.printAll, \
-            new = getattr( arg, 'newParam', False ), \
-        )
-
     if arg.simple:
         if arg.printBase: 
             print("SIMR: Simple!~")
             print("\t- Nothing else to see here")
 
     elif arg.runDir != None:
-        pipelineRun( pClass = pClass, arg = arg )
+        pipelineRun( arg )
 
     elif arg.targetDir != None:
-
-        pipelineTarget( pClass=pClass, arg=arg )
+        pipelineTarget( arg )
 
     elif arg.dataDir != None:
-        procAllData( arg.dataDir, pClass=pClass, arg=arg )
+        procAllData( arg )
 
     else:
         print("SIMR: Nothing selected!")
@@ -71,12 +62,21 @@ def main(arg):
         print("\t - dataDir /path/to/dir/")
 
 # End main
-    
 
-def procAllData( dataDir, pClass=None, arg = gm.inArgClass() ):
+def readParamFile( paramLoc ):
 
-    printBase=arg.printBase
-    printAll=arg.printAll 
+    # Read param file
+    pClass = im.group_score_parameter_class( \
+            pLoc = getattr( arg, 'paramLoc', None ), \
+        )
+
+
+def procAllData( arg ):
+
+    dataDir   = arg.dataDir
+    printBase = arg.printBase
+    printAll  = arg.printAll 
+    paramLoc  = arg.get('paramLoc')
 
     if printBase: 
         print("SIMR.procAllData")
@@ -156,19 +156,20 @@ def procAllData( dataDir, pClass=None, arg = gm.inArgClass() ):
 
 
 # Process target directory
-def pipelineTarget( pClass=None, arg=gm.inArgClass(), tInfo = None ):
+def pipelineTarget( arg=gm.inArgClass(), tInfo = None ):
 
     tDir = arg.targetDir
     printBase = arg.printBase
     printAll = arg.printAll
+
     newScore = arg.get('newScore',False)
     newImage = arg.get('newImage',False)
+
 
     if printBase:
         print("SIMR: pipelineTarget: input")
         print("\t - tDir: %s" % tDir )
         print("\t - tInfo: %s" % type(tInfo) )
-        print("\t - pClass: %s" % type(pClass) )
 
     if tInfo == None and tDir == None:
         print("SIMR: WARNING: pipelineTarget")
@@ -176,7 +177,6 @@ def pipelineTarget( pClass=None, arg=gm.inArgClass(), tInfo = None ):
         return
 
     elif tInfo == None:
-
         tInfo = im.target_info_class( targetDir=tDir, \
                 printBase = printBase, printAll=printAll, \
                 newInfo = arg.get('newInfo',False), \
@@ -186,39 +186,43 @@ def pipelineTarget( pClass=None, arg=gm.inArgClass(), tInfo = None ):
     if printBase:
         print("SIMR: pipelineTarget status:")
         print("\t - tInfo.status: %s" % tInfo.status )
+        im.tabprint( 'progress: ' + str( tInfo.get("progress") ) )
 
     if tInfo.status == False:
         print("SIMR: WARNING: pipelineTarget:  Target Info status bad")
         return
 
-    # Get scores
-    scores = tInfo.getScores()
-    if type(scores) == type(None):
-        print("SIMR: WARNING: No scores found")
-        print("\t - Gathering runs")
-        tInfo.gatherRunInfos()
-        if type(tInfo.getScores) == None:
-            print("SIMR: Score Error")
-            return
+    # Gather scores if called for
+    if arg.get('updateScores',False):
+        tInfo.updateScores()
     
     if newImage:
         print("HI!")
     
     # Create new scores if called upon
     if newScore:
-        newTargetScores( tInfo, pClass )
+        paramLoc = arg.get('paramLoc',None)
+        paramClass = arg.get('paramClass',None)
+        newTargetScores( tInfo, \
+                printBase = printBase, printAll = printAll, \
+                paramClass=paramClass, paramLoc = paramLoc )
 
 
-def newTargetScores( tInfo, pClass, printBase = True, printAll = False, nonScores = None ):
+def newTargetScores( tInfo, printBase = True, printAll = False,\
+        pClass = None, paramLoc = None ):
 
     if printBase:
         print("SIMR: newTargetScores:")
         print("\t - tInfo: %s" % tInfo.status )
-        print("\t - pClass: %s" % pClass.status )
+        im.tabprint('paramLoc: %s'%type(paramLoc))
+        im.tabprint('paramClass: %s'%type(paramClass))
 
-    if pClass.status == False:
-        if printBase: print("SIMR: Please provice valid pClass to create new scores")
+    if paramLoc == None and pClass == None:
+        print("SIMR: WARNING: No score parameter class given")
         return
+
+    elif pClass == None and paramLoc != None:
+        pClass = readParamFile( paramLoc )
     
     sName = pClass.get('name')
 
