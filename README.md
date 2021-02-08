@@ -37,7 +37,7 @@ I am currently testing virtual environments with this package.  To initialize pl
 ```
 python3 -m venv env
 source env/bin/activate
-python333 -m pip install -r requirements.txt
+python3 -m pip install -r requirements.txt
 ```
 
 Once you have installed the required packages, you will need to activate the environment whenever you want to run SIMR.
