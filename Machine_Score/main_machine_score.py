@@ -24,7 +24,7 @@ import machine_score_methods as ms
 # compare global variables
 
 def test():
-    print("MS: Hi!  You're in Matthew Ogden's module for all things machine comparing images")
+    print("MS: Hi!  You're in Matthew's SIMR module for all things machine scoring images")
 
 def main(argList):
 
