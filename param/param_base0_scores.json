@@ -1,0 +1,82 @@
+{
+    "base0_corr": {
+        "name": "base0_corr",
+        "simArg": {
+            "name": "100k",
+            "nPts": "100k"
+        },
+        "imgArg": {
+            "name": "default",
+            "pType": "default"
+        },
+        "scoreType": "target",
+        "targetName": "zoo",
+        "cmpArg": {
+            "cmpMethod": "correlation"
+        }
+    },
+    "base0_diff": {
+        "name": "base0_diff",
+        "simArg": {
+            "name": "100k",
+            "nPts": "100k"
+        },
+        "imgArg": {
+            "name": "default",
+            "pType": "default"
+        },
+        "scoreType": "target",
+        "targetName": "zoo",
+        "cmpArg": {
+            "cmpMethod": "absolute_difference"
+        }
+    },
+    "base0_diff_scale": {
+        "name": "base0_diff_scale",
+        "simArg": {
+            "name": "100k",
+            "nPts": "100k"
+        },
+        "imgArg": {
+            "name": "default",
+            "pType": "default"
+        },
+        "scoreType": "target",
+        "targetName": "zoo",
+        "cmpArg": {
+            "cmpMethod": "absolute_difference_lower_scale"
+        }
+    },
+    "base0_overlap0": {
+        "name": "base0_overlap0",
+        "simArg": {
+            "name": "100k",
+            "nPts": "100k"
+        },
+        "imgArg": {
+            "name": "default",
+            "pType": "default"
+        },
+        "scoreType": "target",
+        "targetName": "zoo",
+        "cmpArg": {
+            "cmpMethod": "overlap_fraction"
+        }
+    },
+    "base0_bcorr0": {
+        "name": "base0_bcorr0",
+        "simArg": {
+            "name": "100k",
+            "nPts": "100k"
+        },
+        "imgArg": {
+            "name": "default",
+            "pType": "default"
+        },
+        "scoreType": "target",
+        "targetName": "zoo",
+        "cmpArg": {
+            "cmpMethod": "binary_correlation"
+        }
+    }
+}
