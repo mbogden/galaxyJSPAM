@@ -24,7 +24,7 @@ import machine_score_methods as ms
 # compare global variables
 
 def test():
-    print("MC: Hi!  You're in Matthew Ogden's module for all things machine comparing images")
+    print("MS: Hi!  You're in Matthew Ogden's module for all things machine comparing images")
 
 def main(argList):
 
@@ -33,7 +33,7 @@ def main(argList):
 
     if arg.printAll:
 
-        print( "MC: Hi!  You're in Matthew's main comparison code" )
+        print( "MS: Hi!  You're in Matthew's main comparison code" )
         gm.test()
         im.test()
         ms.test()
@@ -50,7 +50,7 @@ def main(argList):
 
     elif arg.runDir != None:
 
-        print("MC: WARNING: Indevelopment to use new param file")
+        print("MS: WARNING: Indevelopment to use new param file")
 
         pipelineRun( \
                 arg.runDir, \
@@ -79,7 +79,7 @@ def main(argList):
 
     #  Option not chosen 
     else:
-        print("Error: MC: Please specify a directory to work in")
+        print("Error: MS: Please specify a directory to work in")
         print("\t -simple -img1 /path/to/img1 -img2 /path/to/img2")
         print("\t -runDir /path/to/dir/ -targetLoc /path/to/target")
         print("\t -targetDir /path/to/dir/")
@@ -231,7 +231,7 @@ def pipelineRun( \
         ):
 
     if printBase: 
-        print("MC: pipelineRun:")
+        print("MS: pipelineRun:")
 
     if printAll: 
         print("\t - printBase: %s" % printBase )
@@ -248,7 +248,7 @@ def pipelineRun( \
     # Check if successfully read info data
     if rInfo.status == False or pClass.status == False:
         if printBase:
-            print("MC: Error: pipelineRun: Base status")
+            print("MS: Error: pipelineRun: Base status")
             print("\t- rInfo: ", rInfo.status)
             print("\t- pClass: ", pClass.status)
         return None
@@ -257,13 +257,13 @@ def pipelineRun( \
     score = rInfo.getScore( pClass.get('name') ) 
 
     if score != None:
-        if printBase: print("MC: Returning score")
+        if printBase: print("MS: Returning score")
         return score
 
     # Get target image
     scoreType = pClass.get('scoreType',None)
     if scoreType == None:
-        print("MC: run: cmpTyscoreTypepe == None")
+        print("MS: run: cmpTyscoreTypepe == None")
         return 
 
     elif scoreType == 'perturbation':
@@ -272,7 +272,7 @@ def pipelineRun( \
     # Check if target image was given
     if tLoc == None and type( tImg ) == type( None ):
         if printBase:
-            print("MC: ERROR: pipelineRun: ")
+            print("MS: ERROR: pipelineRun: ")
             print("\t- No target image given.")
         return None
     
@@ -283,7 +283,7 @@ def pipelineRun( \
         imgLoc = rInfo.findImgFile( imgName )
 
         if imgLoc == None:
-            print("MC: Failed to get image")
+            print("MS: Failed to get image")
             return None
 
     # Open Target image
@@ -293,13 +293,13 @@ def pipelineRun( \
 
         # Check if target image exists
         if not path.exists( tLoc ):
-            print("Error: MC: Target image does not exist at: %s" % tLoc)
+            print("Error: MS: Target image does not exist at: %s" % tLoc)
             return None
 
         tImg = getImg( tLoc )
 
         if type( tImg ) == type( None ):
-            print("Error: MC: Target image error. %s" % tLoc)
+            print("Error: MS: Target image error. %s" % tLoc)
             return None
 
 
@@ -311,7 +311,7 @@ def pipelineRun( \
 
         mImg = getImg( imgLoc )
         if type( mImg ) == type( None ):
-            if printBase: print("Error: MC: Failed to read image: %s" % imgLoc)
+            if printBase: print("Error: MS: Failed to read image: %s" % imgLoc)
             return None
 
     if printBase: print("\t - Model image good.")
@@ -329,7 +329,7 @@ def getImg( imgLoc, printAll = False ):
 
     if not path.exists( imgLoc ):
         if printAll:
-            print("MC: WARNING: image not found at path.")
+            print("MS: WARNING: image not found at path.")
             print("\t- %s" % imgLoc)
         return None
 
@@ -359,23 +359,23 @@ def simpleScore( img1, img2, printAll = False):
     score = ms.score_absolute_difference( img1, img2, simple=True )
 
     if score == None:
-        print("WARNING: MC: \n\t'None' score returned")
+        print("WARNING: MS: \n\t'None' score returned")
 
     if printAll:
-        print("MC: Got simple Score!: %s" % str( score ) )
+        print("MS: Got simple Score!: %s" % str( score ) )
 
     # Test if complex thing is working
     score, cJson = ms.score_absolute_difference( img1, img2, simple=False )
 
     if score == None:
-        print("WARNING: MC: \n\t'None' score returned")
+        print("WARNING: MS: \n\t'None' score returned")
 
     if printAll:
         if cJson != None:
-            print("MC: Got complex score working!: %s" % ( score ) )
+            print("MS: Got complex score working!: %s" % ( score ) )
             print( cJson )
         else:
-            print("WARNING: MC: \n\tGot score, but with None info: %s" % score )
+            print("WARNING: MS: \n\tGot score, but with None info: %s" % score )
 
     return score
 
@@ -393,10 +393,10 @@ def getImages( img1Loc, img2Loc, printAll = False ):
         return None
 
     if printAll:
-        print('MC: Found images')
+        print('MS: Found images')
         print('\t img1: %s' % img1Loc)
         print('\t img2: %s' % img2Loc)
-        print('MC: Opening images')
+        print('MS: Opening images')
 
     img1 = None
     img2 = None
@@ -405,7 +405,7 @@ def getImages( img1Loc, img2Loc, printAll = False ):
     img2 = cv2.imread( img2Loc, 0 )
 
     if type( img1 ) != type( None ) and type( img2 ) != type( None ):
-        print('MC: Opened images')
+        print('MS: Opened images')
     else:
         if type( img1 ) != type( None ):
             print('\tFailed to open img1: %s' % img1Loc)
