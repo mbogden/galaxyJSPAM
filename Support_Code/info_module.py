@@ -1,8 +1,8 @@
 '''
-    Author:     Matthew Ogden
-    Created:    21 Feb 2020
-    Altered:    02 Apr 2020
-Description:    For all things misc information related
+    Author:	 Matthew Ogden
+    Created:	21 Feb 2020
+    Altered:	02 Apr 2020
+Description:	For all things misc information related
 '''
 
 from os import path, listdir
@@ -64,12 +64,12 @@ def main(arg):
 
     if arg.dataDir != None:
         print("IM: dataDir: %s" % arg.dataDir )
-        
+
         saveLoc = getattr( arg, 'saveLoc', None )
         if saveLoc == None:
             print("IM: dataDir: Please specify saveLoc")
             return False
-        
+
         print("IM: dataDir: creating gathered info file: %s" % saveLoc )
 
         dataJson = {}
@@ -104,25 +104,32 @@ def main(arg):
 # End main
 
 class group_score_parameter_class:
-    
+
     group = {}
-    
+
     def __init__( self, pLoc = None ):
-        
-        if pLoc != None:            
+
+        if pLoc != None:			
             with open( pLoc, 'r' ) as iFile:
                 self.group = json.load( iFile )
-    
+
     def addGroupParam( self, inDict ):
         self.group = inDict
-    
-    def addParam( self, paramIn ):        
+
+    def addParamClass( self, paramIn ):		
         if paramIn.status:
             self.group[paramIn.get('name')] = paramIn.pDict
-    
-    def printGroup( self, ):        
+
+    def addParam( self, pDict ):
+        self.group[ pDict['name'] ] = pDict
+
+    def rmParam( self, pKey ):
+        if pKey in self.group:
+            del self.group[ pKey ]
+
+    def printGroup( self, ):		
         print(self.group)
-        
+
     def get( self, inVal, default = None, pName = None ):
 
         # Grab from class first
@@ -135,21 +142,21 @@ class group_score_parameter_class:
             dVal = self.group.get( inVal, default )
         else:
             dVal = self.group[pName].get( inVal, default )
-            
-        return dVal    
-    
+
+        return dVal	
+
     def saveParam(self, saveLoc=None):
-        
+
         if saveLoc == None:
             return
-        
+
         with open( saveLoc, 'w' ) as pFile:
             json.dump( self.group, pFile, indent=4 )
-    
+
     def readParam(self, pLoc):
         with open( pLoc, 'r' ) as iFile:
             self.group = json.load( iFile )
-        
+
 
 class score_parameter_class:
 
@@ -187,7 +194,7 @@ class score_parameter_class:
         if new:
             self.pDict = self.baseDict
             self.status = True
-        
+
         elif paramDict != None:
             self.pDict = paramDict
             self.status = True
@@ -195,10 +202,10 @@ class score_parameter_class:
         # Else reading a param file
         elif paramLoc != None:
             self.readParam( paramLoc )
-        
+
         if self.printAll:
             pprint( self.pDict )
-    
+
     def setDict( self, paramDict):
         self.pDict = paramDict
 
@@ -217,11 +224,11 @@ class score_parameter_class:
 
 
     def readParam( self, paramLoc ):
-        
+
         if self.printAll:
             print("IM: score_param_class.readParam")
             print("\t - paramLoc: ", paramLoc)
-        
+
         # Check if param File is valid
         if paramLoc == None:
             if self.printBase: 
@@ -250,7 +257,7 @@ class score_parameter_class:
                 print('IM: WARNING: Failed to read param file')
                 print('\t -paramLoc: %s' % paramLoc)
             return
-        
+
         self.status = True
 
     # End reading param file
@@ -260,15 +267,14 @@ class score_parameter_class:
     # end print
 
 # End score parameter class
-        
+
 
 
 class run_info_class: 
 
-    rDict = None    # Primary dict of information contained in info.json
-    initDict = None    # State of json upon initial reading.
+    rDict = None	# Primary dict of information contained in info.json
+    initDict = None	# State of json upon initial reading.
     baseDict = None
-
 
     status = False  # State of this class.  For initiating.
 
@@ -336,10 +342,10 @@ class run_info_class:
             if self.printAll: print('\t - Reading Info file.')
             with open( self.infoLoc, 'r' ) as iFile:
                 self.rDict = json.load( iFile )
-            
+
             if self.rDict != None:
                 self.status = True
-            
+
         # end read info file
         else:
 
@@ -357,7 +363,7 @@ class run_info_class:
 
             else:
                 self.txt2Json( )
- 
+
             if type(self.rDict) == type(None):
                 print("IM: Run.__init__ Error: Failed to initialize info file..." )
                 return
@@ -371,30 +377,30 @@ class run_info_class:
 
             return
         # End if not path exists
-       
+
 
         if self.printAll: print("\t - Initalized info module.")
 
     # end __init__
-    
+
     def __del__(self,):
         pass
-    
+
     def delTmp(self,):
-        
+
         from os import remove
         for f in listdir( self.tmpDir ):
             #print('Removing: %s'%f)
             remove(self.tmpDir + f)
-            
+
 
     def findPtsLoc( self, ptsName ):
-       
+
         ptsLoc = self.ptsDir + ptsName + '_pts.zip'
 
         # IF not found, try again without the k
         if not path.exists( ptsLoc ):
-     
+
             # Check for a letter
             if 'k' in ptsName:
                 ptsName = str( int( ptsName.strip('k') ) * 1000 )
@@ -411,7 +417,7 @@ class run_info_class:
 
     # End findPtsFile
 
-    def findImgLoc( self, pName, initImg = False, newImg=False, ):         
+    def findImgLoc( self, pName, initImg = False, newImg=False, ):		 
 
         # Assume model image
         if not initImg:
@@ -426,19 +432,19 @@ class run_info_class:
             return None
 
     # End findImgFile
-    
+
     def getAllImgLocs( self, miscImg=False ):
-        
+
         imgDir = self.imgDir
         if miscImg:
             imgDir = self.miscDir
-        
+
         imgList = listdir(imgDir)
         retList = []
         for imgName in imgList:
             retList.append(imgDir+imgName)
-        
-        return retList    
+
+        return retList	
 
     def initRunDir( self, runDir, newDir = False, ):
 
@@ -512,13 +518,16 @@ class run_info_class:
         elif self.get('machine_scores') == None:
             self.rDict['machine_scores']
             return None
-        
+
         score = self.rDict['machine_scores'].get( sName, None )
-        
+
         return score
-    
+
+    def getAllScores( self  ):
+        return self.get('machine_scores')
+
     def printScores( self, ):
-        
+
         print("IM: run_info_class.printScores()")
         tabprint( 'run_id: %s' % self.get('run_id') )
         tabprint( 'zoo_merger: %f' % self.get('zoo_merger_score'))
@@ -540,10 +549,10 @@ class run_info_class:
         self.saveInfoFile()
 
         return self.rDict['machine_scores'][name]
-   
+
 
     def createBlank( self, ):
-        
+
         # Create blank dictionary
         tempDict = {}
         for key in self.runHeaders:
@@ -568,7 +577,7 @@ class run_info_class:
 
 
     def txt2Json( self, ):
-        
+
         if self.printAll: print("IM: Run.txt2Json")
 
         self.rDict = self.createBlank()
@@ -592,9 +601,9 @@ class run_info_class:
             print("Error: IM: Info.txt file not found to create new info.json file")
             print("\t - oldLoc: %s" % oldLoc)
             return None
-        
+
         # Go through info file and add appropriate information to json
-        
+
         if self.printAll: print("\t - Reading info.txt")
 
         tid = None
@@ -622,7 +631,7 @@ class run_info_class:
 
             if line[0] == 'wins/total':
                 wins = line[1]
-        
+
             if line[0] == 'human_score':
                 hScore = line[1]
 
@@ -632,7 +641,7 @@ class run_info_class:
             print("Error: IM: Needed information not found in info.txt")
             print("\t - infoLoc: %s" % infoLoc)
             return None
-       
+
         # build lower structures first
 
         # readjust run_id
@@ -675,18 +684,18 @@ class run_info_class:
 
 def tabprint( inprint, begin = '\t - ', end = '\n' ):
     print('%s%s' % (begin,inprint), end=end )
-    
+
 
 
 class old_target_info_class:
 
-    tDict = None        # Primary dictionary of info for all data 
-    initDict = {}       # Copy of dictionary when read
-    baseDict = None     # Simple dictionary of info for basic info.
-    sFrame = None       # Score dataframe
-    rInfo = None        # run_info_class for accessing run directories
+    tDict = None		# Primary dictionary of info for all data 
+    initDict = {}	   # Copy of dictionary when read
+    baseDict = None	 # Simple dictionary of info for basic info.
+    sFrame = None	   # Score dataframe
+    rInfo = None		# run_info_class for accessing run directories
 
-    status = False      # State of this class.  For initiating.
+    status = False	  # State of this class.  For initiating.
     printBase = True
     printAll = False
 
@@ -768,7 +777,7 @@ class old_target_info_class:
                 self.tDict = json.load( iFile )
             self.initDict = deepcopy( self.tDict )
             self.status = True
-            
+
         # If target info does not exist, create
         else:
             if self.printAll: print("\t - Creating new info file" )
@@ -799,7 +808,7 @@ class old_target_info_class:
         if self.printAll:
             print( 'IM: Target.initTargetDir():' )
             print( '\t - targetDir: %s' % targetDir )
-            
+
         # if nothing given, complain
         if type(targetDir) == type(None):
             if self.printBase:
@@ -821,7 +830,7 @@ class old_target_info_class:
             print("\t - Target dir not found")
             print('\t - targetDir: ', targetDir )
             return False
- 
+
         # Define paths for all useful things in target structure
         self.targetDir = path.abspath( targetDir )
         if self.targetDir[-1] != '/': self.targetDir += '/'
@@ -852,7 +861,7 @@ class old_target_info_class:
         if status and not path.exists( self.plotDir ):
             from os import mkdir
             mkdir( self.plotDir )
-        
+
         if self.printAll:
             print( '\t - targetDir: (%s) %s' % ( path.exists( self.targetDir ), self.targetDir ) )
             print( '\t - infoDir: (%s) %s' % ( path.exists( self.infoDir ), self.infoDir ) )
@@ -870,7 +879,7 @@ class old_target_info_class:
             print("IM: WARNING: Target: target_info.json updated but not saved!")
     # End deconstructor
 
-    
+
     def get( self, inVal, defaultVal = None ):
 
         cVal = getattr( self, inVal, defaultVal )
@@ -968,7 +977,7 @@ class old_target_info_class:
     def createBlank( self, ):
 
         if self.printAll: print("IM: Target: Creating blank target_info_class")
-        
+
         for h in self.targetHeaders:
             self.tDict[h] = None
 
@@ -1041,7 +1050,7 @@ class old_target_info_class:
             return (0, totalCount)
 
         count = len( self.sFrame[ np.invert( pd.isnull( self.sFrame ) ) ] )
-        
+
         return ( count, totalCount )
 
 
@@ -1068,7 +1077,7 @@ class old_target_info_class:
             return tLoc
         else:
             return None
-        
+
     # Read in classes for run infos
     def iter_runs( self, model_key = 'galaxy_zoo_models', start = 0, n = -1 ):
 
@@ -1076,7 +1085,7 @@ class old_target_info_class:
             print("IM: WARNING: Target.iter_runs")
             print('\t - gathering non zoo merger models not yet implemented')
             return
-        
+
         # Get list of run directories
         self.runDirs = [ self.zooMergerDir + item + '/' for item in listdir( self.zooMergerDir ) if 'run' in item ]
         self.runDirs.sort()
@@ -1134,13 +1143,13 @@ class old_target_info_class:
 
 class target_info_class:
 
-    tDict = None        # Primary dictionary of info for all data 
-    baseDict = None     # Simple dictionary of info for basic info.
-    progDict = None     # For saving progress of current target
-    status = False      # State of this class.  For initiating.
-    
-    sFrame = None       # Score dataframe
-    rInfo = None        # run_info_class for accessing run directories
+    tDict = None		# Primary dictionary of info for all data 
+    baseDict = None	 # Simple dictionary of info for basic info.
+    progDict = None	 # For saving progress of current target
+    status = False	  # State of this class.  For initiating.
+
+    sFrame = None	   # Score dataframe
+    rInfo = None		# run_info_class for accessing run directories
 
     printBase = True
     printAll = False
@@ -1217,7 +1226,7 @@ class target_info_class:
                 self.tDict = json.load( iFile )
             self.initDict = deepcopy( self.tDict )
             self.status = True
-            
+
         # If target info does not exist, create
         else:
             if self.printAll: print("\t - Creating new info file" )
@@ -1243,8 +1252,8 @@ class target_info_class:
         return
 
     # End target init 
-    
-    
+
+
     def findTargetImage( self, tName = None ):
 
         if tName == None:
@@ -1257,21 +1266,26 @@ class target_info_class:
         else:
             return None
 
-    
+    def printParams( self, ):
+
+        for pKey in self.tDict['score_parameters']:
+            print( self.tDict['score_parameters'][pKey] )
+
+
     def addScoreParam( self, paramLoc = None, paramDict = None, overwrite = False):
-        
+
         if paramDict == None and paramLoc == None:
             return None
-        
-        if paramLoc != None:            
+
+        if paramLoc != None:			
             spClass = score_parameter_class( paramLoc = paramLoc, printBase =False )
-            
+
         elif paramDict != None:
             spClass = score_parameter_class( paramDict = paramDict, printBase=False )
-            
+
         if not spClass.status:
             return None
-        
+
         # If score parameters already present
         if self.tDict['score_parameters'].get( spClass.get('name'), None) != None and not overwrite:
             return self.tDict['score_parameters'].get( spClass.get('name'), None)
@@ -1350,7 +1364,7 @@ class target_info_class:
         for sName in scoreHeaders:
             if 'zoo_merger_score' in sName:
                 continue
-            
+
             sCount = self.sFrame[sName].count()
             self.tDict['progress']['machine_scores'][sName] = int( sCount )
 
@@ -1361,7 +1375,7 @@ class target_info_class:
         self.sFrame.to_csv( self.scoreLoc, index = False, quoting=2 )
 
     # End gathering scores and progress
- 
+
     def get( self, inVal, defaultVal = None ):
 
         cVal = getattr( self, inVal, defaultVal )
@@ -1383,7 +1397,7 @@ class target_info_class:
 
         runDirList = self.iter_runs()
         nRuns = len(runDirList)
-        
+
         # Prepare model Set
         for h in self.targetHeaders:
             if self.tDict.get(h,None) == None:
@@ -1398,8 +1412,8 @@ class target_info_class:
         sharedModelSet = ppClass.manager.dict()
 
         argList = [ dict( rDir=rDir, modelSet=sharedModelSet) for rDir in runDirList ]
-        ppClass.loadQueue( self.getRunDirInfo, argList )
-        
+        ppClass.loadQueue( self.getRunDict, argList )
+
         # Do parallel
         ppClass.runCores()
 
@@ -1410,7 +1424,27 @@ class target_info_class:
 
     # end gather Run Infos
 
-    def getRunDirInfo( self, rDir, modelSet ):
+    def getRunInfo( self, rID=None, printAll=False, printBase=False ):
+
+        if type(rID) == type('string'):
+            runDir = self.zooMergerDir + 'run_%s/' % rID
+        else:
+            return None
+
+        # Try filling in zeros if short integer
+        if not path.exists( runDir ):
+            rID = rID.zfill(5)
+            runDir = self.zooMergerDir + 'run_%s/' % rID
+
+        rInfo = run_info_class( runDir = runDir, printBase = printBase, printAll=printAll )
+
+        if rInfo.status:
+            return rInfo
+
+        else:
+            return None
+
+    def getRunDict( self, rDir, modelSet ):
 
         rInfo = run_info_class( runDir = rDir, printBase=False )
 
@@ -1463,17 +1497,17 @@ class target_info_class:
 
    # End Target info class
 
- 
+
     # Read in classes for run infos
     def iter_runs( self,  start=0, n = -1, ):
 
         # Get list of run directories
         self.runDirs = [ self.zooMergerDir + item + '/' for item in listdir( self.zooMergerDir ) if 'run' in item ]
         self.runDirs.sort()
-        
+
         if start == 0:
             self.runDirs = self.runDirs[:n]
-        elif n == -1:          
+        elif n == -1:		  
             self.runDirs = self.runDirs[start:n]
         else:
             self.runDirs = self.runDirs[start:start+n]
@@ -1489,7 +1523,7 @@ class target_info_class:
         if self.printAll:
             print( 'IM: Target.initTargetDir():' )
             print( '\t - targetDir: %s' % targetDir )
-            
+
         # if nothing given, complain
         if type(targetDir) == type(None):
             if self.printBase:
@@ -1511,7 +1545,7 @@ class target_info_class:
             print("\t - Target dir not found")
             print('\t - targetDir: ', targetDir )
             return False
- 
+
         # Define paths for all useful things in target structure
         self.targetDir = path.abspath( targetDir )
         if self.targetDir[-1] != '/': self.targetDir += '/'
@@ -1542,7 +1576,7 @@ class target_info_class:
         if status and not path.exists( self.plotDir ):
             from os import mkdir
             mkdir( self.plotDir )
-        
+
         if self.printAll:
             print( '\t - targetDir: (%s) %s' % ( path.exists( self.targetDir ), self.targetDir ) )
             print( '\t - infoDir: (%s) %s' % ( path.exists( self.infoDir ), self.infoDir ) )

@@ -27,8 +27,10 @@ IRB course?
 - Image Creator
 	- Rotating galaxies still not working
 	- Do Total variation denoising on Model images
+	- Params, clause if arguments are incomplete to create image.
 
 - Image Comparison.
+	- (HIGH) Rewrite how params are passed to machine score method functions
 	- Implement new low hanging machine score
 	- Reimplement WNDCHRM
 	- Weighted Mask

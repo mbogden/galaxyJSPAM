@@ -1,7 +1,7 @@
 '''
-    Author:     Matthew Ogden
-    Created:    28 Feb 2020
-Description:    I have finally commited to creating a dedicated file for all things relating to the input arguments and processing.
+    Author:	 Matthew Ogden
+    Created:	28 Feb 2020
+Description:	I have finally commited to creating a dedicated file for all things relating to the input arguments and processing.
 '''
 
 
@@ -13,12 +13,19 @@ sysPath.append( supportPath )
 
 cv2 = None
 
+# Common json/dict functions
+from copy import deepcopy
+
+from pprint import PrettyPrinter
+pp = PrettyPrinter(width=41, compact=True)
+pprint = pp.pprint
+
+
 def test():
     print("GM: Hi!  You're in Matthew's module for generally useful functions and classes")
 
-
 def validPath( inPath, printWarning = True, pathType = None):
-    
+
     # Check if valid string
     if type( inPath ) != type( 'string' ):
         if printWarning:
@@ -41,7 +48,7 @@ def validPath( inPath, printWarning = True, pathType = None):
 
     # if asking for directory
     elif pathType == 'dir':
-        
+
         # Check if directory or something else
         if path.isdir( outPath ):
             return outPath
@@ -49,7 +56,7 @@ def validPath( inPath, printWarning = True, pathType = None):
 
     # if asking for file
     elif pathType == 'file':
-        
+
         # Check if file or something else
         if path.isfile( outPath ):
             return outPath
@@ -77,7 +84,7 @@ def readFile( fileLoc, stripLine=False ):
     if not path.isfile( fileLoc ):
         print("Error: GM: File does not exist: %s" % fileLoc)
         return None
-    
+
     try:
         inFile = open( fileLoc, 'r' )
 
@@ -111,7 +118,7 @@ class inArgClass:
         self.sdssDir = None
         self.targetDir = None
         self.dataDir = None
-        
+
         if inArg != None:
             self.updateArg( inArg )
 
@@ -188,7 +195,7 @@ class inArgClass:
         allAttrs = vars( self )
 
         for argName in allAttrs:
-            
+
             argVal = getattr(self, argName )
             oldType = type( argVal )
 
@@ -292,7 +299,7 @@ class ppClass:
 
             try:
                 funcArgs = self.jobQueue.get( block=True, timeout=1 )
-            
+
             # Will exist loop if queue is empty
             except self.Empty:
                 print('%s - queue empty' % self.mp.current_process().name)
@@ -301,7 +308,7 @@ class ppClass:
             if self.printProg:
                 p = n - int( self.jobQueue.qsize() )
                 perc = ( p / n ) * 100
-                print("%.1f%% - %d / %d          " % ( perc, p, n ), end='\r' )
+                print("%.1f%% - %d / %d	" % ( perc, p, n ), end='\r' )
 
             # Run desired function on core
             self.funcPtr(**funcArgs)
@@ -343,7 +350,7 @@ def checkPP(arg):
     pHolder.runCores()
 
 def readImg( imgLoc, printAll = False, toSize=None ):
-    
+
     import cv2
 
     # Check if path is valid
@@ -355,15 +362,20 @@ def readImg( imgLoc, printAll = False, toSize=None ):
 
     # Read image from disk
     img = cv2.imread( imgLoc, 0 ) 
-    
+
     # Resize if requested
     if toSize != None:
         img = cv2.resize(img, toSize, interpolation = cv2.INTER_AREA)
-    
+
     # Return image
     return img
 
 # End get image
+
+
+def tabprint( inprint, begin = '\t - ', end = '\n' ):
+    print('%s%s' % (begin,inprint), end=end )
+
 
 # Run main after declaring functions
 if __name__ == '__main__':
