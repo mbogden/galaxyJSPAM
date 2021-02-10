@@ -5,13 +5,48 @@
 Description:    Created so comparison methods are simply maintained
 '''
 
+from inspect import getmembers, isfunction
+from sys import modules as sysModules
+
 import cv2
 import numpy as np
 
+
 def test():
     print("MS: Hi!  Inside machineScoreMethods.py")
+    
 
-def score_absolute_difference( img1, img2, simple=True ):
+# Populate global list of score functions
+scoreFunctions = None
+
+    
+def createScore( img1, img2, cmpArg ):
+
+    funcPtr = getScoreFunc( cmpArg['cmpMethod'] )
+
+    if funcPtr != None:
+        return funcPtr( img1, img2, cmpArg )
+    
+    else:
+        return None
+    
+    
+def getScoreFunc( funcName, printAll = False ):
+
+    funcPtr = None
+
+    for name, ptr in scoreFunctions:
+
+        if 'score_' + funcName == name:
+            funcPtr = ptr
+            
+        elif name == funcName:
+            funcPtr = ptr
+    
+    return funcPtr
+# End get score
+
+def score_absolute_difference( img1, img2, cmpArg ):
 
     score = None
 
@@ -22,23 +57,18 @@ def score_absolute_difference( img1, img2, simple=True ):
     score = 1 - score
 
     # if simply return score
-    if simple:
-        return score
+    return score
 
-    # if complex return 
-    cInfo = None
-
-    cInfo = {
-        'score' : score,
-        'comparison_name': 'absolute_difference'
-    }
-
-    return score, cInfo
 # End absDiff
 
-def score_absolute_difference_lower_scale( img1, img2, l = 0.9, simple=True  ):
+def score_absolute_difference_lower_scale( img1, img2, cmpArg  ):
 
     score = None
+    
+    l = 0.9
+    
+    if cmpArg.get('l',None) != None:
+        l = cmpArg['l']
 
     dImg = np.abs( img1 - img2 )
     score = np.sum( dImg ) / dImg.size / 255
@@ -48,37 +78,33 @@ def score_absolute_difference_lower_scale( img1, img2, l = 0.9, simple=True  ):
     score = (score - l) / (1-l)
     if score < 0.0: score = 0.0
 
-    if simple: return score
-
-    # if complex return 
-    cInfo = None
-
-    cInfo = {
-        'score' : score,
-        'comparison_name': 'absolute_difference_lower_scale', 
-        'comparison_info': {
-            'l' : l
-        }
-    }
-
-    return score, cInfo
+    return score
 
 # end createMScores()
 
 # All basic scoring methods
 
-def score_overlap_fraction( img1, img2, h=80, simple=True ):
+def score_overlap_fraction( img1, img2, cmpArg ):
 
     score = None
+    
+    h1 = 80
+    h2 = 80
+    
+    if cmpArg.get('h1',None) != None:
+        h1 = cmpArg['h1']
+    
+    if cmpArg.get('h2',None) != None:
+        h1 = cmpArg['h2']
 
     i1 = np.copy( img1 )
     i2 = np.copy( img2 )
 
-    i1[ i1 <  h ] = 0
-    i1[ i1 >= h ] = 1
+    i1[ i1 <  h1 ] = 0
+    i1[ i1 >= h1 ] = 1
 
-    i2[ i2 <  h ] = 0
-    i2[ i2 >= h ] = 1
+    i2[ i2 <  h2 ] = 0
+    i2[ i2 >= h2 ] = 1
 
     bImg = i1 + i2
     bImg[ bImg <  2 ] = 0
@@ -90,23 +116,10 @@ def score_overlap_fraction( img1, img2, h=80, simple=True ):
 
     score = ( z / ( x + y - 1.0*z ) )
     
-    if simple:  return score
-
-    # if complex return 
-    cInfo = None
-
-    cInfo = {
-        'score' : score,
-        'comparison_name': 'overlap_fraction',
-        'comparison_info': {
-            "h" : h
-        }
-    }
-
-    return score, cInfo
+    return score
 
 
-def score_correlation( img1, img2, simple=True  ):
+def score_correlation( img1, img2, cmpArg  ):
 
     score = None
 
@@ -122,17 +135,7 @@ def score_correlation( img1, img2, simple=True  ):
 
     score = np.corrcoef( ar1, ar2 )[0,1]
 
-    if simple: return score
-
-    # if complex return 
-    cInfo = None
-
-    cInfo = {
-        'score' : score,
-        'comparison_name': 'correlation'
-    }
-
-    return score, cInfo
+    return score
 
 def binImg( imgIn, threshold ):
 
@@ -143,96 +146,50 @@ def binImg( imgIn, threshold ):
     return cpImg
 
 
-def score_binary_correlation( img1, img2, t1=80, t2=None, bin1=True, bin2=True, simple=True  ):
+def score_binary_correlation( img1, img2, cmpArg  ):
 
     score = None
+    h1=80
+    h2=80
+    bin1=True
+    bin2=True
     
-    if bin1:
-        img1 = binImg( img1, t1 )
+    if cmpArg.get('h1',None) != None:
+        h1 = cmpArg['h1']
     
-    if bin2:
-        if t2 == None: t2 = t1
-        img2 = binImg( img2, t2 )
+    if cmpArg.get('h2',None) != None:
+        h1 = cmpArg['h2']
+    
+    tmpImg1 = binImg( img1, h1 )
+    tmpImg2 = binImg( img2, h2 )
 
-    score = score_correlation( img1, img2 )
+    score = score_correlation( tmpImg1, tmpImg2, cmpArg )
 
-    if simple: return score
-
-    # if complex return 
-    cInfo = None
-    cInfo = {
-        'score' : score,
-        'comparison_name': 'binary_correlation',
-        'comparison_info': {
-            't1' : "%s" % t1, 
-            't2' : "%s" % t2, 
-        }
-    }
-
-    return score, cInfo
-
+    return score
 # end createBinaryCorrelation()
 
-def getScoreFunctions():
-
-    import inspect, sys
-    scoreFunctions = [ ( name, obj ) for name,obj in inspect.getmembers(sys.modules[__name__]) \
-                        if ( inspect.isfunction(obj) and name.split('_')[0] == 'score' ) ]
-    
-    return scoreFunctions
-
-def getScoreFunc( funcName, printAll = False ):
-
-    allFunctions = getScoreFunctions( )
-
-    funcPtr = None
-
-    for name, ptr in allFunctions:
-
-        if name == funcName:
-
-            funcPtr = ptr
-
-        elif 'score_' + funcName == name:
-
-            funcPtr = ptr
-    
-    return funcPtr
-# End get score
-
-    
-def createScore( img1, img2, cmpMethod='correlation' ):
-
-    funcPtr = getScoreFunc( cmpMethod )
-
-    if funcPtr != None:
-
-        return funcPtr( img1, img2 )
-    else:
-
-        return None
 
 
 def allScores( img1, img2, printAll = False ):
 
-    fList = getScoreFunctions()
-
     sList = []
-    cList = []
 
-    for i,l in enumerate(fList):
+    for i,l in enumerate(scoreFunctions):
 
         fName, func = l
 
-        score, cInfo = func( img1, img2, simple=False )
+        score, cInfo = func( img1, img2, None )
 
         sList.append( score )
-        cList.append( cInfo )
 
-    return sList, cList 
+    return sList 
 
 
-# Run main after declaring functions
+# Gather direct image score functions into a single list
+scoreFunctions = [ ( name, obj ) for name,obj in getmembers(sysModules[__name__]) \
+                    if ( isfunction(obj) and name.split('_')[0] == 'score' ) ]
+
+
 if __name__=='__main__':
 
     test()

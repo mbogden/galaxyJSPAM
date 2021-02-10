@@ -20,8 +20,8 @@ import Support_Code.general_module as gm
 import Support_Code.info_module as im
 import Simulator.main_simulator as ss
 
-sysPath.append( path.abspath( 'Machine_Compare/' ) )
-import Machine_Compare.main_compare as mc
+sysPath.append( path.abspath( 'Machine_Score/' ) )
+from Machine_Score import main_machine_score as ms
 
 def test():
 	print("SIMR: Hi!  You're in Matthew's main program for all things galaxy collisions")
@@ -280,125 +280,61 @@ def newTargetScores( tInfo, printBase = True, printAll = False,\
 # End processing target dir
 
 
-def pipelineRun( pClass = None, arg = None, rInfo = None, tImg = None, tInfoPtr=None ):
+def simr_run( arg = None, rInfo = None ):
 
-	# Initialize variables
-	if arg == None:
-		print("SIMR: WARNING: No arg. Exiting")
+    # Initialize variables
+    if arg == None:
+        print("SIMR: WARNING: No arg. Exiting")
 
-	rDir = arg.runDir
-	printAll = arg.printAll 
-	printBase = arg.printBase
+    rDir = arg.runDir
+    params = arg.scoreParams
+    printAll = arg.printAll
+    printBase = arg.printBase
 
-	newInfo = arg.get('newInfo', False )
-	newScore = arg.get('newScore', False )
+    if printBase:
+        print("SIMR.pipelineRun: Inputs")
+        print("\t - rDir:", rDir)
+        print("\t - rInfo:", type(rInfo) )
 
-	if printBase:
-		print("SIMR.pipelineRun: Inputs")
-		print("\t - rDir:", rDir)
-		print("\t - rInfo:", type(rInfo) )
-		print("\t - param:", pClass != None)
+    # Initialize info file
+    if rInfo == None:
+        rInfo = im.run_info_class( runDir=rDir, \
+                printBase = printBase, printAll=printAll,\
+                newInfo = newInfo, tInfoPtr=tInfoPtr )
 
-	# Initialize info file
-	if rInfo == None:
-		rInfo = im.run_info_class( runDir=rDir, \
-				printBase = printBase, printAll=printAll,\
-				newInfo = newInfo, tInfoPtr=tInfoPtr )
+    if printBase:
+        print('SIMR.pipelineRun: ')
+        print('\t - rInfo: ', (rInfo) )
 
-	if printBase:
-		print('SIMR.pipelineRun: ')
-		print('\t - param: ', type(pClass) )
-		print('\t - rInfo: ', (rInfo) )
+    if rInfo.status == False:
+        print("SIMR.pipelineRun: WARNING: runInfo bad")
+        return
 
-	if rInfo.status == False:
-		print("SIMR.pipelineRun: WARNING: runInfo bad")
-		return
+    if printBase:
+        print("SIMR: run: scores before")
+        rInfo.printScores()
+    
+    # Check if new files should be created/altered
+    newSim = arg.get('newSim')
+    newImg = arg.get('newImg')
+    newScore = arg.get('newScore')
+    newAll = arg.get('newAll')
+    
+    if newSim or newAll:
+        if printBase: print("SIMR: run: newSim not functioning at this time")
+        
+    if newImg or newAll:
+        if printBase: print("SIMR: run: newImg not functioning at this time")
 
-	if printBase:
-		print("SIMR: run: scores before")
-		rInfo.printScores()
+    if newScore or newAll:
 
-	if newScore:
+        ms.MS_Run( printBase = printBase, printAll = printAll, \
+                rInfo = rInfo, params = arg.get('scoreParams'), \
+                arg = arg )
 
-		createNewRunScore( rInfo, pClass, \
-				tImg = tImg, targetLoc = arg.get('targetLoc',None) )
-
-		if printBase:
-
-			print("SIMR: run: scores after")
-			rInfo.printScores()
-
-	# Should not reach
-	return None
-
-
-def createNewRunScore( rInfo, pClass, \
-		printBase = True, printAll = False, \
-		tImg = None, targetLoc = None ):
-
-	# Create new score if variable is given
-	if printBase: ("SIMR: createNewRunScore: Score not found, creating...")
-
-	# Work backwords, get images if possible
-
-	mcVal = mc.pipelineRun( printBase = printBase, printAll = printAll, \
-			rInfo = rInfo, pClass = pClass, \
-			tLoc = targetLoc, tImg = tImg )
-	
 # end processing run
 
 
-def procRunImg( rInfo, imgArg, printBase = True, printAll = False ):
-
-	# Get desired number of particles for simulation
-	imgParam = imgArg.get( 'name', None )
-
-	if imgParam == None:
-		print("SIMR.procRunImg: WARNING:")
-		print("\t - Image name not found in parameter file")
-		return None
-
-
-	if printBase:
-		print('\t - Image name: ' , imgParam)
-		print('\t - imgLoc: %s' % imgLoc)
-		print('\t - initLoc: %s' % initLoc)
-
-	if imgLoc == None:
-		print("SIMR.procRunImg: WARNING:")
-		print("\t - image not found")
-		print("\t - creating new image not yet implemented")
-		return None
-
-	return imgLoc
-
-def procRunSim( rInfo, simArg, printBase = True, printAll = False ):
-
-
-	# Get desired number of particles for simulation
-	dPts = simArg.get( 'name', None )
-
-	if dPts == None:
-		print("SIMR.procRunSim: WARNING:")
-		print("\t - Particle file name not found in parameter file")
-		return None
-
-	ptsLoc = rInfo.findPtsFile( dPts )
-
-	if printBase:
-		print('\t - dPts: ' , dPts)
-		print('\t - ptsLoc: %s' % ptsLoc)
-
-	if ptsLoc == None:
-		print("SIMR.procRunSim: WARNING:")
-		print("\t - nPts file not found")
-		print("\t - creating new file not yet implemented")
-		return None
-
-	return ptsLoc
-
-
-# end processing run dir
 
 # Run main after declaring functions
 if __name__ == '__main__':

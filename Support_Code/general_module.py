@@ -308,7 +308,7 @@ class ppClass:
             if self.printProg:
                 p = n - int( self.jobQueue.qsize() )
                 perc = ( p / n ) * 100
-                print("%.1f%% - %d / %d		  " % ( perc, p, n ), end='\r' )
+                print("%.1f%% - %d / %d	" % ( perc, p, n ), end='\r' )
 
             # Run desired function on core
             self.funcPtr(**funcArgs)

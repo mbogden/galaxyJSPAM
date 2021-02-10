@@ -523,6 +523,9 @@ class run_info_class:
 
         return score
 
+    def getAllScores( self  ):
+        return self.get('machine_scores')
+
     def printScores( self, ):
 
         print("IM: run_info_class.printScores()")
