@@ -106,12 +106,16 @@ def main(arg):
 class group_score_parameter_class:
 
     group = {}
+    status = False
 
     def __init__( self, pLoc = None ):
 
         if pLoc != None:			
             with open( pLoc, 'r' ) as iFile:
                 self.group = json.load( iFile )
+        
+        if self.group != {}:
+            self.status = True
 
     def addGroupParam( self, inDict ):
         self.group = inDict
@@ -285,6 +289,8 @@ class run_info_class:
     ptsDir = None
     imgDir = None
     miscDir = None
+    
+    tLink = None
 
 
     runHeaders = ( 'run_id', 'model_data', \
@@ -293,11 +299,13 @@ class run_info_class:
     def __init__( self, runDir=None, \
             printBase=True, printAll=False, \
             newInfo=False, newRun=False, \
+            tInfo = None, \
            ):
 
         # print 
         self.printAll = printAll
         self.printBase = printBase
+        self.tInfo = tInfo
 
         # Avoiding confusing things
         if self.printAll: self.printBase = True
@@ -526,14 +534,16 @@ class run_info_class:
     def getAllScores( self  ):
         return self.get('machine_scores')
 
-    def printScores( self, ):
+    def printScores( self, allScores=False):
 
         print("IM: run_info_class.printScores()")
         tabprint( 'run_id: %s' % self.get('run_id') )
         tabprint( 'zoo_merger: %f' % self.get('zoo_merger_score'))
+        tabprint( 'machine_scores: %d' % len(self.rDict['machine_scores']) )
 
-        for sKey in self.rDict['machine_scores']:
-            print( '\t - %s: %f' %  (sKey, self.getScore( sKey )) )
+        if allScores:
+            for sKey in self.rDict['machine_scores']:
+                print( '\t - %s: %f' %  (sKey, self.getScore( sKey )) )
 
     def addScore( self, name=None, score=None ):
 
@@ -1253,12 +1263,34 @@ class target_info_class:
 
     # End target init 
 
+    def getTargetImage( self, tName = None ):
+
+        # return if invalid request
+        if tName == None:
+            return
+        
+        # Create tmp target image dict if not found
+        if self.get('targetImgs',None) == None:
+            self.targetImgs = {}
+        
+        # Search if target image was previously loded. 
+        if type( self.targetImgs.get(tName,None) ) != type( None ):
+            return self.targetImgs[tName]
+        
+        # Else find and open target image
+        tLoc = self.findTargetImage(tName)
+        
+        if not gm.validPath(tLoc,):
+            return None
+        
+        else:
+            self.targetImgs[tName] = gm.readImg(tLoc)
+            return self.targetImgs[tName]
+        
+    # End getTargetImage()
+
 
     def findTargetImage( self, tName = None ):
-
-        if tName == None:
-            print("target is none")
-            return
 
         tLoc = self.infoDir + 'target_%s.png' % tName
         if path.exists( tLoc ):
@@ -1466,6 +1498,9 @@ class target_info_class:
         return modelSet[rID]
 
     # End get Run Dir Info
+    
+    def getAllRunDicts( self, ):
+        return self.tDict['zoo_merger_models']
 
     def saveInfoFile( self, baseFile=False ):
 

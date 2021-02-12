@@ -98,7 +98,7 @@ def MS_Run( \
         ):
 
     if printBase: 
-        print("MS: main_run:")
+        print("MS: Run:")
 
     if rInfo == None:
         rInfo = im.run_info_class( runDir=runDir, printAll=printAll, )
@@ -154,48 +154,53 @@ def MS_Run( \
 def target_image_compare(rInfo, param, args):
     
     printBase = args.printBase
+    printAll = args.printAll
     
-    # GET Target Image
+    # Base info
+    pName = param['name']
     tName = param['targetName'] 
-    tLoc = None
+    mName = param['imgArg']['name']
+    
+    # GET TARGET IMAGE
+    tLoc = args.get('targetLoc',None)
     tImg = None
-    tLink = rInfo.get('link_tInfo')
+    tLink = rInfo.get('tInfo')
     
-    # Create dict for storing target and model images if needed
-    if rInfo.get('targetImg') == None:
-        rInfo.targetImg = {}
-        
-    if rInfo.get('modelImg') == None:
-        rInfo.modelImg = {}
-        
-    # Check if in rInfo has target Image already
-    if type( rInfo.targetImg.get(tName) ) != type(None):
-        tImg = rInfo.targetImg.get(tName)
+    if printBase: print('MS: target_image_compare')
     
-    # Check other source
+    if printAll:
+        im.tabprint(' paramName: %s'%pName)
+        im.tabprint(' modelName: %s'%mName)
+        im.tabprint('targetName: %s'%tName)
+    
+    # Exit if invalid request
     if type(tLoc) == type(None) and type(tLink) == type(None):
         if printBase:
                 print("MS: Error: target_image_compare: no target image or link given")
         return None
-    
-    # If given tLink
-    if type(tLoc) == type(None):
-        tLoc = tLink.findTargetImage(tName)
+        
+    # Check if image location given
+    if gm.validPath(tLoc, printWarning=printBase):
         tImg = gm.readImg(tLoc)
+        
+    # If given tInfo link, have tInfo search and get image.
+    else:        
+        tImg = tLink.getTargetImage(tName)
     
-        # Finally, should have tImg.  Leave if not
-        if type(tImg) != None:
-            rInfo.targetImg[tName] = tImg
-        else:
-            if printBase:
-                print("MS: Error: target_image_compare: failed to load target image")
-            return None
+    # Finally, should have tImg.  Leave if not
+    if type(tImg) == None:
+        if printBase:
+            print("MS: Error: target_image_compare: failed to load target image")
+        return None
+    elif printAll: gm.tabprint("Read target image")
     
-    # GET Model Image
-    
-    mName = param['imgArg']['name']
+    # GET MODEL IMAGE    
     mImg = None
     mloc = None
+    
+    # Create dict for storing target and model images if needed        
+    if rInfo.get('modelImg') == None:
+        rInfo.modelImg = {}
         
     # Check if in rInfo has model Image already
     if type( rInfo.modelImg.get(mName) ) != type(None):
@@ -204,15 +209,18 @@ def target_image_compare(rInfo, param, args):
     # Else, have rInfo retrieve img location
     else:
         mLoc = rInfo.findImgLoc(mName)
-        if gm.validPath(mLoc):
+        if gm.validPath(mLoc, printWarning=printBase):
             mImg = gm.readImg(mLoc)
             rInfo.modelImg[mName] = mImg
         
     if type(mImg) == type(None): 
             if printBase: 
                 print("MS: Error: target_image_compare: failed to load model image")
-                gm.tabprint("model: "%mName)
+                gm.tabprint("runId: %s"%rInfo.get('run_id'))
+                gm.tabprint("model: %s"%mName)
             return None
+        
+    elif printAll: print("MS: run: Read model image")
     
     # Create score and add to rInfo
     

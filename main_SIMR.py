@@ -162,11 +162,6 @@ def pipelineTarget( arg=gm.inArgClass(), tInfo = None ):
 	printBase = arg.printBase
 	printAll = arg.printAll
 
-	newScore = arg.get('newScore',False)
-	newImage = arg.get('newImage',False)
-	newAll = arg.get('newAll', False)
-
-
 	if printBase:
 		print("SIMR: pipelineTarget: input")
 		print("\t - tDir: %s" % tDir )
@@ -280,13 +275,14 @@ def newTargetScores( tInfo, printBase = True, printAll = False,\
 # End processing target dir
 
 
-def simr_run( arg = None, rInfo = None ):
+def simr_run( arg = None, rInfo = None, rDir = None ):
 
     # Initialize variables
     if arg == None:
         print("SIMR: WARNING: No arg. Exiting")
 
-    rDir = arg.runDir
+    if rDir == None:
+        rDir = arg.runDir
     params = arg.scoreParams
     printAll = arg.printAll
     printBase = arg.printBase
@@ -300,7 +296,7 @@ def simr_run( arg = None, rInfo = None ):
     if rInfo == None:
         rInfo = im.run_info_class( runDir=rDir, \
                 printBase = printBase, printAll=printAll,\
-                newInfo = newInfo, tInfoPtr=tInfoPtr )
+                newInfo = arg.get('newInfo',False), tInfo=arg.get('tInfo',None) )
 
     if printBase:
         print('SIMR.pipelineRun: ')

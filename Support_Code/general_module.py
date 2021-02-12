@@ -53,7 +53,6 @@ def validPath( inPath, printWarning = True, pathType = None):
         if path.isdir( outPath ):
             return outPath
 
-
     # if asking for file
     elif pathType == 'file':
 
@@ -111,7 +110,7 @@ class inArgClass:
 
         self.printBase = True
         self.printAll = False
-        self.nProc = 1
+        self.nProc = -1
 
         self.simple = False
         self.runDir = None
@@ -188,6 +187,7 @@ class inArgClass:
     # For manual setting
     def setArg( self, inName, inArg ):
         setattr( self, inName, inArg )
+
 
     # For checking if input strings are meant to be a boolean
     def checkBool(self):
@@ -293,6 +293,7 @@ class ppClass:
     def coreFunc( self ):
 
         n = int( self.nQueue )
+        from sys import stdout
 
         # Keep core running until shared queue is empty
         while True:
@@ -308,7 +309,8 @@ class ppClass:
             if self.printProg:
                 p = n - int( self.jobQueue.qsize() )
                 perc = ( p / n ) * 100
-                print("%.1f%% - %d / %d	" % ( perc, p, n ), end='\r' )
+                
+                stdout.write( "%.1f%% - %d / %d	  \r" % ( perc, p, n ) )
 
             # Run desired function on core
             self.funcPtr(**funcArgs)
