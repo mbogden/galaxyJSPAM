@@ -256,7 +256,7 @@ def new_target_scores( tInfo, tArg ):
 
     # Prepare and run parallel class
     ppClass = gm.ppClass( tArg.nProc, printProg=True )
-    ppClass.loadQueue( simr.simr_run, argList )
+    ppClass.loadQueue( simr_run, argList )
     ppClass.runCores()
     
     # Save results
