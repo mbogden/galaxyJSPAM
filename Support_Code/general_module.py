@@ -236,6 +236,10 @@ class ppClass:
     manager = mp.Manager()
 
     def __init__(self, nCore, printProg=False):
+        
+        if type(nCore) != type( 123 ):
+            nCore = int(nCore)
+            
 
         # 0 for all, negative all minus negative
         if nCore < 1:
