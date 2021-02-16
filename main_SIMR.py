@@ -45,10 +45,10 @@ def main(arg):
 			print("\t- Nothing else to see here")
 
 	elif arg.runDir != None:
-		pipelineRun( arg )
+		simr_run( arg )
 
 	elif arg.targetDir != None:
-		pipelineTarget( arg )
+		simr_target( arg )
 
 	elif arg.dataDir != None:
 		procAllData( arg )
