@@ -45,6 +45,18 @@ def validPath( inPath, printWarning = False, pathType = None):
 
 # End valid path function
 
+def getScores( scoreLoc ):
+    
+    import pandas as pd
+    
+    scores = None    
+    
+    sLoc = validPath( scoreLoc )
+    if sLoc != None:
+        scores = pd.read_csv(sLoc)
+    
+    return scores
+
 def getImg( imgLoc, printAll = False ):
     global cv2
 

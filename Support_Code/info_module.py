@@ -448,6 +448,17 @@ class run_info_class:
             return None
 
     # End findPtsFile
+    
+    def getModelImg( self, imgName = 'default' ):
+        
+        imgLoc = self.findImgLoc( pName = imgName )
+        
+        if imgLoc != None:
+            img = gm.readImg(imgLoc)
+            return img
+        
+        else:
+            return None
 
     def findImgLoc( self, pName, initImg = False, newImg=False, ):		 
 
@@ -826,7 +837,6 @@ class target_info_class:
             # Read all as string
             self.sFrame = pd.read_csv( self.scoreLoc )
 
-
         if newInfo:
                         
             # Should run infos be modified? 
@@ -1079,18 +1089,18 @@ class target_info_class:
         
         return gm.validPath(runDir)
 
-    def getRunInfo( self, rID=None, runArg=None ):
+    def getRunInfo( self, rID=None, rArg=None ):
         
         runDir = self.getRunDir(rID=rID)
         
         if runDir == None:
             return
 
-        if runArg == None:
+        if rArg == None:
             rInfo = run_info_class( runDir = runDir, )
             
         else: 
-            rInfo = run_info_class( runDir = runDir, args=runArg )
+            rInfo = run_info_class( runDir = runDir, rArg=rArg )
 
         if rInfo.status:
             return rInfo

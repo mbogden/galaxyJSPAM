@@ -92,7 +92,6 @@ def simr_many_target( arg ):
     tArg.dataDir = None
     
     
-    
     # Get list of directories/files and go through
     targetList = listdir( dataDir )   # List of items found in folder
 
@@ -117,6 +116,9 @@ def simr_target( arg=gm.inArgClass(), tInfo = None ):
     tDir = arg.targetDir
     printBase = arg.printBase
     printAll = arg.printAll
+    
+    if arg.printAll:
+        arg.printBase = True
 
     if printBase:
         print("SIMR: pipelineTarget: input")
@@ -282,12 +284,8 @@ def simr_run( arg = None, rInfo = None, rDir = None ):
         print('\t - rInfo: ', (rInfo) )
 
     if rInfo.status == False:
-        print("SIMR.pipelineRun: WARNING: runInfo bad")
-        return
-
-    if printBase:
-        print("SIMR: run: scores before")
-        rInfo.printScores()
+        if printBase: print("SIMR.pipelineRun: WARNING: runInfo bad")
+        return None
 
     # Check if new files should be created/altered
     newSim = arg.get('newSim')
