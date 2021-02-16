@@ -36,25 +36,13 @@ def validPath( inPath, printWarning = False, pathType = None):
 
     outPath = path.abspath( inPath )
 
-    # if type of path not given, return absolute path
-    if pathType == None:
-        return outPath
 
-    # if asking for directory
-    elif pathType == 'dir':
+    # Check if directory or something else
+    if path.isdir( outPath ) and outPath[-1] != '/':
+        outPath += '/'
 
-        # Check if directory or something else
-        if path.isdir( outPath ):
-            return outPath
+    return outPath
 
-    # if asking for file
-    elif pathType == 'file':
-
-        # Check if file or something else
-        if path.isfile( outPath ):
-            return outPath
-
-    return None
 # End valid path function
 
 def getImg( imgLoc, printAll = False ):
