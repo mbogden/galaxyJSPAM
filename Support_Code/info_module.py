@@ -396,7 +396,7 @@ class run_info_class:
             else:
                 self.txt2Json( )
 
-            if type(self.rDict) == type(None):
+            if type(self.rDict) == type(None) and self.printBase:
                 print("IM: Run.__init__ Error: Failed to initialize info file..." )
                 return
 
@@ -769,13 +769,15 @@ class target_info_class:
             print('\t - targetDir: ', targetDir)
             print('\t - printBase: ', printBase)
             print('\t - printAll: ', printAll)
+            
         # Check if directory has correct structure
         dirGood = self.initTargetDir( targetDir )
 
         # Complain if not
         if not dirGood:
-            print("IM: Target.__init__(): ")
-            print("\t - WARNING: Something went wrong initializing directory.")
+            if self.printBase:
+                print("IM: Target.__init__(): ")
+                print("\t - WARNING: Something went wrong initializing directory.")
             return
 
         # Remove infos if asked for
@@ -812,7 +814,7 @@ class target_info_class:
         # If target info does not exist, create
         else:
             if self.printAll: print("\t - Creating new info file" )
-            self.newTargetInfo( )
+            #self.newTargetInfo( )
             self.saveInfoFile( baseFile=True )
 
         if not path.exists( self.scoreLoc ) and path.exists( self.baseScoreLoc ):
@@ -1156,36 +1158,28 @@ class target_info_class:
 
     # initialize target directories
     def initTargetDir( self, targetDir ):
-
+        
+        
         if self.printAll:
             print( 'IM: Target.initTargetDir():' )
             print( '\t - targetDir: %s' % targetDir )
 
-        # if nothing given, complain
-        if type(targetDir) == type(None):
+        self.targetDir = gm.validPath(targetDir)
+
+        # if Invalid, complain
+        if type(self.targetDir) == type(None):
             if self.printBase:
-                print("IM: WARNING: ")
-                print(" - No target Dir given.  No other option at this time.")
+                print("IM: WARNING: Invalid directory.")
             return False
 
-        # Double check if target directory is valid, complain if not
-        elif type( targetDir ) != type( "String" ):
+        # If not directory, complain
+        elif not path.isdir( self.targetDir ):
             if self.printBase:
-                print("IM: WARNING: target_info_class.__init__")
-                print("\t - Target Directory Not a String!")
-                print("\t - %s" % type( self.targetDir ) )
-            return False
-
-        # If path not found, complain
-        elif not path.exists( targetDir ):
-            print("IM: WARNING: Target:")
-            print("\t - Target dir not found")
-            print('\t - targetDir: ', targetDir )
+                print("IM: WARNING: Target:")
+                print("\t - Target not a directory")
             return False
 
         # Define paths for all useful things in target structure
-        self.targetDir = path.abspath( targetDir )
-        if self.targetDir[-1] != '/': self.targetDir += '/'
 
         self.infoDir = self.targetDir + 'information/'
         self.zooMergerDir = self.targetDir + 'gen000/'
@@ -1203,11 +1197,11 @@ class target_info_class:
 
         # Check if everything needed is found
         if not path.exists( self.infoDir ):
-            print("IM: WARNING: info directory not found!")
+            if self.printBase: print("IM: WARNING: info directory not found!")
             status = False
 
         if not path.exists( self.zooMergerDir ):
-            print("IM: WARNING: zoo models directory not found!")
+            if self.printBase: print("IM: WARNING: zoo models directory not found!")
             status = False
 
         if status and not path.exists( self.plotDir ):
