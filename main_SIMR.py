@@ -76,7 +76,6 @@ def procAllData( arg ):
 	dataDir   = arg.dataDir
 	printBase = arg.printBase
 	printAll  = arg.printAll 
-	paramLoc  = arg.get('paramLoc')
 
 	if printBase: 
 		print("SIMR.procAllData")
@@ -101,47 +100,14 @@ def procAllData( arg ):
 	if dataDir[-1] != '/': dataDir += '/'  
 	dataList = listdir( dataDir )   # List of items found in folder
 
-	tArgList = []
+	tArg = gm.inArgClass()
 
-	if int( arg.get('nProc') ) == 1:
+	# Find target directories
+	for folder in dataList:
+		tDir = dataDir + folder
+		print(tDir)
 
-		# Find target directories
-		for folder in dataList:
-			tDir = dataDir + folder
 
-			pipelineTarget( tDir = tDir, pClass = pClass, \
-					printBase = False, \
-					printAll = printAll, \
-					newInfo = arg.get( 'newInfo', False ), \
-					newRunInfos = arg.get('newRunInfos',False), \
-					newScore = arg.get('newScore', False), \
-					)
-
-	# Prepare parellal processing
-	else:
-
-		# Find target directories
-		for folder in dataList:
-			tDir = dataDir + folder
-
-			tArg = dict( tDir = tDir, pClass = pClass, \
-					printBase = False, \
-					printAll = printAll, \
-					newInfo = arg.get( 'newInfo', False ), \
-					newRunInfos = arg.get('newRunInfos',False), \
-					newScore = arg.get('newScore', False), \
-					)
-
-			tArgList.append( tArg )
-
-		# Initiate Pallel Processing
-		nProcs = int( arg.get( 'nProc', 1 ) )
-		print("SIMR: Requested %d cores" % nProcs)
-
-		mp = gm.ppClass( nProcs )
-		mp.printProgBar()
-		mp.loadQueue( pipelineTarget, tArgList )
-		mp.runCores()
 
 	print("SIMR: Printing Results")
 	for folder in dataList:
@@ -156,121 +122,146 @@ def procAllData( arg ):
 
 
 # Process target directory
-def pipelineTarget( arg=gm.inArgClass(), tInfo = None ):
+def simr_target( arg=gm.inArgClass(), tInfo = None ):
 
-	tDir = arg.targetDir
-	printBase = arg.printBase
-	printAll = arg.printAll
+    tDir = arg.targetDir
+    printBase = arg.printBase
+    printAll = arg.printAll
 
-	if printBase:
-		print("SIMR: pipelineTarget: input")
-		print("\t - tDir: %s" % tDir )
-		print("\t - tInfo: %s" % type(tInfo) )
+    if printBase:
+        print("SIMR: pipelineTarget: input")
+        print("\t - tDir: %s" % tDir )
+        print("\t - tInfo: %s" % type(tInfo) )
 
-	if tInfo == None and tDir == None:
-		print("SIMR: WARNING: pipelineTarget")
-		print("\t - Please provide either target directory or target_info_class")
-		return
+    # Check if given a target
+    if tInfo == None and tDir == None:
+        print("SIMR: WARNING: pipelineTarget")
+        print("\t - Please provide either target directory or target_info_class")
+        return
 
-	elif tInfo == None:
-		tInfo = im.target_info_class( targetDir=tDir, \
-				printBase = printBase, printAll=printAll, \
-				newInfo = arg.get('newInfo',False), \
-				newRunInfos = arg.get('newRunInfos',False), \
-				)
+    # Read target directory if location given. 
+    elif tInfo == None:
+        tInfo = im.target_info_class( targetDir=tDir, tArg = arg )
 
-	if printBase:
-		print("SIMR: pipelineTarget status:")
-		print("\t - tInfo.status: %s" % tInfo.status )
-		im.tabprint( 'progress: ' + str( tInfo.get("progress") ) )
+    if printBase:
+        print("SIMR: pipelineTarget status:")
+        print("\t - tInfo.status: %s" % tInfo.status )
 
-	if tInfo.status == False:
-		print("SIMR: WARNING: pipelineTarget:  Target Info status bad")
-		return
+    # Check if valid directory
+    if tInfo.status == False:
+        print("SIMR: WARNING: pipelineTarget:  Target Info status bad")
+        return
 
-	if arg.get('printParam', False):
-		tInfo.printParams()
-		
-	# Gather scores if called for
-	if arg.get('updateScores',False):
-		tInfo.updateScores()
-	
-	if newImage or newAll:
-		print("HI!")
-	
-	# Create new scores if called upon
-	if newScore or newAll:
-		paramLoc = arg.get('paramLoc',None)
-		paramClass = arg.get('paramClass',None)
-		newTargetScores( tInfo, \
-				printBase = printBase, printAll = printAll, \
-				paramClass=paramClass, paramLoc = paramLoc )
+    if arg.get('printParam', False):
+        tInfo.printParams()
 
+    # Gather scores if called for
+    if arg.get('update',False):
+        tInfo.gatherRunInfos()
+        tInfo.updateScores()
+        tInfo.saveInfoFile()
+        
+    
+    newSim = arg.get('newSim',False)
+    newImg = arg.get('newImg',False)
+    newScore = arg.get('newScore',False)
+    newAll = arg.get('newAll',False)
+    
+    # Check if score parameter file is valid. 
+    if newSim or newImg or newScore or newAll:
+        
+        paramLoc = arg.get('paramLoc')
+        
+        # Check if location is given
+        if not gm.validPath(paramLoc):
+            if printBase:
+                print("SIMR: WARNING: new_target: param location not valid")
+                gm.tabprint('paramLoc: %s'%paramLoc)
+            return
 
-def newTargetScores( tInfo, printBase = True, printAll = False,\
-		pClass = None, paramLoc = None ):
+        # Read parameter file
+        else:
+            pClass = im.group_score_parameter_class(paramLoc)
+            if pClass.status:
+                params = pClass.get('group',None)
+                del pClass
 
-	if printBase:
-		print("SIMR: newTargetScores:")
-		print("\t - tInfo: %s" % tInfo.status )
-		im.tabprint('paramLoc: %s'%type(paramLoc))
-		im.tabprint('paramClass: %s'%type(paramClass))
+        # Check for valid parameter file
+        if params == None:
+            if printBase:
+                print("SIMR: WARNING: Target_New: Failed to load parameter class")
+                gm.tabprint('paramLoc: %s',paramLoc)
+            return
+        
+        # Save parameters in argument class
+        arg.setArg('params',params)     
 
-	if paramLoc == None and pClass == None:
-		print("SIMR: WARNING: No score parameter class given")
-		return
+    # Create new files/scores if called upon
+    if arg.get('newAll') or arg.get('newScore') :
+        new_target_scores( tInfo, arg )
+        tInfo.updateScores()
 
-	elif pClass == None and paramLoc != None:
-		pClass = readParamFile( paramLoc )
-	
-	sName = pClass.get('name')
+        
+        
+def new_target_scores( tInfo, tArg ):
 
-	# Check if new scores are needed
-	pDict = tInfo.tDict['progress']
-	nRuns = pDict['zoo_merger_models']
+    printBase = tArg.printBase
+    printAll = tArg.printAll
+    params = tArg.get("params",None)
 
-	# Start fresh or appending?
-	count, total = tInfo.getScoreCount( scrName = sName )
-	if count == 0:
-		tInfo.addScoreParam( pClass )
-	
-	# Initialize score creation 
-	cmpType = pClass.get('cmpType',None)
+    if printBase:
+        print("SIMR: newTargetScores:")
+        print("\t - tInfo: %s" % tInfo.status )
+        
+    if params == None:
+        if printBase: print("SIMR: WARNING: newTargetScores:  Please give valid score parameters")
+        return None
+    
+    
+    runDicts = tInfo.getAllRunDicts()
+    
+    # Prep arguments
+    runArgs = gm.inArgClass()
+    runArgs.setArg('printBase', False)
+    runArgs.setArg('printAll', printAll)
+    runArgs.setArg('newScore', tArg.get('newScore',False))
+    runArgs.setArg('tInfo', tInfo)
+    runArgs.setArg('scoreParams', params)
+    runArgs.setArg('overWrite', tArg.get('overWrite',False))
+    
+    
+    # Find out which runs need new scores
+    argList = []
+    for i,rKey in enumerate(tInfo.get('zoo_merger_models')):
+        rScore = tInfo.get('zoo_merger_models')[rKey]['machine_scores']
+        
+        # Loop through wanted scores
+        scoreGood = True
+        for sKey in params:
+            if rScore.get(sKey,None) == None:
+                scoreGood = False
+                break
+        
+        if not scoreGood:
+            rDir = tInfo.getRunDir(rID=rKey)
+            argList.append( dict( arg = runArgs, rDir=rDir, ) )
+    
+    # If emtpy, new scores not needed
+    if len(argList) == 0 and not tArg.get('overWrite',False):
+        if printBase: im.tabprint("Scores already exist")
+        return
+    
+    else:
+        if printBase: im.tabprint("Runs needing scores: %d"%len(argList))
 
-	# Get target image
-	if cmpType == 'target':
-		tLoc = tInfo.findTargetImage( tName = pClass.get('targetName', None) )
-		tImg = mc.getImg( tLoc )
-		if type(tImg) == type(None):
-			print("SIMR: newTargetScores: ERROR:")
-			print("\t - Failed to read target img")
-			print("\t - targetName: %s" % tName )
-
-	elif cmpType == 'perturbation':
-		tImg = None
-		tLoc = None
-
-	scores = tInfo.getScores()
-
-	for i, row in scores.iterrows():
-
-		rID = row['run_id']
-		score = row[sName]
-
-		if pd.isnull( row[sName] ):
-
-			rInfo = tInfo.getRunInfo( rID = rID, printBase = printAll )
-			score = mc.pipelineRun( rInfo = rInfo, pClass = pClass, \
-					tImg = tImg, printBase = printAll, )
-
-			tInfo.addScore( rID, sName, score )
-
-		if printBase:
-			print(" New Scores: %d / %d" % ( i, nRuns ), end='\r' )
-
-	tInfo.updateScoreProg()
-	tInfo.saveInfoFile()
-
+    # Prepare and run parallel class
+    ppClass = gm.ppClass( tArg.nProc, printProg=True )
+    ppClass.loadQueue( simr.simr_run, argList )
+    ppClass.runCores()
+    
+    # Save results
+    tInfo.updateScores()
+    tInfo.saveInfoFile()
 
 # End processing target dir
 
@@ -294,9 +285,7 @@ def simr_run( arg = None, rInfo = None, rDir = None ):
 
     # Initialize info file
     if rInfo == None:
-        rInfo = im.run_info_class( runDir=rDir, \
-                printBase = printBase, printAll=printAll,\
-                newInfo = arg.get('newInfo',False), tInfo=arg.get('tInfo',None) )
+        rInfo = im.run_info_class( runDir=rDir, rArg=arg )
 
     if printBase:
         print('SIMR.pipelineRun: ')
@@ -323,10 +312,13 @@ def simr_run( arg = None, rInfo = None, rDir = None ):
         if printBase: print("SIMR: run: newImg not functioning at this time")
 
     if newScore or newAll:
-
+        
         ms.MS_Run( printBase = printBase, printAll = printAll, \
                 rInfo = rInfo, params = arg.get('scoreParams'), \
                 arg = arg )
+    
+    if arg.get('tInfo',None) != None:
+        arg.tInfo.addRunDict(rInfo)
 
 # end processing run
 

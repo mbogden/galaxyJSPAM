@@ -24,20 +24,14 @@ pprint = pp.pprint
 def test():
     print("GM: Hi!  You're in Matthew's module for generally useful functions and classes")
 
-def validPath( inPath, printWarning = True, pathType = None):
+def validPath( inPath, printWarning = False, pathType = None):
 
     # Check if valid string
     if type( inPath ) != type( 'string' ):
-        if printWarning:
-            print("GM: WARNING:  validPath:  inPath not a string")
-            print('\t - %s - %s' %(type(inPath), inPath ) )
         return None
 
     # Check if path exists
-    if not path.exists( inPath ):  
-        if printWarning:
-            print("GM: WARNING: validPath: Directory not found")
-            print('\t - ' , inPath )
+    if not path.exists( inPath ):
         return None
 
     outPath = path.abspath( inPath )

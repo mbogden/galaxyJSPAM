@@ -166,7 +166,7 @@ def target_image_compare(rInfo, param, args):
     tImg = None
     tLink = rInfo.get('tInfo')
     
-    if printBase: print('MS: target_image_compare')
+    if printBase: print('MS: target_image_compare: %s'%pName)
     
     if printAll:
         im.tabprint(' paramName: %s'%pName)
