@@ -215,7 +215,11 @@ def new_target_scores( tInfo, tArg ):
     # Prep arguments
     runArgs = gm.inArgClass()
     runArgs.setArg('printBase', False)
-    runArgs.setArg('printAll', printAll)
+    
+    if printAll: 
+        runArgs.setArg('printAll', True)
+        runArgs.setArg('printBase', True)
+    
     runArgs.setArg('newScore', tArg.get('newScore',False))
     runArgs.setArg('tInfo', tInfo)
     runArgs.setArg('scoreParams', params)

@@ -726,13 +726,13 @@ class run_info_class:
 
 class target_info_class:
 
-    tDict = None		# Primary dictionary of info for all data 
-    baseDict = None	 # Simple dictionary of info for basic info.
-    progDict = None	 # For saving progress of current target
-    status = False	  # State of this class.  For initiating.
+    tDict = None	    # Primary dictionary of info for all data 
+    baseDict = None	    # Simple dictionary of info for basic info.
+    progDict = None	    # For saving progress of current target
+    status = False	    # State of this class.  For initiating.
 
     sFrame = None	   # Score dataframe
-    rInfo = None		# run_info_class for accessing run directories
+    rInfo = None	   # run_info_class for accessing run directories
 
     printBase = True
     printAll = False
@@ -782,7 +782,8 @@ class target_info_class:
             print('\t - printAll: ', printAll)
             
         # Check if directory has correct structure
-        dirGood = self.initTargetDir( targetDir )
+        newInfo = tArg.get('newInfo',False)
+        dirGood = self.initTargetDir( targetDir, newInfo=newInfo )
 
         # Complain if not
         if not dirGood:
@@ -792,7 +793,6 @@ class target_info_class:
             return
 
         # Remove infos if asked for
-        newInfo = tArg.get('newInfo',False)
         if newInfo:
 
             if self.printAll: print("IM: Target.__init__. Removing previous info file.")
@@ -1167,7 +1167,7 @@ class target_info_class:
 
 
     # initialize target directories
-    def initTargetDir( self, targetDir ):
+    def initTargetDir( self, targetDir, newInfo=False ):
         
         
         if self.printAll:
@@ -1192,7 +1192,8 @@ class target_info_class:
         # Define paths for all useful things in target structure
 
         self.infoDir = self.targetDir + 'information/'
-        self.zooMergerDir = self.targetDir + 'gen000/'
+        self.gen0 = self.targetDir + 'gen000/'
+        self.zooMergerDir = self.targetDir + 'zoo_merger_models/'
         self.plotDir = self.targetDir + 'plots/'
 
         self.baseInfoLoc = self.infoDir + 'base_target_info.json'
@@ -1204,6 +1205,30 @@ class target_info_class:
         self.zooMergerLoc = self.infoDir + 'galaxy_zoo_models.txt'
 
         status = True
+        
+        
+        # If using old folder layout, rename
+        print("IM: WORKING")
+        
+        if gm.validPath( self.gen0 ):
+            from os import rename
+            print("Found old path   : %s" % self.gen0)
+            print("Propose new path : %s" % self.zooMergerDir)
+            rename(self.gen0,self.zooMergerDir)
+            print("New Path? : %s" % gm.validPath(self.zooMergerDir) )
+        
+        elif gm.validPath( self.zooMergerDir ):
+            print("NEW PATH EXISTS: %s" % self.zooMergerDir)
+        
+        else: 
+            print("NOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
+            print("NOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
+            print("NOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
+            print("NOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
+        
+        status = False
+        return status
+
 
         # Check if everything needed is found
         if not path.exists( self.infoDir ):
