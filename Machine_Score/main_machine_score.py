@@ -20,11 +20,16 @@ import general_module as gm
 import info_module as im
 import direct_image_compare as dc
 
-
-# compare global variables
+# global variables
+testFunc = None
 
 def test():
     print("MS: Hi!  You're in Matthew's SIMR module for all things machine scoring images")
+
+# When creating and testing new functions from outside of module (Ex. Jupyter)
+def set_test_func( inFuncLink ):
+    global testFunc
+    testFunc = inFuncLink
 
 def main(argList):
 
@@ -92,44 +97,63 @@ def main(argList):
 
 # Create scores and comparison scores for run. 
 def MS_Run( \
-        printBase=True, printAll=False, \
+        printBase=None, printAll=None, \
         runDir = None, rInfo = None, \
-        params = None, arg = None, \
+        params = None, arg = gm.inArgClass(), \
         ):
+    
+    if printBase == None:
+        printBase = arg.printBase
+        
+    if printAll == None:
+        printAll = arg.printAll
+    
+    if printAll:
+        printBase = True
 
     if printBase: 
         print("MS: Run:")
+        
+    if rInfo == None and runDir == None and arg.get('rInfo') == None:
+        if printBase:
+            print("MS: Error: MS_Run: No run info given")
+        return None
 
-    if rInfo == None:
+    elif runDir != None and rInfo == None:
         rInfo = im.run_info_class( runDir=runDir, printAll=printAll, )
+    
+    elif arg.get('rInfo') != None and rInfo == None:
+        rInfo = arg.rInfo
 
     # Check if successfully read info data
     if rInfo.status == False:
         if printBase:
-            print("MS: Error: pipelineRun: Base status")
+            print("MS: Error: MS_Run: run info status bad")
             print("\t- rInfo: ", rInfo.status)
         return None
 
     # Check if params were given
-    if params == None:
+    if params == None and arg.get('scoreParams',None) == None:
         if printBase:
-            print("MS: Error: pipelineRun: Bad score parameters")
-            print("\t- params: ", params)
+            print("MS: Error: MS_Run: Score parameters not given")
         return None
 
     # Check if params were given
-    if arg == None:
-        if printBase:
-            print("MS: Error: pipelineRun: Bad argument input")
-            print("\t- arg type: ", type(arg) )
-        return None
-
-    # Assume group of parameters and loop through.
+    if params == None:
+        params = arg.get('scoreParams',None)
+        if type(params) != type({'dict':'dict'}):
+            if printBase:
+                print("MS: Error: MS_Run: Bad score parameters")
+                gm.tabprint('param_type: %s'%type(params))
+            return None
     
+
+    # Assume group of parameters and loop through.    
     for pKey in params:
         
         # Check if score exists
         score = rInfo.getScore( pKey )
+        if printAll: print("MS: scoreName: %s"%pKey)
         
         # If score exists, move to next score parameter
         if score != None and not arg.get('overWrite',False):
@@ -141,7 +165,9 @@ def MS_Run( \
         
         # Call function with correct score type
         if scoreType == 'target':
-            target_image_compare(rInfo, param, arg) 
+            target_image_compare( rInfo, param, arg )
+        elif scoreType == 'perturbation':
+            perturbation_compare( rInfo, param, arg )
         else:
             print("WARNING: MS: Run")
             print("Score Type of '%s' not yet implemented"%(scoreType))
@@ -149,9 +175,8 @@ def MS_Run( \
 # end processing run dir
 
 
-
 # compares a target and image with given score parameters
-def target_image_compare(rInfo, param, args):
+def target_image_compare( rInfo, param, args ):
     
     printBase = args.printBase
     printAll = args.printAll
@@ -208,17 +233,15 @@ def target_image_compare(rInfo, param, args):
     
     # Else, have rInfo retrieve img location
     else:
-        mLoc = rInfo.findImgLoc(mName)
-        if gm.validPath(mLoc, printWarning=printBase):
-            mImg = gm.readImg(mLoc)
-            rInfo.modelImg[mName] = mImg
+        mImg = rInfo.getModelImg(mName)
+        rInfo.modelImg[mName] = mImg
         
     if type(mImg) == type(None): 
-            if printBase: 
-                print("MS: Error: target_image_compare: failed to load model image")
-                gm.tabprint("runId: %s"%rInfo.get('run_id'))
-                gm.tabprint("model: %s"%mName)
-            return None
+        if printBase: 
+            print("MS: Error: target_image_compare: failed to load model image")
+            gm.tabprint("runId: %s"%rInfo.get('run_id'))
+            gm.tabprint("model: %s"%mName)
+        return None
         
     elif printAll: print("MS: run: Read model image")
     
@@ -226,18 +249,92 @@ def target_image_compare(rInfo, param, args):
     
     score = dc.createScore( tImg, mImg, param['cmpArg'] )
     newScore = rInfo.addScore( name = param['name'], score=score )
-    rInfo.saveInfoFile()
+    #rInfo.saveInfoFile()
     
     return score
 
 
-# TODO
-def perturbation_image_compare(rInfo, param, args):
-    print(param)
+def perturbation_compare( rInfo, param, args ):
+    
+    printBase = args.printBase
+    printAll = args.printAll
+    
+    # Base info
+    pName = param['name']
+    mName = param['imgArg']['name']
+    
+    if printBase: print('MS: perturbation_compare: %s'%pName)
+    
+    if printAll:
+        im.tabprint(' paramName: %s'%pName)
+        im.tabprint(' modelName: %s'%mName)
+    
+    # Exit if invalid request
+    if type(pName) == type(None) and type(mName) == type(None):
+        if printBase:
+                print("MS: Error: target_image_compare: Bad param given")
+        return None
+    
+    # GET MODEL IMAGE    
+    mImg = None
+    mLoc = None
+    
+    # Create dict for storing model images if needed later       
+    if rInfo.get('modelImg') == None:
+        rInfo.modelImg = {}
         
-    tLoc = rInfo.findImgFile( pClass.get('imgArg')['name'], initImg=True )
-
-    return None
+    # Check if in rInfo has model Image already
+    if type( rInfo.modelImg.get(mName) ) != type(None):
+        mImg = rInfo.modelImg.get(mName)
+    
+    # Else, have rInfo retrieve img location
+    else:
+        mImg = rInfo.getModelImg(mName)
+        rInfo.modelImg[mName] = mImg
+    
+    # Check if valid image
+    if type(mImg) == type(None): 
+        if printBase: 
+            print("MS: Error: target_image_compare: failed to load model image")
+            gm.tabprint("runId: %s"%rInfo.get('run_id'))
+            gm.tabprint("model: %s"%mName)
+        return None
+        
+    elif printAll: print("MS: perturbation_compare: Read model image: %s"%mName)
+        
+        
+    # GET INIT IMAGE    
+    iImg = None
+    iLoc = None
+    
+    # Create dict for storing init images if needed later    
+    if rInfo.get('initImg') == None:
+        rInfo.initImg = {}
+        
+    # Check if in rInfo has model Image already
+    if type( rInfo.initImg.get(mName) ) != type(None):
+        iImg = rInfo.initImg.get(mName)
+    
+    # Else, have rInfo retrieve img location
+    else:
+        iImg = rInfo.getModelImg(mName,initImg=True)
+        rInfo.initImg[mName] = iImg
+        
+    if type(iImg) == type(None): 
+        if printBase: 
+            print("MS: Error: target_image_compare: failed to load init image")
+            gm.tabprint("runId: %s"%rInfo.get('run_id'))
+            gm.tabprint("model: %s"%mName)
+        return None
+        
+    elif printAll: print("MS: perturbation_compare: Read init image: %s"%mName)
+    
+    # Create score and add to rInfo
+    
+    score = dc.createScore( mImg, iImg, param['cmpArg'] )
+    newScore = rInfo.addScore( name = pName, score=score )
+    
+    return score
 
 
 def procSimple( img1 = None, img2 = None, printAll = True ):

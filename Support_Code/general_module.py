@@ -71,6 +71,20 @@ def getImg( imgLoc, printAll = False ):
     img = cv2.imread( imgLoc, 0)
     return img
 
+
+def saveImg( img, imgLoc, printAll = False ):
+    
+    global cv2
+
+    if cv2 == None:
+        import cv2
+    
+    cv2.imwrite(imgLoc,img)
+
+    if not path.exists( imgLoc ) and printAll:
+        print("GM: WARNING: image not saved")
+        print("\t - %s: " %imgLoc )
+
 def readFile( fileLoc, stripLine=False ):
 
     if not path.isfile( fileLoc ):

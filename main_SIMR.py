@@ -127,14 +127,18 @@ def simr_target( arg=gm.inArgClass(), tInfo = None ):
         print("\t - tInfo: %s" % type(tInfo) )
 
     # Check if given a target
-    if tInfo == None and tDir == None:
+    if tInfo == None and tDir == None and arg.get('tInfo') == None:
         print("SIMR: WARNING: simr_target")
         print("\t - Please provide either target directory or target_info_class")
         return
 
     # Read target directory if location given. 
-    elif tInfo == None:
+    elif tInfo == None and tDir != None:
         tInfo = im.target_info_class( targetDir=tDir, tArg = arg )
+        
+    # get target if in arguments. 
+    elif tInfo == None and arg.tInfo != None:
+        tInfo = arg.tInfo
 
     if printBase:
         print("SIMR: simr_target status:")
@@ -174,24 +178,24 @@ def new_target_scores( tInfo, tArg ):
         print("\t - tInfo: %s" % tInfo.status )
 
     # Check if parameter are given
-    arg.scoreParams = arg.get('scoreParams')
-    paramLoc = gm.validPath( arg.get('paramLoc') )
+    params = tArg.get('scoreParams')
+    paramLoc = gm.validPath( tArg.get('paramLoc') )
     
     # If invalid, complain
-    if arg.scoreParams == None and paramLoc == None:
+    if params == None and paramLoc == None:
         if printBase:
             print("SIMR: WARNING: new_target_scores: params not valid")
         return        
     
     # If params not there, read from file
-    elif arg.scoreParams == None:
+    elif params == None:
         pClass = im.group_score_parameter_class(paramLoc)
         if pClass.status:
-            arg.scoreParams = pClass.get('group',None)
+            params = pClass.get('group',None)
             del pClass
 
     # Check for final parameter file is valid
-    if arg.scoreParams == None:
+    if params == None:
         if printBase:
             print("SIMR: WARNING: new_target_scores: Failed to load parameter class")
             gm.tabprint('paramLoc: %s',paramLoc)
@@ -210,7 +214,7 @@ def new_target_scores( tInfo, tArg ):
     
     runArgs.setArg('newScore', tArg.get('newScore',False))
     runArgs.setArg('tInfo', tInfo)
-    runArgs.setArg('scoreParams', arg.scoreParams)
+    runArgs.setArg('scoreParams', params)
     runArgs.setArg('overWrite', tArg.get('overWrite',False))
 
 
@@ -221,7 +225,7 @@ def new_target_scores( tInfo, tArg ):
 
         # Loop through wanted scores
         scoreGood = True
-        for sKey in arg.scoreParams:
+        for sKey in params:
             if rScore.get(sKey,None) == None:
                 scoreGood = False
                 break

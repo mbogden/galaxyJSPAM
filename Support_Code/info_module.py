@@ -107,13 +107,16 @@ class group_score_parameter_class:
     group = {}
     status = False
 
-    def __init__( self, pLoc = None ):
+    def __init__( self, pLoc = None, params = None ):
 
         if pLoc != None:			
             with open( pLoc, 'r' ) as iFile:
                 self.group = json.load( iFile )
         
-        if self.group != {}:
+        elif params != None:
+            self.group = params            
+        
+        if self.group != {} and type(self.group) == type( {} ):
             self.status = True
 
     def addGroupParam( self, inDict ):
@@ -479,27 +482,28 @@ class run_info_class:
 
     # End findPtsFile
     
-    def getModelImg( self, imgName = 'default' ):
+    def getModelImg( self, imgName = 'default', initImg = False ):
         
-        imgLoc = self.findImgLoc( pName = imgName )
+        imgLoc = self.findImgLoc( imgName = imgName, initImg = initImg )
         
         if imgLoc != None:
+            if self.printAll: print("IM: Loading imgLoc: %s" % imgName, initImg )
             img = gm.readImg(imgLoc)
             return img
         
         else:
             return None
 
-    def findImgLoc( self, pName, initImg = False, newImg=False, ):		 
+    def findImgLoc( self, imgName, initImg = False ):		 
 
         # Assume model image
         if not initImg:
-            imgLoc = self.imgDir + pName + '_model.png'
+            imgLoc = self.imgDir + imgName + '_model.png'
 
         else:
-            imgLoc = self.miscDir + pName + '_init.png'
+            imgLoc = self.miscDir + imgName + '_init.png'
 
-        if newImg or path.exists( imgLoc ):
+        if path.exists( imgLoc ):
             return imgLoc
         else:
             return None
@@ -737,7 +741,7 @@ class target_info_class:
         else:
             self.printBase = tArg.printBase
         
-        if targetDir == None: targetDir = tArg.targetDir
+        if tArg.targetDir == None: tArg.targetDir = targetDir
             
         if printAll != None:   
             self.printAll = printAll
