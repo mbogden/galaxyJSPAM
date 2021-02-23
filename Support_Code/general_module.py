@@ -20,7 +20,6 @@ from pprint import PrettyPrinter
 pp = PrettyPrinter(width=41, compact=True)
 pprint = pp.pprint
 
-
 def test():
     print("GM: Hi!  You're in Matthew's module for generally useful functions and classes")
 
