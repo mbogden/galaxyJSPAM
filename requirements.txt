@@ -1,4 +1,5 @@
 numpy
+matplotlib
 pandas
 python-dateutil
 scikit-build

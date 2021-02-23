@@ -24,45 +24,38 @@ pprint = pp.pprint
 def test():
     print("GM: Hi!  You're in Matthew's module for generally useful functions and classes")
 
-def validPath( inPath, printWarning = True, pathType = None):
+def validPath( inPath, printWarning = False, pathType = None):
 
     # Check if valid string
     if type( inPath ) != type( 'string' ):
-        if printWarning:
-            print("GM: WARNING:  validPath:  inPath not a string")
-            print('\t - %s - %s' %(type(inPath), inPath ) )
         return None
 
     # Check if path exists
-    if not path.exists( inPath ):  
-        if printWarning:
-            print("GM: WARNING: validPath: Directory not found")
-            print('\t - ' , inPath )
+    if not path.exists( inPath ):
         return None
 
     outPath = path.abspath( inPath )
 
-    # if type of path not given, return absolute path
-    if pathType == None:
-        return outPath
 
-    # if asking for directory
-    elif pathType == 'dir':
+    # Check if directory or something else
+    if path.isdir( outPath ) and outPath[-1] != '/':
+        outPath += '/'
 
-        # Check if directory or something else
-        if path.isdir( outPath ):
-            return outPath
+    return outPath
 
-
-    # if asking for file
-    elif pathType == 'file':
-
-        # Check if file or something else
-        if path.isfile( outPath ):
-            return outPath
-
-    return None
 # End valid path function
+
+def getScores( scoreLoc ):
+    
+    import pandas as pd
+    
+    scores = None    
+    
+    sLoc = validPath( scoreLoc )
+    if sLoc != None:
+        scores = pd.read_csv(sLoc)
+    
+    return scores
 
 def getImg( imgLoc, printAll = False ):
     global cv2
@@ -111,7 +104,7 @@ class inArgClass:
 
         self.printBase = True
         self.printAll = False
-        self.nProc = 1
+        self.nProc = -1
 
         self.simple = False
         self.runDir = None
@@ -189,6 +182,7 @@ class inArgClass:
     def setArg( self, inName, inArg ):
         setattr( self, inName, inArg )
 
+
     # For checking if input strings are meant to be a boolean
     def checkBool(self):
 
@@ -242,6 +236,10 @@ class ppClass:
     manager = mp.Manager()
 
     def __init__(self, nCore, printProg=False):
+        
+        if type(nCore) != type( 123 ):
+            nCore = int(nCore)
+            
 
         # 0 for all, negative all minus negative
         if nCore < 1:
@@ -293,6 +291,7 @@ class ppClass:
     def coreFunc( self ):
 
         n = int( self.nQueue )
+        from sys import stdout
 
         # Keep core running until shared queue is empty
         while True:
@@ -308,7 +307,8 @@ class ppClass:
             if self.printProg:
                 p = n - int( self.jobQueue.qsize() )
                 perc = ( p / n ) * 100
-                print("%.1f%% - %d / %d	" % ( perc, p, n ), end='\r' )
+                
+                stdout.write( "%.1f%% - %d / %d	  \r" % ( perc, p, n ) )
 
             # Run desired function on core
             self.funcPtr(**funcArgs)

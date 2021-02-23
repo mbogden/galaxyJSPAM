@@ -1,7 +1,0 @@
-test_param0202
-gaussian_size 25
-gaussian_weight 5
-radial_constant 4
-norm_value 7
-image_rows 1024
-image_cols 1024

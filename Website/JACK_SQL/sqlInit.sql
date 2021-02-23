@@ -1,8 +1,0 @@
-CREATE TABLE WEB
-(
-	sdss	VARCHAR(100) NOT NULL,
-	path	VARCHAR(200),
-
-
-	PRIMARY KEY (sdss)
-);
