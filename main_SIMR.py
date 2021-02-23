@@ -19,6 +19,7 @@ import cv2
 import Support_Code.general_module as gm
 import Support_Code.info_module as im
 import Simulator.main_simulator as ss
+import Score_Analysis.main_score_analysis as sa
 
 sysPath.append( path.abspath( 'Machine_Score/' ) )
 from Machine_Score import main_machine_score as ms
@@ -166,6 +167,8 @@ def simr_target( arg=gm.inArgClass(), tInfo = None ):
     # Create new files/scores if called upon
     if arg.get('newAll') or arg.get('newScore') :
         new_target_scores( tInfo, arg )
+    
+    sa.target_report_2(tInfo = tInfo)
 
 
 def new_target_scores( tInfo, tArg ):
@@ -248,6 +251,7 @@ def new_target_scores( tInfo, tArg ):
     ppClass.runCores()
 
     # Save results
+    tInfo.addScoreParameters( params, overWrite = tArg.get('overWrite',False) )
     tInfo.gatherRunInfos()
     tInfo.updateScores()
     tInfo.saveInfoFile()

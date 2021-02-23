@@ -100,6 +100,11 @@ def score_absolute_difference_lower_scale( img1, img2, cmpArg  ):
 
 # end createMScores()
 
+def score_ssim( img1, img2 ):
+    score = 0
+    score = ssim( img1, img2 )
+    return score
+
 # All basic scoring methods
 
 def score_overlap_fraction( img1, img2, cmpArg ):

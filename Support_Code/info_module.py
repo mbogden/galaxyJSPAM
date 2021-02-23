@@ -821,32 +821,15 @@ class target_info_class:
     def printParams( self, ):
 
         for pKey in self.tDict['score_parameters']:
-            print( self.tDict['score_parameters'][pKey] )
+            gm.pprint( self.tDict['score_parameters'][pKey] )
+            
 
-
-    def addScoreParam( self, paramLoc = None, paramDict = None, overwrite = False):
-
-        if paramDict == None and paramLoc == None:
-            return None
-
-        if paramLoc != None:			
-            spClass = score_parameter_class( paramLoc = paramLoc, printBase =False )
-
-        elif paramDict != None:
-            spClass = score_parameter_class( paramDict = paramDict, printBase=False )
-
-        if not spClass.status:
-            return None
-
-        # If score parameters already present
-        if self.tDict['score_parameters'].get( spClass.get('name'), None) != None and not overwrite:
-            return self.tDict['score_parameters'].get( spClass.get('name'), None)
-
-        pName = spClass.get('name')
-        self.tDict['score_parameters'][pName] = spClass.pDict
-        self.saveInfoFile()
-        del spClass
-        return self.tDict['score_parameters'][pName]
+    def addScoreParameters( self, params, overWrite = False ):
+    
+        for pKey in params:
+            
+            if self.tDict['score_parameters'].get(pKey) == None or overWrite:
+                self.tDict['score_parameters'][pKey] = params[pKey]
 
 
     def getScores( self, scrName = None ):

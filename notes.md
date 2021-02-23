@@ -7,8 +7,9 @@ IRB course?
 
 # Matt's Start up To-Do
 - (When do-able) Read Me files? 
-- (Working) Virtual Environment?
-- (Working) Cluster to use?
+- Bugs!
+	- New param does not save score in scores after simr_target.
+	- New param scores is seen as a unknown score is score_analysis
 - (Later) wndchrm
 - (Now) Pipeline
 - (Later) Have 100 models from each target on my machine
