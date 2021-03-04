@@ -1,8 +1,7 @@
 '''
     Author:	 Matthew Ogden
     Created:	21 Feb 2020
-    Altered:	02 Apr 2020
-Description:	For all things misc information related
+Description:	Module for accessing information and files stored on disk.
 '''
 
 from os import path, listdir
@@ -108,13 +107,16 @@ class group_score_parameter_class:
     group = {}
     status = False
 
-    def __init__( self, pLoc = None ):
+    def __init__( self, pLoc = None, params = None ):
 
         if pLoc != None:			
             with open( pLoc, 'r' ) as iFile:
                 self.group = json.load( iFile )
         
-        if self.group != {}:
+        elif params != None:
+            self.group = params            
+        
+        if self.group != {} and type(self.group) == type( {} ):
             self.status = True
 
     def addGroupParam( self, inDict ):
@@ -300,15 +302,14 @@ class run_info_class:
                  printBase=None, printAll=None, ):
 
         # get arguments
-        if printBase == None:
-            self.printBase = rArg.printBase
-        else:
-            self.printBase = printBase
+        if printBase == None:  self.printBase = rArg.printBase
+        else:  self.printBase = printBase
         
-        if printAll == None:
-            self.printAll = rArg.printAll
-        else:
-            self.printAll = printAll
+        if printAll == None:  self.printAll = rArg.printAll
+        else:  self.printAll = printAll
+            
+        if runDir != None:
+            rArg.runDir = runDir
         
         if rArg.get('tInfo',None) != None: 
             self.tInfo = rArg.tInfo
@@ -319,38 +320,15 @@ class run_info_class:
         if self.printBase: 
             print("IM: run_info_class.__init__")
             print("\t - runDir: " , runDir )
-            
-        # Double check if run directory is valid
-        if type( runDir ) != type( "String" ):
-            if self.printBase:
-                print("IM: WARNING: run_info_class.__init__")
-                print("\t - Run Directory Not a String!")
-                print("\t - %s" % type( self.runDir ) )
-            self.status = False
-            return
+
 
         # initialize directory structure for run
-        dirGood = self.initRunDir( runDir )
+        dirGood = self.initRunDir( rArg )
 
         if not dirGood:
+            self.status = False
             return
-
-        # Remove info file(s) if condition given
-        newInfo = rArg.get('newInfo',False)
-        newBase = rArg.get('newBase',False)
-        
-        if newInfo or newBase:
-
-            from os import remove
-
-            if path.exists( self.infoLoc ):
-                if self.printAll: print('\t- Removing Info file.')
-                remove( self.infoLoc )
-            
-            if newBase and path.exists( self.baseLoc ):
-                if self.printAll: print('\t- Removing base info file.')
-                remove( self.baseLoc )               
-                
+                 
         # Read info file
         if path.exists( self.infoLoc ):
 
@@ -358,63 +336,118 @@ class run_info_class:
             with open( self.infoLoc, 'r' ) as iFile:
                 self.rDict = json.load( iFile )
 
-            if self.rDict != None:
-                self.status = True
-
-        # end read info file
-        else:
-
-            if self.printAll: print('\t - No info.json file.')
-            # Create new run json from info file if it does not exist
-
-            if path.exists( self.baseLoc ):
-                if self.printAll: print('\t - Copying base_info.json file.')
-                    
-                with open( self.baseLoc, 'r' ) as bFile:
-                    self.baseDict = json.load( bFile )
-                
-                # Check if base info is valid
-                baseGood = True
-                if self.baseDict == None:
-                    baseGood = False
-                    
-                else:
-                    for rKey in self.runHeaders:
-                        if self.baseDict.get(rKey,None) == None:
-                            baseGood = False                
-                
-                # if not create new
-                if not baseGood:
-                    if self.printAll: tabprint('Base info file void. creating...')
-                    self.txt2Json()
-                
-                # if good
-                else:
-                    self.rDict = deepcopy( self.baseDict )
-                    self.saveInfoFile()                    
-
-            else:
-                self.txt2Json( )
-
-            if type(self.rDict) == type(None) and self.printBase:
-                print("IM: Run.__init__ Error: Failed to initialize info file..." )
-                return
-
-            if self.printAll: 
-                print("\t - Initialized run score file")
-                self.printInfo()
-
-            self.saveInfoFile()
+        if self.rDict != None:
             self.status = True
 
-            return
-        # End if not path exists
-
-
-        if self.printAll: print("\t - Initalized info module.")
+        if self.printAll: 
+            print("IM: Run.__init__: Initalized: %s" % self.status)
 
     # end __init__
+    
+    
+    def initRunDir( self, rArg ):
+        
+        self.runDir = gm.validPath( rArg.runDir )
+            
+        # Double check if run directory is valid
+        if self.runDir == None:
+            if self.printBase:
+                print("IM: WARNING: run_info_class.__init__: Invalid run dir")
+                tabprint('runDir: - %s' % rArg.runDir )
+            return False
 
+        # Print stuff
+        if self.printAll:
+            print("IM: run.initRunDir")
+            print("\t - runDir: %s" % rArg.runDir )
+
+        # Save base directory
+        if self.runDir[-1] != '/': self.runDir += '/'
+
+        # Hard code location of main objects
+        self.ptsDir = self.runDir + 'particle_files/'
+        self.imgDir = self.runDir + 'model_images/'
+        self.miscDir = self.runDir + 'misc_images/'
+        self.tmpDir = self.runDir + 'tmp/'
+        self.infoLoc = self.runDir + 'info.json'
+        self.baseLoc = self.runDir + 'base_info.json'
+    
+        # If newInfo or newBase
+        if rArg.get('newInfo',False) or rArg.get('newBase',False):
+            self.newRunSetup(rArg)
+
+        # Print stuff if needed
+        if self.printAll:
+            print("\t - runDir: (%s) %s" % ( path.exists( self.runDir ), self.runDir ) )
+            print("\t - ptsDir: (%s) %s" % ( path.exists( self.ptsDir ), self.ptsDir ) )
+            print("\t - imgDir: (%s) %s" % ( path.exists( self.imgDir ), self.imgDir ) )
+            print("\t - miscDir: (%s) %s" % ( path.exists( self.miscDir ), self.miscDir ) )
+            print("\t - infoLoc: (%s) %s" % ( path.exists( self.infoLoc ), self.infoLoc ) )
+            print("\t - baseLoc: (%s) %s" % ( path.exists( self.baseLoc ), self.baseLoc ) )
+
+        # Check if things are working
+        dirGood = True
+
+        if not path.exists( self.ptsDir ):
+            print("IM: Run. WARNING!  Particle directory not found!")
+            dirGood = False
+
+        if not path.exists( self.imgDir ):
+            print("IM: Run. WARNING!  Model Image directory not found!")
+            dirGood = False
+
+        if not path.exists( self.miscDir ):
+            print("IM: Run. WARNING!  Misc Image directory not found!")
+            dirGood = False
+
+        # If you made it this far.  
+        return dirGood
+
+    # End initialize run directory structure
+    
+    # If asked to create new info file
+    def newRunSetup( self, rArg ):
+        
+        from os import remove
+        from shutil import copyfile
+        
+        # Remove info file(s) if condition given
+        newInfo = rArg.get('newInfo',False)
+        newBase = rArg.get('newBase',False)
+
+        # Remove current info file
+        if path.exists( self.infoLoc ): remove( self.infoLoc )
+            
+        # If new Base
+        if newBase:  self.newRunDir()
+
+        # WORKING
+        if path.exists( self.baseLoc ): copyfile( self.baseLoc, self.infoLoc )
+        # End
+    
+    # If creating directory from scratch or prior state
+    def newRunDir( self, ):
+        
+        from os import mkdir, remove
+        from shutil import move        
+        
+        # Create directories if not found
+        if not path.exists( self.ptsDir ): mkdir( self.ptsDir )
+        if not path.exists( self.imgDir ): mkdir( self.imgDir )
+        if not path.exists( self.miscDir ): mkdir( self.miscDir )
+        if not path.exists( self.tmpDir ): mkdir( self.tmpDir )
+        
+        # Check if unperturbed imgs are in model dir
+        imgList = listdir( self.imgDir )
+        for fName in imgList:
+            if 'init' in fName:
+                oldImgLoc = self.imgDir + fName
+                newImgLoc = self.miscDir + fName
+                move(oldImgLoc,newImgLoc)
+
+        # Remove current base file if present
+        self.txt2Json( )            
+            
     def __del__(self,):
         pass
 
@@ -449,27 +482,28 @@ class run_info_class:
 
     # End findPtsFile
     
-    def getModelImg( self, imgName = 'default' ):
+    def getModelImg( self, imgName = 'default', initImg = False ):
         
-        imgLoc = self.findImgLoc( pName = imgName )
+        imgLoc = self.findImgLoc( imgName = imgName, initImg = initImg )
         
         if imgLoc != None:
+            if self.printAll: print("IM: Loading imgLoc: %s" % imgName, initImg )
             img = gm.readImg(imgLoc)
             return img
         
         else:
             return None
 
-    def findImgLoc( self, pName, initImg = False, newImg=False, ):		 
+    def findImgLoc( self, imgName, initImg = False ):		 
 
         # Assume model image
         if not initImg:
-            imgLoc = self.imgDir + pName + '_model.png'
+            imgLoc = self.imgDir + imgName + '_model.png'
 
         else:
-            imgLoc = self.miscDir + pName + '_init.png'
+            imgLoc = self.miscDir + imgName + '_init.png'
 
-        if newImg or path.exists( imgLoc ):
+        if path.exists( imgLoc ):
             return imgLoc
         else:
             return None
@@ -489,62 +523,6 @@ class run_info_class:
 
         return retList	
 
-    def initRunDir( self, runDir, newDir = False, ):
-
-        # Print stuff
-        if self.printAll:
-            print("IM: run.initRunDir")
-            print("\t - runDir: %s" % runDir )
-            print("\t - newDir: %s" % str( newDir ) )
-
-        # Check if path exists
-        if not path.exists( runDir ):
-            print("IM: WARNING: initRunDir")
-            print("\t - runDir: '%s'" % runDir )
-            print("\t - Non-Valid Directory")
-            print("\t - Considering implementing newDir")
-            return None
-
-        # Save base directory
-        self.runDir = path.abspath( runDir )
-        if self.runDir[-1] != '/': self.runDir += '/'
-
-        # Hard code location of main objects
-        self.ptsDir = self.runDir + 'particle_files/'
-        self.imgDir = self.runDir + 'model_images/'
-        self.miscDir = self.runDir + 'misc_images/'
-        self.tmpDir = self.runDir + 'tmp/'
-        self.infoLoc = self.runDir + 'info.json'
-        self.baseLoc = self.runDir + 'base_info.json'
-
-        # Print stuff if needed
-        if self.printAll:
-            print("\t - runDir: (%s) %s" % ( path.exists( self.runDir ), self.runDir ) )
-            print("\t - ptsDir: (%s) %s" % ( path.exists( self.ptsDir ), self.ptsDir ) )
-            print("\t - imgDir: (%s) %s" % ( path.exists( self.imgDir ), self.imgDir ) )
-            print("\t - miscDir: (%s) %s" % ( path.exists( self.miscDir ), self.miscDir ) )
-            print("\t - infoLoc: (%s) %s" % ( path.exists( self.infoLoc ), self.infoLoc ) )
-            print("\t - baseLoc: (%s) %s" % ( path.exists( self.baseLoc ), self.baseLoc ) )
-
-        # Check if things are working
-        dirGood = True
-
-        if not path.exists( self.ptsDir ):
-            print("IM: Run. WARNING!  Particle directory not found!")
-            dirGood = False
-
-        if not path.exists( self.imgDir ):
-            print("IM: Run. WARNING!  Model Image directory not found!")
-            dirGood = False
-
-        if not path.exists( self.miscDir ):
-            print("IM: Run. WARNING!  Misc Image directory not found!")
-            dirGood = False
-
-        # If you made it this far.  
-        return dirGood
-
-    # End initialize run directory structure
 
     def printInfo( self,):
         from pprint import PrettyPrinter
@@ -750,9 +728,7 @@ class target_info_class:
 
     # For user to see headers.
     targetHeaders = ( 'target_id', 'target_images', 'simulation_parameters', 'image_parameters', 'zoo_merger_models', 'score_parameters', 'progress', 'model_sets' )
-
-    progHeaders  = ( 'machine_scores' )
-
+    
     baseHeaders = ( 'target_id', )
 
 
@@ -765,25 +741,23 @@ class target_info_class:
         else:
             self.printBase = tArg.printBase
         
-        if targetDir == None:
-            targetDir = tArg.targetDir
+        if tArg.targetDir == None: tArg.targetDir = targetDir
             
         if printAll != None:   
             self.printAll = printAll
         else:            
             self.printAll = tArg.printAll            
             
+        # To avoid future confusion
         if self.printAll:  self.printBase = True
 
         if self.printAll: 
             print("IM: target_info_class.__init__:")
             print('\t - targetDir: ', targetDir)
-            print('\t - printBase: ', printBase)
-            print('\t - printAll: ', printAll)
             
         # Check if directory has correct structure
         newInfo = tArg.get('newInfo',False)
-        dirGood = self.initTargetDir( targetDir, newInfo=newInfo )
+        dirGood = self.initTargetDir( tArg )
 
         # Complain if not
         if not dirGood:
@@ -792,69 +766,20 @@ class target_info_class:
                 print("\t - WARNING: Something went wrong initializing directory.")
             return
 
-        # Remove infos if asked for
-        if newInfo:
-
-            if self.printAll: print("IM: Target.__init__. Removing previous info file.")
-
-            # remove old files
-            from os import remove
-
-            if path.exists( self.allInfoLoc ): remove( self.allInfoLoc )
-            if path.exists( self.progInfoLoc ): remove( self.progInfoLoc )
-            if path.exists( self.scoreLoc ): remove( self.scoreLoc )
-
-            # Copy base files if present
-            from shutil import copyfile
-
-            if path.exists( self.baseInfoLoc ): copyfile( self.baseInfoLoc, self.allInfoLoc )
-            if path.exists( self.baseScoreLoc ): copyfile( self.baseScoreLoc, self.scoreLoc )
-
-        # end new info
 
         if self.printAll: 
             print("IM: Target: Opening target info json")
 
-        if path.exists( self.allInfoLoc ):
-
-            with open( self.allInfoLoc ) as iFile:
-                self.tDict = json.load( iFile )
-            self.initDict = deepcopy( self.tDict )
-            self.status = True
-
-        # If target info does not exist, create
-        else:
-            if self.printAll: print("\t - Creating new info file" )
-            #self.newTargetInfo( )
-            self.saveInfoFile( baseFile=True )
-
-        if not path.exists( self.scoreLoc ) and path.exists( self.baseScoreLoc ):
-            from shutil import copyfile
-            copyfile( self.baseScoreLoc, self.scoreLoc )
-
+        # Read info file
+        with open( self.allInfoLoc ) as iFile:
+            self.tDict = json.load( iFile )
+        
         # Open score file
         if path.exists( self.scoreLoc ):
             # Read all as string
             self.sFrame = pd.read_csv( self.scoreLoc )
-
-        if newInfo:
-                        
-            # Should run infos be modified? 
-            rArg = gm.inArgClass()
-            rArg.printBase = False
-            if tArg.get('newRunInfos',True):
-                rArg.newInfo = True
-            if tArg.get('newRunBase',True):
-                rArg.newBase = True
-            
-            self.gatherRunInfos(rArg=rArg)
-            
-            self.createBaseScore()
-            self.updateScores()
-            self.saveInfoFile( )
-
+        
         self.status = True
-        return
 
     # End target init 
 
@@ -896,32 +821,15 @@ class target_info_class:
     def printParams( self, ):
 
         for pKey in self.tDict['score_parameters']:
-            print( self.tDict['score_parameters'][pKey] )
+            gm.pprint( self.tDict['score_parameters'][pKey] )
+            
 
-
-    def addScoreParam( self, paramLoc = None, paramDict = None, overwrite = False):
-
-        if paramDict == None and paramLoc == None:
-            return None
-
-        if paramLoc != None:			
-            spClass = score_parameter_class( paramLoc = paramLoc, printBase =False )
-
-        elif paramDict != None:
-            spClass = score_parameter_class( paramDict = paramDict, printBase=False )
-
-        if not spClass.status:
-            return None
-
-        # If score parameters already present
-        if self.tDict['score_parameters'].get( spClass.get('name'), None) != None and not overwrite:
-            return self.tDict['score_parameters'].get( spClass.get('name'), None)
-
-        pName = spClass.get('name')
-        self.tDict['score_parameters'][pName] = spClass.pDict
-        self.saveInfoFile()
-        del spClass
-        return self.tDict['score_parameters'][pName]
+    def addScoreParameters( self, params, overWrite = False ):
+    
+        for pKey in params:
+            
+            if self.tDict['score_parameters'].get(pKey) == None or overWrite:
+                self.tDict['score_parameters'][pKey] = params[pKey]
 
 
     def getScores( self, scrName = None ):
@@ -1018,9 +926,11 @@ class target_info_class:
 
 
     # Gather run infos from directories
-    def gatherRunInfos( self, rArg=gm.inArgClass() ):
+    def gatherRunInfos( self, tArg=gm.inArgClass(), rArg=gm.inArgClass(), ):
 
-        if self.printAll: print( "IM: Target.gatherRunInfos." )
+        if self.printAll: 
+            print( "IM: Target.gatherRunInfos." )
+            rArg.printArg()
 
         runDirList = self.iter_runs()
         nRuns = len(runDirList)
@@ -1032,10 +942,8 @@ class target_info_class:
 
         modelSet = self.tDict['zoo_merger_models']
 
-        # Generate parellel processing class
-
         # Prepare parallel class
-        ppClass = gm.ppClass( -1, printProg=True )
+        ppClass = gm.ppClass( tArg.nProc, printProg=True )
         sharedModelSet = ppClass.manager.dict()
 
         argList = [ dict( rDir=rDir, modelSet=sharedModelSet, rArg=rArg) for rDir in runDirList ]
@@ -1053,7 +961,8 @@ class target_info_class:
 
     def getRunDict( self, rDir, modelSet, rArg=gm.inArgClass() ):
 
-        rInfo = run_info_class( runDir = rDir, printBase=False, rArg=rArg )
+        rArg.runDir = rDir
+        rInfo = run_info_class( printBase=False, rArg=rArg )
 
         if rInfo.status == False:
             return None
@@ -1116,7 +1025,7 @@ class target_info_class:
     def getAllRunDicts( self, ):
         return self.tDict['zoo_merger_models']
 
-    def saveInfoFile( self, baseFile=False ):
+    def saveInfoFile( self ):
 
         if self.printAll: 
             print("IM: Target.saveInfoFile():")
@@ -1132,17 +1041,6 @@ class target_info_class:
 
         if type(self.sFrame) != type(None):
             self.sFrame.to_csv( self.scoreLoc, index = False, quoting=2 )
-
-        # Save progress seperate
-        self.progDict = {}
-        self.progDict['target_id'] = self.tDict['target_id']
-        self.progDict['progress'] = self.tDict['progress']
-        self.progDict['simulation_parameters'] = self.tDict['simulation_parameters']
-        self.progDict['image_parameters'] = self.tDict['image_parameters']
-        self.progDict['score_parameters'] = self.tDict['score_parameters']
-
-        with open( self.progInfoLoc, 'w' ) as pFile:
-            json.dump( self.progDict, pFile, indent=4 )
 
    # End Target info class
 
@@ -1161,20 +1059,18 @@ class target_info_class:
         else:
             self.runDirs = self.runDirs[start:start+n]
 
-
         return self.runDirs
 
 
 
     # initialize target directories
-    def initTargetDir( self, targetDir, newInfo=False ):
-        
+    def initTargetDir( self, tArg ):
         
         if self.printAll:
             print( 'IM: Target.initTargetDir():' )
-            print( '\t - targetDir: %s' % targetDir )
+            print( '\t - targetDir: %s' % tArg.targetDir )
 
-        self.targetDir = gm.validPath(targetDir)
+        self.targetDir = gm.validPath( tArg.targetDir )
 
         # if Invalid, complain
         if type(self.targetDir) == type(None):
@@ -1190,26 +1086,21 @@ class target_info_class:
             return False
 
         # Define paths for all useful things in target structure
-
+        
         self.infoDir = self.targetDir + 'information/'
         self.gen0 = self.targetDir + 'gen000/'
         self.zooMergerDir = self.targetDir + 'zoo_merger_models/'
         self.plotDir = self.targetDir + 'plots/'
 
+        self.allInfoLoc = self.infoDir + 'target_info.json'
         self.baseInfoLoc = self.infoDir + 'base_target_info.json'
-        self.progInfoLoc = self.infoDir + 'prog_target_info.json'
+        
+        self.scoreLoc = self.infoDir + 'scores.csv'
         self.baseScoreLoc = self.infoDir + 'base_scores.csv'
 
-        self.allInfoLoc = self.infoDir + 'target_info.json'
-        self.scoreLoc = self.infoDir + 'scores.csv'
         self.zooMergerLoc = self.infoDir + 'galaxy_zoo_models.txt'
-
-        status = True
         
-        
-        # If using old folder layout, rename
-        print("IM: WORKING")
-        
+        # If using old folder layout, rename        
         if gm.validPath( self.gen0 ):
             from os import rename
             print("Found old path   : %s" % self.gen0)
@@ -1218,7 +1109,8 @@ class target_info_class:
             print("New Path? : %s" % gm.validPath(self.zooMergerDir) )
         
         elif gm.validPath( self.zooMergerDir ):
-            print("NEW PATH EXISTS: %s" % self.zooMergerDir)
+            if self.printBase:
+                print("NEW PATH EXISTS: %s" % self.zooMergerDir)
         
         else: 
             print("NOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
@@ -1226,22 +1118,37 @@ class target_info_class:
             print("NOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
             print("NOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
         
-        status = False
-        return status
+        if tArg.get('newInfo',False): 
+            status = self.newTargetSetup( tArg )
+            if status == False: return False
 
-
-        # Check if everything needed is found
-        if not path.exists( self.infoDir ):
-            if self.printBase: print("IM: WARNING: info directory not found!")
-            status = False
-
-        if not path.exists( self.zooMergerDir ):
-            if self.printBase: print("IM: WARNING: zoo models directory not found!")
-            status = False
-
-        if status and not path.exists( self.plotDir ):
-            from os import mkdir
-            mkdir( self.plotDir )
+        # Check if directories are found        
+        if ( not path.exists( self.infoDir ) \
+        or not path.exists( self.zooMergerDir ) \
+        or not path.exists( self.plotDir ) ):
+            
+            if self.printBase:
+                print("IM: Target_init: Some directories not found")
+                tabprint('Info: %s' % gm.validPath(self.infoDir))
+                tabprint('Plot: %s' % gm.validPath(self.plotDir))
+                tabprint('Zoo Merger: %s' % gm.validPath(self.zooMergerDir))
+                tabprint("Consider using -newInfo command")
+                
+            return False
+        
+        # Check if info directory has needed objects
+        if not path.exists( self.allInfoLoc ) \
+        or not path.exists( self.baseInfoLoc ) \
+        or not path.exists( self.scoreLoc ) \
+        or not path.exists( self.baseScoreLoc ):
+            if self.printBase:
+                print("IM: Target_init: Needed information files not found.")
+                tabprint('Main Info: %s' % gm.validPath(self.allInfoLoc))
+                tabprint('Base Info: %s' % gm.validPath(self.baseInfoLoc))
+                tabprint('Main Score: %s' % gm.validPath(self.scoreLoc))
+                tabprint('Base Score: %s' % gm.validPath(self.baseScoreLoc))
+                tabprint("Consider using -newInfo command")
+            return False
 
         if self.printAll:
             print( '\t - targetDir: (%s) %s' % ( path.exists( self.targetDir ), self.targetDir ) )
@@ -1251,8 +1158,133 @@ class target_info_class:
             print( '\t - zooMergerDir: (%s) %s' % ( path.exists( self.zooMergerDir ), self.zooMergerDir ) )
             print( '\t - plotDir: (%s) %s' % ( path.exists( self.plotDir ), self.plotDir ) )
 
-        return status
+        return True
 
+    
+    # if calling new Info
+    def newTargetSetup( self, tArg ):
+        
+        from os import mkdir, remove
+        from shutil import copyfile
+
+        if self.printBase: 
+            print("IM: new_target_setup: Creating basic files and directories")
+            
+        # remove old files
+        if path.exists( self.allInfoLoc ):  remove( self.allInfoLoc )
+        if path.exists( self.scoreLoc ):    remove( self.scoreLoc )         
+            
+        # Create directories
+        if not path.exists( self.infoDir ): mkdir( self.infoDir )
+        if not path.exists( self.plotDir ): mkdir( self.plotDir )
+
+        if not path.exists( self.zooMergerDir ):
+            print("IM: WARNING: This message should not be seen.")
+        
+        # Check for base file
+        newBase = tArg.get('newBase',False)
+        if not path.exists( self.baseInfoLoc ) and not newBase:
+            if self.printBase: 
+                print("IM: WARNING: newTargetSetup:")
+                tabprint("No base info file!")
+                tabprint("Consider '-newInfo -newBase' command")
+            return False
+        
+        if newBase:
+            if self.printBase:
+                print("IM: newTargetSetup:  Creating base files.")
+                createGood = self.createBaseInfo()
+                if not createGood: return False
+        
+        # Copy files if they exist
+        if path.exists( self.baseInfoLoc ): copyfile( self.baseInfoLoc, self.allInfoLoc )
+        if path.exists( self.baseScoreLoc ): copyfile( self.baseScoreLoc, self.scoreLoc )
+
+        # Read info file
+        with open( self.allInfoLoc ) as iFile:
+            self.tDict = json.load( iFile )
+        
+        # Open score file
+        if path.exists( self.scoreLoc ):
+            # Read all as string
+            self.sFrame = pd.read_csv( self.scoreLoc )
+
+        # Should run infos be modified? 
+        rArg = gm.inArgClass()
+        rArg.printBase = False
+        if tArg.get('newRunInfo',True):
+            rArg.newInfo = True
+        if tArg.get('newRunBase',True):
+            rArg.newBase = True
+
+        self.gatherRunInfos( tArg=tArg, rArg=rArg )
+        
+        # Collect info 
+        if newBase: self.createBaseScore()
+        self.updateScores()
+        self.saveInfoFile( )
+
+    # End new target info dictionary
+    
+    
+    def createBaseInfo( self, ):
+        
+        from os import getcwd
+        from shutil import copyfile
+                
+        # Create blank base dict
+        self.tDict = {}
+        for key in self.baseHeaders:
+            self.tDict[key] = {}
+        
+        # Find target id
+        
+        # Ask if parent directory name the target name
+        tName = self.targetDir.split('/')[-2]
+        '''
+        print("Is this the target name? : %s" % tName)
+        inVal = input('[y]es / [n]o?: ')
+        print("input value: ",inVal)
+        if inVal.lower() == 'y' or inVal.lower == 'yes':
+            self.tDict['target_id'] = tName
+
+        
+        # Implement other methods if needed later
+        else:
+            print("Please implement new target naming method.")
+            return False
+        
+        '''
+        self.tDict['target_id'] = tName
+        
+        # Save
+        with open( self.baseInfoLoc, 'w' ) as infoFile:
+            json.dump( self.tDict, infoFile )
+        
+        # Get starting target files
+        cDir = getcwd()
+        tImgDir = gm.validPath( cDir  + '/Input_Data/targets/' + tName + '/')
+        tImgLoc = None
+
+        if tImgDir == None:
+            return False
+        
+        tFiles = listdir( tImgDir )
+        for fName in tFiles:
+            if '.png' in fName:
+                tImgLoc = tImgDir + fName      
+        
+        if gm.validPath( tImgLoc ) != None:
+            newImgLoc = self.infoDir + 'target_zoo.png'
+            copyfile( tImgLoc, newImgLoc )
+        
+        if gm.validPath( newImgLoc ) == None:
+            return False
+        
+        return True
+        
+    # end creating base info file
+    
     
 def tabprint( inprint, begin = '\t - ', end = '\n' ):
     print('%s%s' % (begin,inprint), end=end )

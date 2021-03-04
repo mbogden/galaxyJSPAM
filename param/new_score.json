@@ -1,0 +1,33 @@
+{
+    "new_score": {
+        "name": "test_compare",
+        "simArg": {
+            "name": "100k",
+            "nPts": "100k"
+        },
+        "imgArg": {
+            "name": "default",
+            "pType": "default"
+        },
+        "scoreType": "target",
+        "targetName": "zoo",
+        "cmpArg": {
+            "cmpMethod": "test_compare"
+        }
+    },
+    "new_perturbation": {
+        "name": "test_perturbation",
+        "simArg": {
+            "name": "100k",
+            "nPts": "100k"
+        },
+        "imgArg": {
+            "name": "default",
+            "pType": "default"
+        },
+        "scoreType": "perturbation",
+        "cmpArg": {
+            "cmpMethod": "test_compare"
+        }
+    }
+}

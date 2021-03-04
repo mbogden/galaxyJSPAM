@@ -2,17 +2,27 @@
 These are written by Matthew Ogden for Matthew Ogden while creating and organizing code.  
 May be good for others to view.
 
-IRB course? 
-- To not preserve any information that can identify the user.
-
-# Matt's Start up To-Do
+# Matt's Working To-Do
 - (When do-able) Read Me files? 
-- (Working) Virtual Environment?
-- (Working) Cluster to use?
-- (Later) wndchrm
-- (Now) Pipeline
-- (Later) Have 100 models from each target on my machine
-- Create Target status report?
+- Bugs!: New target score
+	- New param does not save score in scores after simr_target.
+	- New param scores is seen as a unknown score is score_analysis
+- Masked comparison
+  - Apply mask to both images
+  - Send to specified compr method
+  - Mask Creation
+    - Arbitrary ovals that capture edge of target?
+	- single-layer nn? 
+	- HOG abs-val of gradient? 
+- Prestep for images.  
+  - Convert to float
+  - Normalize between 0 and 1.
+- Sparce Correlation
+  - Take 3+ "Rings" of the image
+  - Transorm into radial coordinates?
+  - Take correlation with flat matrix
+  - Send new matrix to std comparison methods? 
+
 
 ## Big picture
 - Create automatic pipeline for evolution

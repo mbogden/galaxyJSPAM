@@ -8,12 +8,13 @@ Description:    Created so comparison methods are simply maintained
 from inspect import getmembers, isfunction
 from sys import modules as sysModules
 
-import cv2
 import numpy as np
+import cv2
 
+#from skimage.metrics import structural_similarity as ssim
 
 def test():
-    print("MS: Hi!  Inside machineScoreMethods.py")
+    print("DI: Hi!  You're in direct_image_compare.py")
     
 
 # Populate global list of score functions
@@ -45,6 +46,23 @@ def getScoreFunc( funcName, printAll = False ):
     
     return funcPtr
 # End get score
+
+# For testing new modules from a Jupyter Notebook
+test_compare = None
+
+def set_test_compare( inLink ):
+    global test_compare
+    test_compare = inLink
+
+def score_test_compare( img1, img2, cmpArg ):
+    
+    # Check if valid link
+    if test_compare == None:
+        return 0
+    
+    else:
+        return test_compare( img1, img2, cmpArg )
+    
 
 def score_absolute_difference( img1, img2, cmpArg ):
 
@@ -81,6 +99,11 @@ def score_absolute_difference_lower_scale( img1, img2, cmpArg  ):
     return score
 
 # end createMScores()
+
+def score_ssim( img1, img2 ):
+    score = 0
+    score = ssim( img1, img2 )
+    return score
 
 # All basic scoring methods
 

@@ -3,4 +3,5 @@ matplotlib
 pandas
 python-dateutil
 scikit-build
+scikit-image
 opencv-python

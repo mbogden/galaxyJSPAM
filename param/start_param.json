@@ -1,0 +1,33 @@
+{
+    "base_score": {
+        "name": "base_score",
+        "simArg": {
+            "name": "100k",
+            "nPts": "100k"
+        },
+        "imgArg": {
+            "name": "default",
+            "pType": "default"
+        },
+        "scoreType": "target",
+        "targetName": "zoo",
+        "cmpArg": {
+            "cmpMethod": "correlation"
+        }
+    },
+    "base_perturbation": {
+        "name": "base_perturbation",
+        "simArg": {
+            "name": "100k",
+            "nPts": "100k"
+        },
+        "imgArg": {
+            "name": "default",
+            "pType": "default"
+        },
+        "scoreType": "perturbation",
+        "cmpArg": {
+            "cmpMethod": "correlation"
+        }
+    }
+}

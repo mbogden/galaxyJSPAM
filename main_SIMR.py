@@ -19,6 +19,7 @@ import cv2
 import Support_Code.general_module as gm
 import Support_Code.info_module as im
 import Simulator.main_simulator as ss
+import Score_Analysis.main_score_analysis as sa
 
 sysPath.append( path.abspath( 'Machine_Score/' ) )
 from Machine_Score import main_machine_score as ms
@@ -90,15 +91,16 @@ def simr_many_target( arg ):
     # Prep arguments for targets
     tArg = deepcopy(arg)
     tArg.dataDir = None
-    
+    tArg.printBase = True
     
     # Get list of directories/files and go through
     targetList = listdir( dataDir )   # List of items found in folder
+    targetList.sort()
 
     for folder in targetList:        
         
         tArg.targetDir = dataDir + folder
-        tInfo = im.target_info_class( tArg=tArg, printBase=False )
+        tInfo = im.target_info_class( tArg=tArg )
         
         if tInfo.status:
             print("Good Dir: %s" % tArg.targetDir )
@@ -126,22 +128,26 @@ def simr_target( arg=gm.inArgClass(), tInfo = None ):
         print("\t - tInfo: %s" % type(tInfo) )
 
     # Check if given a target
-    if tInfo == None and tDir == None:
-        print("SIMR: WARNING: pipelineTarget")
+    if tInfo == None and tDir == None and arg.get('tInfo') == None:
+        print("SIMR: WARNING: simr_target")
         print("\t - Please provide either target directory or target_info_class")
         return
 
     # Read target directory if location given. 
-    elif tInfo == None:
+    elif tInfo == None and tDir != None:
         tInfo = im.target_info_class( targetDir=tDir, tArg = arg )
+        
+    # get target if in arguments. 
+    elif tInfo == None and arg.tInfo != None:
+        tInfo = arg.tInfo
 
     if printBase:
-        print("SIMR: pipelineTarget status:")
+        print("SIMR: simr_target status:")
         print("\t - tInfo.status: %s" % tInfo.status )
 
     # Check if valid directory
     if tInfo.status == False:
-        print("SIMR: WARNING: pipelineTarget:  Target Info status bad")
+        print("SIMR: WARNING: simr_target:  Target Info status bad")
         return
 
     if arg.get('printParam', False):
@@ -153,66 +159,55 @@ def simr_target( arg=gm.inArgClass(), tInfo = None ):
         tInfo.updateScores()
         tInfo.saveInfoFile()
 
-
     newSim = arg.get('newSim',False)
     newImg = arg.get('newImg',False)
     newScore = arg.get('newScore',False)
     newAll = arg.get('newAll',False)
 
-    # Check if score parameter file is valid. 
-    if newSim or newImg or newScore or newAll:
-
-        paramLoc = arg.get('paramLoc')
-
-        # Check if location is given
-        if not gm.validPath(paramLoc):
-            if printBase:
-                print("SIMR: WARNING: new_target: param location not valid")
-                gm.tabprint('paramLoc: %s'%paramLoc)
-            return
-
-        # Read parameter file
-        else:
-            pClass = im.group_score_parameter_class(paramLoc)
-            if pClass.status:
-                params = pClass.get('group',None)
-                del pClass
-
-        # Check for valid parameter file
-        if params == None:
-            if printBase:
-                print("SIMR: WARNING: Target_New: Failed to load parameter class")
-                gm.tabprint('paramLoc: %s',paramLoc)
-            return
-
-        # Save parameters in argument class
-        arg.setArg('params',params)     
-
     # Create new files/scores if called upon
     if arg.get('newAll') or arg.get('newScore') :
         new_target_scores( tInfo, arg )
-        tInfo.updateScores()
-
+    
+    sa.target_report_2(tInfo = tInfo)
 
 
 def new_target_scores( tInfo, tArg ):
 
     printBase = tArg.printBase
     printAll = tArg.printAll
-    params = tArg.get("params",None)
-
+    
     if printBase:
-        print("SIMR: newTargetScores:")
+        print("SIMR: new_target_scores:")
         print("\t - tInfo: %s" % tInfo.status )
 
-    if params == None:
-        if printBase: print("SIMR: WARNING: newTargetScores:  Please give valid score parameters")
-        return None
+    # Check if parameter are given
+    params = tArg.get('scoreParams')
+    paramLoc = gm.validPath( tArg.get('paramLoc') )
+    
+    # If invalid, complain
+    if params == None and paramLoc == None:
+        if printBase:
+            print("SIMR: WARNING: new_target_scores: params not valid")
+        return        
+    
+    # If params not there, read from file
+    elif params == None:
+        pClass = im.group_score_parameter_class(paramLoc)
+        if pClass.status:
+            params = pClass.get('group',None)
+            del pClass
 
+    # Check for final parameter file is valid
+    if params == None:
+        if printBase:
+            print("SIMR: WARNING: new_target_scores: Failed to load parameter class")
+            gm.tabprint('paramLoc: %s',paramLoc)
+        return
+    
+    # Prep arguments
 
     runDicts = tInfo.getAllRunDicts()
 
-    # Prep arguments
     runArgs = gm.inArgClass()
     runArgs.setArg('printBase', False)
     
@@ -256,6 +251,8 @@ def new_target_scores( tInfo, tArg ):
     ppClass.runCores()
 
     # Save results
+    tInfo.addScoreParameters( params, overWrite = tArg.get('overWrite',False) )
+    tInfo.gatherRunInfos()
     tInfo.updateScores()
     tInfo.saveInfoFile()
 
@@ -270,10 +267,10 @@ def simr_run( arg = None, rInfo = None, rDir = None ):
 
     if rDir == None:
         rDir = arg.runDir
-    params = arg.scoreParams
+        
     printAll = arg.printAll
-    printBase = arg.printBase
-
+    printBase = arg.printBase    
+    
     if printBase:
         print("SIMR.pipelineRun: Inputs")
         print("\t - rDir:", rDir)
@@ -290,6 +287,30 @@ def simr_run( arg = None, rInfo = None, rDir = None ):
     if rInfo.status == False:
         if printBase: print("SIMR.pipelineRun: WARNING: runInfo bad")
         return None
+
+    # Check if parameter are given
+    arg.scoreParams = arg.get('scoreParams')
+    paramLoc = gm.validPath( arg.get('paramLoc') )
+    
+    # If invalid, complain
+    if arg.scoreParams == None and paramLoc == None:
+        if printBase:
+            print("SIMR: WARNING: simr_run: params not valid")
+        return        
+    
+    # If params not there, read from file
+    elif arg.scoreParams == None:
+        pClass = im.group_score_parameter_class(paramLoc)
+        if pClass.status:
+            arg.scoreParams = pClass.get('group',None)
+            del pClass
+
+    # Check for valid parameter file
+    if arg.scoreParams == None:
+        if printBase:
+            print("SIMR: WARNING: Target_New: Failed to load parameter class")
+            gm.tabprint('paramLoc: %s',paramLoc)
+        return
 
     # Check if new files should be created/altered
     newSim = arg.get('newSim')
