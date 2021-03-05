@@ -66,9 +66,10 @@ ___
 - `-paramLoc path/to/score/param.json`    Path to an existing score parameter file.
 - `-targetLoc path/to/score/target.png`    Path to an existing target image of colliding galaxies.
 ___
-- `-newScore`  (Default: False) Tells program to create a new machine score.
-- `-newImg`    (Default: False) Tells program to create a new model image. (TODO)
 - `-newSim`    (Default: False) Tells program to create a new simulation of a model. (TODO)
+- `-newImage`  (Default: False) Tells program to create a new model image. (Working)
+- `-newScore`  (Default: False) Tells program to create a new machine score.
+- `-newPlot`   (Default: False) Tells program to create series of plots for a target.
 - `-newAll`    (Default: False) Tells program to create a new simulation, image, and score.
 - `-overWrite` (Default: False) Tells program to create a new simulation, image, and/or score even if that file already exists.
 ___

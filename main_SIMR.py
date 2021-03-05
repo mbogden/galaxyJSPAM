@@ -316,7 +316,7 @@ def simr_run( arg = None, rInfo = None, rDir = None ):
 
     # Check if new files should be created/altered
     newSim = arg.get('newSim')
-    newImg = arg.get('newImg')
+    newImage = arg.get('newImage')
     newScore = arg.get('newScore')
     newAll = arg.get('newAll')
 
