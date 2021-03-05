@@ -75,6 +75,7 @@ test_mask = None
 def set_test_mask( inLink ):
     global test_mask
     test_mask = inLink
+    
 
 def mask_test_compare( img1, img2, mask, cmpArg ):
     
@@ -123,8 +124,8 @@ def score_absolute_difference_lower_scale( img1, img2, cmpArg  ):
 
 # end createMScores()
 
-def score_ssim( img1, img2 ):
-    score = 0
+def score_ssim( img1, img2, cmpArg ):
+    score = -1
     score = ssim( img1, img2 )
     return score
 

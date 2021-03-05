@@ -220,5 +220,21 @@
             "h1": 100,
             "h2": 50
         }
+    },
+    "base0_ssim": {
+        "name": "base0_ssim",
+        "simArg": {
+            "name": "100k",
+            "nPts": "100k"
+        },
+        "imgArg": {
+            "name": "default",
+            "pType": "default"
+        },
+        "scoreType": "target",
+        "targetName": "zoo",
+        "cmpArg": {
+            "cmpMethod": "ssim"
+        }
     }
 }
