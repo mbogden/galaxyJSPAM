@@ -20,6 +20,7 @@ import Support_Code.general_module as gm
 import Support_Code.info_module as im
 import Simulator.main_simulator as ss
 import Score_Analysis.main_score_analysis as sa
+import Image_Creator.main_image_creator as ic
 
 sysPath.append( path.abspath( 'Machine_Score/' ) )
 from Machine_Score import main_machine_score as ms

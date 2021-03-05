@@ -20,14 +20,14 @@ import general_module as gm
 import info_module as im
 import direct_image_compare as dc
 
-# global variables
-testFunc = None
-
 def test():
     print("MS: Hi!  You're in Matthew's SIMR module for all things machine scoring images")
 
+# global variables
+testFunc = None
+
 # When creating and testing new functions from outside of module (Ex. Jupyter)
-def set_test_func( inFuncLink ):
+def set_test_score( inFuncLink ):
     global testFunc
     testFunc = inFuncLink
 
@@ -250,6 +250,8 @@ def target_image_compare( rInfo, param, args ):
     score = dc.createScore( tImg, mImg, param['cmpArg'] )
     newScore = rInfo.addScore( name = param['name'], score=score )
     #rInfo.saveInfoFile()
+    
+    if printAll: print("MS: New Score!: %s - %f - %f" % (param['name'],score, newScore))
     
     return score
 

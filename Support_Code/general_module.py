@@ -313,7 +313,8 @@ class ppClass:
 
             # Will exist loop if queue is empty
             except self.Empty:
-                print('%s - queue empty' % self.mp.current_process().name)
+                #print('%s - queue empty' % self.mp.current_process().name)
+                print('')
                 break
 
             if self.printProg:

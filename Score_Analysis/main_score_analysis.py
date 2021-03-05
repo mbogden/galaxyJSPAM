@@ -45,6 +45,31 @@ def basicHeatPlot( s1, s2, s3, titleName=None, ):
 
     return plot
 
+
+def getNamedPlot( scores = None, sName = 'new_score', pertName = 'base_perturbation', printAll = False ):
+        
+    # Grab dataframe of human, machine, and perturbation scores, drop invalid rows. 
+    hmScores = scores[['zoo_merger_score',sName,pertName]].dropna()
+    
+    # Seperate human and machine scores        
+    hScores = hmScores['zoo_merger_score'].values
+    mScores = hmScores[sName].values
+    pScores = hmScores[pertName].values
+
+    corr = np.corrcoef( hScores, mScores )[0,1]
+
+    hs = { 'scores':hScores, 'name':'zoo_merger_score' }
+    ms = { 'scores':mScores, 'name':sName }   
+    ps = { 'scores':pScores, 'name':pertName }
+
+    title = '%s:' % (sName) 
+    title += '\nCorr: %.4f' % corr
+    
+    fig, ax = plt.subplots(1)
+
+    basicHeatSubPlot( fig, ax, hs, ms, ps, titleName=title)    
+    return ax
+
 def basicHeatSubPlot( fig, ax, s1, s2, s3, titleName='', plotLoc = None ):
     
     from matplotlib.cm import ScalarMappable

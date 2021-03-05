@@ -10,11 +10,12 @@ from sys import modules as sysModules
 
 import numpy as np
 import cv2
+from skimage.metrics import structural_similarity as ssim
 
 #from skimage.metrics import structural_similarity as ssim
 
 def test():
-    print("DI: Hi!  You're in direct_image_compare.py")
+    print("DC: Hi!  You're in direct_image_compare.py")
     
 
 # Populate global list of score functions
@@ -53,8 +54,29 @@ test_compare = None
 def set_test_compare( inLink ):
     global test_compare
     test_compare = inLink
+    updateScoreFunctions()
+    print("New Score Function: ",test_compare)
 
+    
 def score_test_compare( img1, img2, cmpArg ):
+    
+    # Check if valid link
+    if test_compare == None:
+        return -1
+    
+    else:
+        return test_compare( img1, img2, cmpArg )
+    
+
+# TODO
+# For testing new mask functions from Jupyter Notebook
+test_mask = None
+
+def set_test_mask( inLink ):
+    global test_mask
+    test_mask = inLink
+
+def mask_test_compare( img1, img2, mask, cmpArg ):
     
     # Check if valid link
     if test_compare == None:
@@ -62,7 +84,8 @@ def score_test_compare( img1, img2, cmpArg ):
     
     else:
         return test_compare( img1, img2, cmpArg )
-    
+# TODO    
+
 
 def score_absolute_difference( img1, img2, cmpArg ):
 
@@ -192,26 +215,16 @@ def score_binary_correlation( img1, img2, cmpArg  ):
 # end createBinaryCorrelation()
 
 
-
-def allScores( img1, img2, printAll = False ):
-
-    sList = []
-
-    for i,l in enumerate(scoreFunctions):
-
-        fName, func = l
-
-        score, cInfo = func( img1, img2, None )
-
-        sList.append( score )
-
-    return sList 
-
-
 # Gather direct image score functions into a single list
-scoreFunctions = [ ( name, obj ) for name,obj in getmembers(sysModules[__name__]) \
+def updateScoreFunctions():
+    global scoreFunctions
+    scoreFunctions = [ ( name, obj ) for name,obj in getmembers(sysModules[__name__]) \
                     if ( isfunction(obj) and name.split('_')[0] == 'score' ) ]
+updateScoreFunctions()
 
+def printScoreFunctions():
+    for name, lnk in scoreFunctions:
+        print(name, lnk)
 
 if __name__=='__main__':
 
