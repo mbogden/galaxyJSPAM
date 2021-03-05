@@ -753,7 +753,7 @@ class target_info_class:
 
         if self.printAll: 
             print("IM: target_info_class.__init__:")
-            print('\t - targetDir: ', targetDir)
+            print('\t - targetDir: ', tArg.targetDir)
             
         # Check if directory has correct structure
         newInfo = tArg.get('newInfo',False)
@@ -1113,10 +1113,7 @@ class target_info_class:
                 print("NEW PATH EXISTS: %s" % self.zooMergerDir)
         
         else: 
-            print("NOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
-            print("NOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
-            print("NOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
-            print("NOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
+            print("IM: You shouldn't be seeing me.")
         
         if tArg.get('newInfo',False): 
             status = self.newTargetSetup( tArg )

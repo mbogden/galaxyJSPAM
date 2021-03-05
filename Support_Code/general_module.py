@@ -33,8 +33,7 @@ def validPath( inPath, printWarning = False, pathType = None):
     if not path.exists( inPath ):
         return None
 
-    outPath = path.abspath( inPath )
-
+    outPath = path.realpath( inPath )
 
     # Check if directory or something else
     if path.isdir( outPath ) and outPath[-1] != '/':
@@ -314,7 +313,8 @@ class ppClass:
 
             # Will exist loop if queue is empty
             except self.Empty:
-                print('%s - queue empty' % self.mp.current_process().name)
+                #print('%s - queue empty' % self.mp.current_process().name)
+                print('')
                 break
 
             if self.printProg:

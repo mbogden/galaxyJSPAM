@@ -20,6 +20,7 @@ import Support_Code.general_module as gm
 import Support_Code.info_module as im
 import Simulator.main_simulator as ss
 import Score_Analysis.main_score_analysis as sa
+import Image_Creator.main_image_creator as ic
 
 sysPath.append( path.abspath( 'Machine_Score/' ) )
 from Machine_Score import main_machine_score as ms
@@ -162,13 +163,14 @@ def simr_target( arg=gm.inArgClass(), tInfo = None ):
     newSim = arg.get('newSim',False)
     newImg = arg.get('newImg',False)
     newScore = arg.get('newScore',False)
+    newPlot = arg.get('newPlot',False)
     newAll = arg.get('newAll',False)
 
     # Create new files/scores if called upon
     if arg.get('newAll') or arg.get('newScore') :
         new_target_scores( tInfo, arg )
     
-    sa.target_report_2(tInfo = tInfo)
+    if newPlot: sa.target_report_2(tInfo = tInfo)
 
 
 def new_target_scores( tInfo, tArg ):
