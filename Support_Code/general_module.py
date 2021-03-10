@@ -4,17 +4,14 @@
 Description:	I have finally commited to creating a dedicated file for all things relating to the input arguments and processing.
 '''
 
-
 # For loading in Matt's general purpose python libraries
+import json
 from os import path
 from sys import path as sysPath
 supportPath = path.abspath( path.join( __file__ , "../../Support_Code/" ) )
 sysPath.append( supportPath )
 
 cv2 = None
-
-# Common json/dict functions
-from copy import deepcopy
 
 from pprint import PrettyPrinter
 pp = PrettyPrinter(width=41, compact=True)
@@ -23,7 +20,7 @@ pprint = pp.pprint
 def test():
     print("GM: Hi!  You're in Matthew's module for generally useful functions and classes")
 
-def validPath( inPath, printWarning = False, pathType = None):
+def validPath( inPath, printWarning = False, pathType = None ):
 
     # Check if valid string
     if type( inPath ) != type( 'string' ):
@@ -43,6 +40,25 @@ def validPath( inPath, printWarning = False, pathType = None):
 
 # End valid path function
 
+# Read json file
+def readJson( jPath ):
+    
+    # Check for valid path/file
+    jPath = validPath( jPath )
+    if jPath == None:
+        return
+    
+    # Read json file
+    jDict = None
+    with open( jPath, 'r' ) as jFile:
+        jDict = json.load( jFile )
+    return jDict
+
+# Save json file
+def saveJson( jDict, jPath ):    
+    with open( jPath, 'w' ) as jFile:
+        json.dump( jDict, jFile )
+    
 def getScores( scoreLoc ):
     
     import pandas as pd

@@ -28,6 +28,13 @@ from Machine_Score import main_machine_score as ms
 def test():
     print("SIMR: Hi!  You're in Matthew's main program for all things galaxy collisions")
 
+# For testing and developement
+new_func = None
+def set_new_func( inFunc ):
+    global new_func
+    new_func = inFunc
+# End set new function
+
 def main(arg):
 
     if arg.printBase:
@@ -321,10 +328,11 @@ def simr_run( arg = None, rInfo = None, rDir = None ):
     newAll = arg.get('newAll')
 
     if newSim or newAll:
-        if printBase: print("SIMR: run: newSim not functioning at this time")
+        if printBase: print("WARNING: SIMR: run: newSim not functioning at this time")
 
-    if newImg or newAll:
-        if printBase: print("SIMR: run: newImg not functioning at this time")
+    if newImage or newAll:
+        if printBase: print("WARNING: SIMR: run: new Image in development!")
+        ic.main_ic_run( arg )
 
     if newScore or newAll:
 

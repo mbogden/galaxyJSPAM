@@ -102,181 +102,7 @@ def main(arg):
 
 # End main
 
-class group_score_parameter_class:
-
-    group = {}
-    status = False
-
-    def __init__( self, pLoc = None, params = None ):
-
-        if pLoc != None:			
-            with open( pLoc, 'r' ) as iFile:
-                self.group = json.load( iFile )
-        
-        elif params != None:
-            self.group = params            
-        
-        if self.group != {} and type(self.group) == type( {} ):
-            self.status = True
-
-    def addGroupParam( self, inDict ):
-        self.group = inDict
-
-    def addParamClass( self, paramIn ):		
-        if paramIn.status:
-            self.group[paramIn.get('name')] = paramIn.pDict
-
-    def addParam( self, pDict ):
-        self.group[ pDict['name'] ] = pDict
-
-    def rmParam( self, pKey ):
-        if pKey in self.group:
-            del self.group[ pKey ]
-
-    def printGroup( self, ):		
-        print(self.group)
-
-    def get( self, inVal, default = None, pName = None ):
-
-        # Grab from class first
-        cVal = getattr( self, inVal, None )
-        if cVal != None:
-            return cVal
-
-        # Grab from param dicts next
-        if pName == None:
-            dVal = self.group.get( inVal, default )
-        else:
-            dVal = self.group[pName].get( inVal, default )
-
-        return dVal	
-
-    def saveParam(self, saveLoc=None):
-
-        if saveLoc == None:
-            return
-
-        with open( saveLoc, 'w' ) as pFile:
-            json.dump( self.group, pFile, indent=4 )
-
-    def readParam(self, pLoc):
-        with open( pLoc, 'r' ) as iFile:
-            self.group = json.load( iFile )
-
-
-class score_parameter_class:
-
-    pDict = None
-    status = False
-
-    baseDict = {
-            'name' : None,
-            'simArg' : {
-                    'name' : '100k',
-                    'nPts' : '100k',
-                },
-            'imgArg' : {
-                    'name' : 'default',
-                    'pType' : 'default',
-                },
-            'tgtArg' : "zoo",
-            'scrArg' : {
-                    'cmpMethod' : 'correlation',
-                },
-        }
-
-    def __init__( self, paramLoc = None, paramDict = None, new=False, printBase = True, printAll = False ):
-
-        self.printBase = printBase
-        self.printAll = printAll
-        if self.printAll: self.printBase = True
-
-        if self.printBase:
-            print("IM: score_param_class.__init__")
-            print("\t - paramLoc: ", paramLoc)
-            print("\t - paramDict: ", type(paramDict))
-
-        # If creating param new from scratch
-        if new:
-            self.pDict = self.baseDict
-            self.status = True
-
-        elif paramDict != None:
-            self.pDict = paramDict
-            self.status = True
-
-        # Else reading a param file
-        elif paramLoc != None:
-            self.readParam( paramLoc )
-
-        if self.printAll:
-            pprint( self.pDict )
-
-    def setDict( self, paramDict):
-        self.pDict = paramDict
-
-    def get( self, inVal, defaultVal = None ):
-
-        cVal = getattr( self, inVal, defaultVal )
-
-        if cVal != defaultVal:
-            return cVal
-
-        dVal = self.pDict.get( inVal, defaultVal )
-        if dVal != defaultVal:
-            return dVal
-
-        return defaultVal
-
-
-    def readParam( self, paramLoc ):
-
-        if self.printAll:
-            print("IM: score_param_class.readParam")
-            print("\t - paramLoc: ", paramLoc)
-
-        # Check if param File is valid
-        if paramLoc == None:
-            if self.printBase: 
-                print('IM: WARNING: Please give a param File Location')
-                print('\t -paramLoc /path/to/file.txt')
-            return
-
-        elif type( paramLoc) != type('String'):
-            if self.printBase: 
-                print('IM: WARNING: paramLoc variable not string')
-                print('\t -paramLoc: %s ' % type(paramLoc), paramLoc)
-            return
-
-        elif not path.exists( paramLoc ):
-            if self.printBase: 
-                print('IM: WARNING: Param File location not found')
-                print('\t -paramLoc: %s' % paramLoc)
-            return
-
-        # Read file Contents
-        with open( paramLoc ) as iFile:
-            self.pDict = json.load( iFile )
-
-        if self.pDict == None:
-            if self.printBase: 
-                print('IM: WARNING: Failed to read param file')
-                print('\t -paramLoc: %s' % paramLoc)
-            return
-
-        self.status = True
-
-    # End reading param file
-
-    def printParam( self, ):
-        pprint( self.pDict )
-    # end print
-
-# End score parameter class
-
-
-
-class run_info_class: 
+class run_info_class:
 
     rDict = None	# Primary dict of information contained in info.json
     initDict = None	# State of json upon initial reading.
@@ -484,17 +310,27 @@ class run_info_class:
     
     def getModelImg( self, imgName = 'default', initImg = False ):
         
+        # Create place to store images if needed.
+        if self.get('img',None) == None:
+            self.img = {}
+        
+        # Return model image if already loaded.
+        mImg = self.img.get(imgName,None)
+        if type(mImg) != type(None):
+            return mImg
+        
         imgLoc = self.findImgLoc( imgName = imgName, initImg = initImg )
         
         if imgLoc != None:
             if self.printAll: print("IM: Loading imgLoc: %s" % imgName, initImg )
             img = gm.readImg(imgLoc)
+            self.img[imgName] = img
             return img
         
         else:
             return None
 
-    def findImgLoc( self, imgName, initImg = False ):		 
+    def findImgLoc( self, imgName, initImg = False, newImg=False ):
 
         # Assume model image
         if not initImg:
@@ -503,6 +339,11 @@ class run_info_class:
         else:
             imgLoc = self.miscDir + imgName + '_init.png'
 
+        # If new image, return location it will become
+        if newImg: 
+            return imgLoc
+        
+        # Return if path exists
         if path.exists( imgLoc ):
             return imgLoc
         else:
@@ -784,18 +625,15 @@ class target_info_class:
     # End target init 
 
     def getTargetImage( self, tName = None ):
-
-        # return if invalid request
-        if tName == None:
-            return
         
-        # Create tmp target image dict if not found
+        # Create place to store images if needed.
         if self.get('targetImgs',None) == None:
             self.targetImgs = {}
         
-        # Search if target image was previously loded. 
-        if type( self.targetImgs.get(tName,None) ) != type( None ):
-            return self.targetImgs[tName]
+        # Return target image if already loaded.
+        tImg = self.targetImgs.get(tName,None)
+        if type(tImg) != type(None):
+            return tImg
         
         # Else find and open target image
         tLoc = self.findTargetImage(tName)
@@ -810,13 +648,21 @@ class target_info_class:
     # End getTargetImage()
 
 
-    def findTargetImage( self, tName = None ):
+    def findTargetImage( self, tName = None, newImg = False ):
 
+        # Expected location
         tLoc = self.infoDir + 'target_%s.png' % tName
+        
+        # If needing path for new image, return
+        if newImg:
+            return tLoc
+        
+        # Only return if file exists
         if path.exists( tLoc ):
             return tLoc
         else:
             return None
+    # End find target image by name
 
     def printParams( self, ):
 
@@ -1094,6 +940,7 @@ class target_info_class:
 
         self.allInfoLoc = self.infoDir + 'target_info.json'
         self.baseInfoLoc = self.infoDir + 'base_target_info.json'
+        self.imgParamLoc = self.infoDir + 'image_params.json'
         
         self.scoreLoc = self.infoDir + 'scores.csv'
         self.baseScoreLoc = self.infoDir + 'base_scores.csv'
@@ -1107,13 +954,6 @@ class target_info_class:
             print("Propose new path : %s" % self.zooMergerDir)
             rename(self.gen0,self.zooMergerDir)
             print("New Path? : %s" % gm.validPath(self.zooMergerDir) )
-        
-        elif gm.validPath( self.zooMergerDir ):
-            if self.printBase:
-                print("NEW PATH EXISTS: %s" % self.zooMergerDir)
-        
-        else: 
-            print("IM: You shouldn't be seeing me.")
         
         if tArg.get('newInfo',False): 
             status = self.newTargetSetup( tArg )
@@ -1282,11 +1122,119 @@ class target_info_class:
         
     # end creating base info file
     
+    def getImageParams( self, ):
+        
+        img_params = gm.readJson( self.imgParamLoc )
+        
+        return img_params
+    
+    def addImageParams( self, in_params, overWrite = False ):
+        
+        # If file doesn't exist
+        if gm.validPath( self.imgParamLoc ) == None:
+            gm.saveJson( in_params, self.imgParamLoc )
+            return
+        
+        # Else file does exsit
+        old_params = gm.readJson( self.imgParamLoc )
+        
+        # Loop through new image parameters
+        for sKey in in_params:
+            
+            # Add to old if overwrite or not found
+            if overWrite or sKey not in old_params:
+                old_params[sKey] = in_params[sKey]            
+        
+        gm.saveJson( old_params, self.imgParamLoc )
+            
+    
+# End target info class
     
 def tabprint( inprint, begin = '\t - ', end = '\n' ):
     print('%s%s' % (begin,inprint), end=end )
 
 
+def getTargetInputData( tInfo, printAll=False ):
+    
+    from os import listdir
+    from shutil import copyfile
+    
+    printBase = tInfo.printBase
+    
+    # Get target id and info folder
+    tid = tInfo.get('target_id')
+    infoDir = tInfo.get('infoDir')
+    if printAll: 
+        print(tid)  
+        print(infoDir)
+        
+    # Find target data from input folders
+    inPath = gm.validPath('../Input_Data/targets/'+tid+'/')
+    if printAll: print(inPath)
+    if inPath == None:
+        if printBase: print("WARNING: IM: Input directory not found: %s"%tid)
+        return
+    if printAll: print(listdir(inPath))
+    
+    # Copy target image
+    tLoc = gm.validPath( inPath + 'sdss%s.png'%tid )
+    if printAll: print(tLoc)
+    if tLoc == None:
+        if printBase: print("WARNING: IM: Target image not found: %s"%inPath)
+        return  
+
+    toLoc = infoDir + 'target_zoo_0.png'
+    copyfile( tLoc, toLoc )
+    
+    # Grab specific target image data
+    metaPath = gm.validPath( inPath + 'sdss%s.meta'%tid )
+    if printAll: print(metaPath)
+    if metaPath == None:
+        if printBase: print("WARNING: IM: Meta data not found: %s"%metaPath)
+        return
+    
+    # Copy starting target zoo image param
+    from copy import deepcopy
+    new_params = gm.readJson('../param/start_zoo_image.json')
+    if new_params == None:        
+        if printBase: print("WARNING: IM: Start zoo image param not found: %s"%'../param/start_zoo_image.json')
+    #if printAll: gm.pprint(new_params)
+    
+    # Add comment on specific target name
+    new_params['zoo_0']['imgArg']['target_id'] = "%s"%tid
+    
+    # Open file for target image
+    mFile = open(metaPath,'r')
+    
+    for l in mFile:
+        l = l.strip()
+        
+        if 'height' in l:
+            h = l.split('=')[1]
+            new_params['zoo_0']['imgArg']['image_size']['width'] = h
+        if 'width' in l:
+            w = l.split('=')[1]
+            new_params['zoo_0']['imgArg']['image_size']['width'] = w
+        if 'px' in l:
+            px = l.split('=')[1]
+            new_params['zoo_0']['imgArg']['galaxy_centers']['px'] = px
+        if 'py' in l:
+            py = l.split('=')[1]
+            new_params['zoo_0']['imgArg']['galaxy_centers']['py'] = py
+        if 'sx' in l:
+            sx = l.split('=')[1]
+            new_params['zoo_0']['imgArg']['galaxy_centers']['sx'] = sx
+        if 'sy' in l:
+            sy = l.split('=')[1]
+            new_params['zoo_0']['imgArg']['galaxy_centers']['sy'] = sy
+    
+    if printAll: gm.pprint(new_params)
+    
+    # Save new target image parameter
+    imgPath = infoDir + 'image_params.json'
+    gm.saveJson( new_params, imgPath )    
+    
+    
 if __name__=='__main__':
 
     from sys import argv

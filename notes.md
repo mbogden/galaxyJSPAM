@@ -1,12 +1,8 @@
 # Notes for galaxyJSPAM
 These are written by Matthew Ogden for Matthew Ogden while creating and organizing code.  
-May be good for others to view.
+Might* be good for others to view.
 
 # Matt's Working To-Do
-- (When do-able) Read Me files? 
-- Bugs!: New target score
-	- New param does not save score in scores after simr_target.
-	- New param scores is seen as a unknown score is score_analysis
 - Masked comparison
   - Apply mask to both images
   - Send to specified compr method
