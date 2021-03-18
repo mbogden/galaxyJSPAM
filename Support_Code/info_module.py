@@ -856,6 +856,8 @@ class target_info_class:
             
         else: 
             rInfo = run_info_class( runDir = runDir, rArg=rArg )
+        
+        rInfo.tInfo = self
 
         if rInfo.status:
             return rInfo
@@ -1122,11 +1124,26 @@ class target_info_class:
         
     # end creating base info file
     
-    def getImageParams( self, ):
+    def getImageParams( self, imgName=None):
         
+        from copy import deepcopy
+        
+        # Read image parameters common for target
         img_params = gm.readJson( self.imgParamLoc )
         
-        return img_params
+        # If None, initialize target images and try again.
+        if img_params == None:
+            getTargetInputData( self )
+            img_params = gm.readJson( self.imgParamLoc )
+        
+        # Return all if none specified.
+        if imgName == None:     
+            return deepcopy( img_params )
+        
+        # Return single image parameter if specified.
+        else:
+            return deepcopy( img_params.get(imgName,None) )
+    # End getting image parameters
     
     def addImageParams( self, in_params, overWrite = False ):
         
@@ -1195,7 +1212,7 @@ def getTargetInputData( tInfo, printAll=False ):
     
     # Copy starting target zoo image param
     from copy import deepcopy
-    new_params = gm.readJson('../param/start_zoo_image.json')
+    new_params = gm.readJson('../param/zoo_base.json')
     if new_params == None:        
         if printBase: print("WARNING: IM: Start zoo image param not found: %s"%'../param/start_zoo_image.json')
     #if printAll: gm.pprint(new_params)

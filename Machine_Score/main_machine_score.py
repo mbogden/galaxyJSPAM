@@ -161,7 +161,19 @@ def MS_Run( \
         
         # Grab parameter and score type
         param = params[pKey]
-        scoreType = param['scoreType']
+        
+        # Check if score parameter if valid
+        scoreType = param.get('scoreType',None)
+        if scoreType == None:
+            if printBase: 
+                print("WARNING: MS: Score Type invalid: %s"%param.get('name',None))
+            continue
+        
+        # Check if compare arguments are there. 
+        if param.get('cmpArg',None) == None:
+            if printBase: 
+                print("WARNING: MS: compare Args invalid: %s"%param.get('name',None))
+            continue
         
         # Call function with correct score type
         if scoreType == 'target':

@@ -51,6 +51,10 @@ def getNamedPlot( scores = None, sName = 'new_score', pertName = 'base_perturbat
     # Grab dataframe of human, machine, and perturbation scores, drop invalid rows. 
     hmScores = scores[['zoo_merger_score',sName,pertName]].dropna()
     
+    if printAll:
+        print("SA: valid scores: %d"%len(hmScores))
+        print(hmScores)
+    
     # Seperate human and machine scores        
     hScores = hmScores['zoo_merger_score'].values
     mScores = hmScores[sName].values

@@ -1,1 +1,0 @@
-{"zoo_0": {"name": "zoo_0", "simArg": {"name": "100k", "nPts": "100k"}, "imgArg": {"name": "zoo_0", "comment": "Basic image parameter file", "image_size": {"width": 1024, "height": 1024}, "galaxy_centers": {"px": -1, "py": -1, "sx": -1, "sy": -1}}, "scrArg": {"cmpMethod": "correlation"}, "targetName": "zoo_0", "scoreType": "target"}}

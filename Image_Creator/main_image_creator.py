@@ -95,7 +95,7 @@ def main_ic_run( arg, ):
         create_image_from_parameters( rInfo, sParam, printAll = printAll, overwrite=overWrite, )
         
         if printBase:
-            print( 'IM_LOOP: %4d / %4d' % (i,n), end='\r' )
+            print( 'IM_LOOP: %4d / %4d' % (i+1,n), end='\r' )
             
 # End main image creator run
         
@@ -163,6 +163,9 @@ def create_image_from_parameters( rInfo, sParam, overwrite=False, printAll = Fal
     imgLoc = rInfo.findImgLoc( imgName, newImg = True )
     cv2.imwrite(imgLoc,img)
     
+    # Clean up run directory of particle files
+    rInfo.delTmp()
+    
     return img
     
     
@@ -213,6 +216,7 @@ def normImg( img, imgArg ):
     if normArg == None:
         normType = 'linear'
         normArg = {'type':'linear'}
+        normArg = {'max_brightness':1.0}
         
     else:
         normType = normArg.get('type')
@@ -228,6 +232,7 @@ def normImg( img, imgArg ):
                     cv2.NORM_MINMAX, dtype=cv2.CV_8U)
         return img    
     
+    # exponential curve, dim pixels get much brighter
     elif normType == 'type1':
         
         nVal = normArg.get('norm_constant')
@@ -611,15 +616,29 @@ def addCircles(img, imgParam, cSize = 7):
     return cimg
 
 # Function for modifying base target image
-def adjustTargetImage( tInfo, new_param, startingImg = 'zoo_0', printAll = False ):
+def adjustTargetImage( tInfo, new_param, startingImg = 'zoo_0', printAll = False, overWrite=False ):
     
-    tImg = tInfo.getTargetImage( startingImg )
-    tParams = tInfo.getImageParams()
-    
-    old_param = tParams[startingImg]
     if printAll:
         print("\nIC: Adusting Starting Target Image\n")
         #gm.pprint(sParam)
+        
+    tImg = tInfo.getTargetImage( startingImg )
+    tParams = tInfo.getImageParams()    
+    old_param = tParams.get(startingImg,None)
+    
+    # Check if starting img is valid
+    if type(tImg) == type(None) or old_param == None:
+        print("WARNING: IC: adjustTargetImage:")
+        gm.tabprint("Previous image and/or params invalid")
+        gm.tabprint("Image: %s"%type(tImg))
+        gm.tabprint("Param: %s"%type(old_param))
+    
+    # Check if target image is already created
+    newName = new_param['imgArg']['name']
+    if newName in tParams and not overWrite:        
+        if printAll: gm.tabprint("Target image already made: %s"%newName)
+            
+        return
     
     # Define function
     def Centers2Points( param ):
@@ -647,6 +666,12 @@ def adjustTargetImage( tInfo, new_param, startingImg = 'zoo_0', printAll = False
     
     sPts = Centers2Points( old_param )
     fPts = Centers2Points( new_param )
+    
+    if printAll:
+        gm.tabprint("From points:")
+        print(sPts)
+        gm.tabprint("To points:")
+        print(fPts)
 
     # Create affine transform matrix out of sets of points
     M = cv2.getAffineTransform(sPts,fPts)
@@ -654,14 +679,24 @@ def adjustTargetImage( tInfo, new_param, startingImg = 'zoo_0', printAll = False
     w = int( new_param['imgArg']['image_size']['width'] )
     h = int( new_param['imgArg']['image_size']['height'] )
     
+    if printAll:
+        gm.tabprint("Warp Matrix")
+        print(M)
+    
     # Create new target image
     newImg = cv2.warpAffine( tImg, M, ( w, h ) )
     
-    # Save new target image
+    # Create location for new image
     newLoc = tInfo.findTargetImage( tName = new_param['imgArg']['name'], newImg=True)
-    print(newLoc)
     
+    if printAll:
+        gm.tabprint("Writing to loc: %s"%newLoc)
+    
+    # Write image to location    
     cv2.imwrite( newLoc, newImg )
+    
+    if printAll:
+        gm.tabprint("File should exist: %s"%gm.validPath(newLoc))
 
 
 # Run main after declaring functions

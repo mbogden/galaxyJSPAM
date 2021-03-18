@@ -1,0 +1,18 @@
+{
+    "new_score": {
+        "name": "new_score",
+        "simArg": {
+            "name": "100k",
+            "nPts": "100k"
+        },
+        "imgArg": {
+            "name": "default",
+            "pType": "default"
+        },
+        "scoreType": "target",
+        "targetName": "zoo",
+        "cmpArg": {
+            "cmpMethod": "test_compare"
+        }
+    }
+}
