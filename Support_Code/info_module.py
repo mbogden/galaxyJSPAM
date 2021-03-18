@@ -308,27 +308,46 @@ class run_info_class:
 
     # End findPtsFile
     
-    def getModelImg( self, imgName = 'default', initImg = False ):
+    def getModelImage( self, imgName = 'default', initImg = False ):
         
         # Create place to store images if needed.
         if self.get('img',None) == None:
             self.img = {}
+            
+        if self.get('init',None) == None:
+            self.init = {}
         
         # Return model image if already loaded.
-        mImg = self.img.get(imgName,None)
-        if type(mImg) != type(None):
-            return mImg
+        if not initImg:
+            mImg = self.img.get(imgName,None)
+            if type(mImg) != type(None):
+                return mImg
         
+        else:            
+            img = self.init.get(imgName,None)
+            if type(img) != type(None):
+                return img
+        
+        # Get image location
         imgLoc = self.findImgLoc( imgName = imgName, initImg = initImg )
-        
-        if imgLoc != None:
-            if self.printAll: print("IM: Loading imgLoc: %s" % imgName, initImg )
-            img = gm.readImg(imgLoc)
-            self.img[imgName] = img
-            return img
-        
-        else:
+        if self.printAll: print("IM: Loading imgLoc: %s" % imgName, initImg )
+        if imgLoc == None:
             return None
+        
+        # Read image
+        img = gm.readImg(imgLoc)
+        
+        # Store image if called upon later
+        if not initImg: 
+            self.img[imgName] = img
+        else:
+            self.init[imgName] = img
+
+        # Return image
+        return img
+    
+    # End getting model, unperturbed image
+
 
     def findImgLoc( self, imgName, initImg = False, newImg=False ):
 

@@ -245,7 +245,7 @@ def target_image_compare( rInfo, param, args ):
     
     # Else, have rInfo retrieve img location
     else:
-        mImg = rInfo.getModelImg(mName)
+        mImg = rInfo.getModelImage(mName)
         rInfo.modelImg[mName] = mImg
         
     if type(mImg) == type(None): 
@@ -303,7 +303,7 @@ def perturbation_compare( rInfo, param, args ):
     
     # Else, have rInfo retrieve img location
     else:
-        mImg = rInfo.getModelImg(mName)
+        mImg = rInfo.getModelImage(mName)
         rInfo.modelImg[mName] = mImg
     
     # Check if valid image
@@ -331,7 +331,7 @@ def perturbation_compare( rInfo, param, args ):
     
     # Else, have rInfo retrieve img location
     else:
-        iImg = rInfo.getModelImg(mName,initImg=True)
+        iImg = rInfo.getModelImage(mName,initImg=True)
         rInfo.initImg[mName] = iImg
         
     if type(iImg) == type(None): 

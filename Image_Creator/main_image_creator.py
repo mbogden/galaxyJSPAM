@@ -110,78 +110,120 @@ def create_image_from_parameters( rInfo, sParam, overwrite=False, printAll = Fal
     if rInfo.get('img',None) == None:
         rInfo.img = {}
         
+    # Add place to keep points and images in memory
+    if rInfo.get('init',None) == None:
+        rInfo.init = {}
+        
     if rInfo.get('pts',None) == None:
         rInfo.pts = {}
     
+    # Grab idenitfying names
     imgName = sParam['imgArg'].get('name',None)
     simName = sParam['simArg'].get('name',None)
 
     # If image is already created, return
-    imgLoc = rInfo.findImgLoc( imgName, )
-    if imgLoc != None:
-        if printAll: print("IC: Image '%s' already made"%imgLoc)
-        if not overwrite: 
-            img = gm.readImg( imgLoc )
-            rInfo.img[imgName] = img
-            return img
+    mImgLoc = rInfo.findImgLoc( imgName, )
+    iImgLoc = rInfo.findImgLoc( imgName, initImg=True )
     
-    # Check if files are loaded into info file
-    pts = rInfo.pts.get(simName,None)
-    
-    # Load points if not found
-    if pts == None:
+    # Check if images already created
+    if mImgLoc != None and iImgLoc != None:        
+        if printAll: print("IC: Image '%s' already made for %s"%(imgName,rInfo.get('run_id')))
         
-        if printAll: im.tabprint("Loading points from file")
-        ptsZipLoc = rInfo.findPtsLoc( ptsName = simName )
-        if ptsZipLoc == None:
-            print("IC: WARNING: zipped points not found.")
-            return None
-            
-        # Save pts in case needed for later
-        pts = particle_class( tmpDir = rInfo.tmpDir, zipLoc = ptsZipLoc, )  
-        rInfo.pts[simName] = pts        
+        # Unless overwriting images, load images and return
+        if not overwrite: 
+            mImg = gm.readImg( mImgLoc )
+            iImg = gm.readImg( iImgLoc )
+            rInfo.img[imgName] = mImg
+            rInfo.init[imgName] = iImg
+            return
+    
+    # Get particles
+    pts = getParticles( rInfo, simName, printAll=printAll )
     
     if printAll: im.tabprint("Creating image from points")
 
     imgArg = sParam['imgArg']
-    img = pts2image( pts, imgArg )
-    # TODO Adjust brigtness on a galaxy
+    
+    # Add particles to image
+    mImg = pts2image( pts, imgArg, init=False )
+    iImg = pts2image( pts, imgArg, init=True )
 
     # Apply blur
-    img = blurImg( img, imgArg )
+    mImg = blurImg( mImg, imgArg )
+    iImg = blurImg( iImg, imgArg )
 
-    # Normalize image
-    img = normImg( img, imgArg )
+    # Normalize brightness
+    mImg = normImg( mImg, imgArg )
+    iImg = normImg( iImg, imgArg )
 
-    if printAll: 
-        im.tabprint("Saving image at: %s"%imgLoc)
-
-    # Save image in case needed later
-    rInfo.img[imgName] = img
+    # Save images in case needed later
+    rInfo.img[imgName] = mImg
+    rInfo.init[imgName] = iImg
         
-    # Image location 
-    imgLoc = rInfo.findImgLoc( imgName, newImg = True )
-    cv2.imwrite(imgLoc,img)
+    # Get Image locations
+    mImgLoc = rInfo.findImgLoc( imgName, newImg = True )
+    iImgLoc = rInfo.findImgLoc( imgName, newImg = True, initImg=True )
+    
+    if printAll: 
+        im.tabprint("Saving model image at: %s"%mImgLoc)
+        im.tabprint("Saving unperturbed at: %s"%iImgLoc)
+        
+    # Save image
+    cv2.imwrite(mImgLoc,mImg)
+    cv2.imwrite(iImgLoc,iImg)
     
     # Clean up run directory of particle files
     rInfo.delTmp()
+
+# End image from score parameter file
+
+
+def getParticles( rInfo, simName, printAll=False ):
     
-    return img
+    # Check if files are loaded in run info class
+    pts = rInfo.pts.get(simName,None)
+    
+    # Load points if not found
+    if pts != None:
+        return pts
+    
+    # Get particle location 
+    ptsZipLoc = rInfo.findPtsLoc( ptsName = simName )
+    if printAll: im.tabprint("Loading points from file: %s"%ptsZipLoc)
+        
+    if ptsZipLoc == None:
+        if printBase: print("WARNING: IC: zipped points not found: %s"%ptsZipLoc)
+        return None
+    
+    # Read particles using particle class
+    pts = particle_class( tmpDir = rInfo.tmpDir, zipLoc = ptsZipLoc, )  
+    
+    # Save pts in case needed for later
+    rInfo.pts[simName] = pts
+    
+    return pts
+
+# End getting particles
     
     
-def pts2image( pts, imgArg, ):
+def pts2image( pts, imgArg, init=False ):
     
-    sg1f, sg2f, pts.sfCenters = shiftPoints( pts.g1f, pts.g2f, pts.fCenters, imgArg )
-    #sg1f, sg2f, pts.sfCenters = new_func( pts.g1f, pts.g2f, pts.fCenters, imgArg )
-    
-    # TO Initial image
-    #pts.sg1i, pts.sg2i, pts.sfCenters = shiftPoints( pts.g1i, pts.g2i, pts.iCenters, imgArg )
+    # Final model image
+    if not init:
+        pts.sg1f, pts.sg2f, pts.sfCenters = shiftPoints( imgArg, pts.g1f, pts.g2f, pts.fCenters, pts.fCenters )
+        g1img = addGalaxy( pts.sg1f, imgArg, 0 )
+        g2img = addGalaxy( pts.sg2f, imgArg, 1 )
+        img = g1img + g2img
+        
+    else:
+        # TO Initial image
+        pts.sg1i, pts.sg2i, pts.sfCenters = shiftPoints( imgArg, pts.g1i, pts.g2i, pts.iCenters, pts.fCenters )
+        g1img = addGalaxy( pts.sg1i, imgArg, 0 )
+        g2img = addGalaxy( pts.sg2i, imgArg, 1 )         
+        img = g1img + g2img
        
-    g1img = addGalaxy( sg1f, imgArg, 0 )
-    g2img = addGalaxy( sg2f, imgArg, 1 )
-    img = g1img + g2img
-    
     return img
+
 
 
 # Blur image
@@ -342,11 +384,22 @@ class particle_class:
     # end read particle file
 
 
-# Working only if pixel centers are on x axis
-def shiftPoints( g1pts, g2pts, ptsCenters, imgArg, devPrint=False ):
+# It finally works... Please never touch this again. 
+def shiftPoints( imgArg, g1pts, g2pts, iPtsCenters, fPtsCenters, devPrint=False ):
+    
+    # Grab number of particles per galaxy
+    n = g1pts.shape[0]
     
     # Grab initial values
     imgHeight = imgArg['image_size']['height']
+    
+    # If shifting initial galaxies to final location, create addition matrix
+    g2_shift = fPtsCenters[1,0:2] - iPtsCenters[1,0:2]
+    
+    if np.sum( np.abs( g2_shift) ) > 1e-6:
+        g2_full_shift = np.ones((2,n)) 
+        g2_full_shift[0,:] *= g2_shift[0]
+        g2_full_shift[1,:] *= g2_shift[1]
     
     # Final image (m) coordinates for galaxy centers
     g1_mf = np.zeros(2)
@@ -357,8 +410,8 @@ def shiftPoints( g1pts, g2pts, ptsCenters, imgArg, devPrint=False ):
     g2_mf[1] = imgArg['galaxy_centers']['sy']
     
     # Initial Cartesian (c) coordinates for galaxy centers
-    g1_ci = ptsCenters[0,0:2]
-    g2_ci = ptsCenters[1,0:2]
+    g1_ci = fPtsCenters[0,0:2]
+    g2_ci = fPtsCenters[1,0:2]
     
     # galaxy centers in pts format
     gc = np.ones((3,2))
@@ -432,17 +485,33 @@ def shiftPoints( g1pts, g2pts, ptsCenters, imgArg, devPrint=False ):
     sg1pts[:,2] = g1pts[:,2]
 
     # Shift galaxy 2
-    tPts[0:2,:] = g2pts[:,0:2].T  
+    tPts[0:2,:] = g2pts[:,0:2].T 
+    
+    # If initial unperturbed image, adjust galaxy 2 to final position
+    if np.sum( np.abs( g2_shift) ) > 1e-6:
+        tPts[0:2,:] += g2_full_shift
+    
     sg2pts[:,0:2] = np.matmul( adjMat, tPts )[0:2,:].T    
     sg2pts[:,2] = g2pts[:,2]    
     
     # Sanity Plots and printing
-    # ... I've spent waaaaay too many hours trying to write and troubleshoot this 
+    # I've spent waaaaay too many hours trying to troubleshoot this function...
+    # So I finally decided to print and plot every agonizing step.
+    # Turns out, it was the histogram2D function used else where that was the issue.
     devPrint = False
     if devPrint:     
         
         print("\n"+"****"*20)
         print("Image Parameter: %s"%imgArg['name'])
+        
+        print("Initial Coordinates")
+        print(iPtsCenters)
+        
+        print("Final Coordinates")
+        print(fPtsCenters)
+        
+        print("Shifting Galaxy 2")
+        print(g2_shift)
         
         print("Starting Coordinates")
         print("Gal 1: ", g1_ci)
@@ -456,9 +525,8 @@ def shiftPoints( g1pts, g2pts, ptsCenters, imgArg, devPrint=False ):
         print("Gal 1: ",g1_cf )
         print("Gal 2: ",g2_cf )
         
-        fig, ax = plt.subplots(5,3,figsize=(15,5*6))
+        fig, ax = plt.subplots(6,3,figsize=(15,5*6))
 
-        n = g1pts.shape[0]
         print("N points: ",n)
         
         tmp = np.ones((3,2*n))
@@ -472,21 +540,48 @@ def shiftPoints( g1pts, g2pts, ptsCenters, imgArg, devPrint=False ):
         print("Img shape",tmp_img1.shape)
         #tmp_img2, xedges, yedges = np.histogram2d( tmp[0,:], ImgCartConv(tmp[1,:],g2_ci[1]), bins=(xedges, yedges), )
         tmp_img2 = np.rot90( tmp_img1 )
-
-        ax[0,0].set_title("Starting Scatter")
-        ax[0,0].scatter(tmp[0,:],tmp[1,:],s=0.5)
         
-        ax[0,1].set_title("Starting IMshow")
-        ax[0,1].imshow( tmp_img1, cmap='gray', extent=b )
+        i=0
+        ax[i,0].set_title("Starting Scatter")
+        ax[i,0].scatter(tmp[0,:],tmp[1,:],s=0.5)
         
-        ax[0,2].set_title("Starting IMshow +90")
-        ax[0,2].imshow( tmp_img2, cmap='gray', extent=b )
+        ax[i,1].set_title("Starting IMshow")
+        ax[i,1].imshow( tmp_img1, cmap='gray', extent=b )
+        
+        ax[i,2].set_title("Starting IMshow +90")
+        ax[i,2].imshow( tmp_img2, cmap='gray', extent=b )
         
         print("Rotation")
         print("Initial Angle: ",np.rad2deg(iv_angle))
         print("Final Angle: ",np.rad2deg(fv_angle))
         
-        i = 1
+        
+        i += 1
+        # Shift particles if unperturbed image
+        
+        if np.sum( np.abs( g2_shift) ) > 1e-6:
+            g2_full_shift = np.ones((2,n)) 
+            g2_full_shift[0,:] *= g2_shift[0]
+            g2_full_shift[1,:] *= g2_shift[1]
+            print("Full shift\n",g2_full_shift)
+            tmp[0:2,n:2*n] += g2_full_shift
+
+        b = [ -15, 15, -15, 15]
+        xedges = np.linspace(b[0],b[1],101)
+        yedges = np.linspace(b[2],b[3],101)
+        tmp_img1, xedges, yedges = np.histogram2d( tmp[0,:], tmp[1,:], bins=(xedges, yedges), )
+        tmp_img2 = np.rot90( tmp_img1 )
+
+        ax[i,0].set_title("Shift Galaxy 2 Scatter")
+        ax[i,0].scatter(tmp[0,:],tmp[1,:],s=0.5)
+        
+        ax[i,1].set_title("Shift Galaxy 2 IMshow")
+        ax[i,1].imshow( tmp_img1, cmap='gray', extent=b )
+        
+        ax[i,2].set_title("Shift Galaxy 2 IMshow+90")
+        ax[i,2].imshow( tmp_img2, cmap='gray', extent=b )
+        
+        i += 1
         tmp = np.matmul(rotMat,tmp)
 
         b = [ -15, 15, -15, 15]
@@ -508,7 +603,7 @@ def shiftPoints( g1pts, g2pts, ptsCenters, imgArg, devPrint=False ):
         print("Initial Angle: ",np.rad2deg(iv_angle))
         print("Final Angle: ",np.rad2deg(fv_angle))
         
-        i = 2
+        i += 1
         tmp = np.matmul(scaleMat,tmp)
 
         b = [ -500, 500, -500, 500]
@@ -526,7 +621,7 @@ def shiftPoints( g1pts, g2pts, ptsCenters, imgArg, devPrint=False ):
         ax[i,2].set_title("Scaling IMshow+90")
         ax[i,2].imshow( tmp_img2, cmap='gray', extent=b )
         
-        i = 3
+        i += 1
         tmp = np.matmul(transMat,tmp)
 
         b = [ 0, 1000, 0, 1000]
@@ -544,7 +639,7 @@ def shiftPoints( g1pts, g2pts, ptsCenters, imgArg, devPrint=False ):
         ax[i,2].set_title("Translation IMshow+90")
         ax[i,2].imshow( tmp_img2, cmap='gray', extent=b )
         
-        i = 4
+        i += 1
         tmp = np.matmul(adjMat,tmp)
 
         b = [ 0, 1000, 0, 1000]
@@ -566,7 +661,9 @@ def shiftPoints( g1pts, g2pts, ptsCenters, imgArg, devPrint=False ):
         ax[i,2].imshow( tmp_img4, cmap='gray', extent=b )
     
     return sg1pts, sg2pts, gc
+
 # END SHIFTING POINTSSSSSSSS.
+
 
 def addGalaxy( ptSet, imgArg, gNum=None ):
 
@@ -697,6 +794,8 @@ def adjustTargetImage( tInfo, new_param, startingImg = 'zoo_0', printAll = False
     
     if printAll:
         gm.tabprint("File should exist: %s"%gm.validPath(newLoc))
+    
+    return newImg
 
 
 # Run main after declaring functions
