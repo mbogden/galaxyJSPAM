@@ -24,7 +24,7 @@ scoreFunctions = None
     
 def createScore( img1, img2, cmpArg ):
 
-    funcPtr = getScoreFunc( cmpArg['cmpMethod'] )
+    funcPtr = getScoreFunc( cmpArg['function_name'] )
 
     if funcPtr != None:
         return funcPtr( img1, img2, cmpArg )

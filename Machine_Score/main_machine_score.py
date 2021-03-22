@@ -146,7 +146,8 @@ def MS_Run( \
                 print("MS: Error: MS_Run: Bad score parameters")
                 gm.tabprint('param_type: %s'%type(params))
             return None
-    
+       
+    overwrite = arg.get('overWrite',False)
 
     # Assume group of parameters and loop through.    
     for pKey in params:
@@ -156,7 +157,7 @@ def MS_Run( \
         if printAll: print("MS: scoreName: %s"%pKey)
         
         # If score exists, move to next score parameter
-        if score != None and not arg.get('overWrite',False):
+        if score != None and not overwrite:
             continue
         
         # Grab parameter and score type
@@ -164,104 +165,94 @@ def MS_Run( \
         
         # Check if score parameter if valid
         scoreType = param.get('scoreType',None)
-        if scoreType == None:
+        cmpArg = param.get('cmpArg',None)
+        if scoreType == None or cmpArg == None:
             if printBase: 
-                print("WARNING: MS: Score Type invalid: %s"%param.get('name',None))
+                print("WARNING: MS: Score Parameters invalid: %s"%param.get('name',None))
             continue
         
-        # Check if compare arguments are there. 
-        if param.get('cmpArg',None) == None:
+        cmpType = param['cmpArg'].get('type',None)
+        
+        if cmpType == None:
             if printBase: 
-                print("WARNING: MS: compare Args invalid: %s"%param.get('name',None))
+                print("WARNING: MS: Score Parameters invalid: %s"%param.get('name',None))
             continue
         
         # Call function with correct score type
-        if scoreType == 'target':
-            target_image_compare( rInfo, param, arg )
+        if scoreType == 'model_fitness_score':
+            if cmpType == 'direct_image_comparison':
+                target_direct_image_compare( rInfo, param, arg )
+            else:
+                if printBase:
+                    print("WARNING: MS: Scoring method not implemented: %s"%cmpType)
+                    
         elif scoreType == 'perturbation':
             perturbation_compare( rInfo, param, arg )
+            
         else:
             print("WARNING: MS: Run")
-            print("Score Type of '%s' not yet implemented"%(scoreType))
+            print("Score Type not yet implemented: '%s'"%(scoreType))
+            
+    # Save results
+    rInfo.saveInfoFile()
     
 # end processing run dir
 
 
 # compares a target and image with given score parameters
-def target_image_compare( rInfo, param, args ):
+def target_direct_image_compare( rInfo, param, args ):
     
+    # Get variables
     printBase = args.printBase
     printAll = args.printAll
     
     # Base info
     pName = param['name']
-    tName = param['targetName'] 
+    tName = param['cmpArg']['targetName']
     mName = param['imgArg']['name']
     
-    # GET TARGET IMAGE
-    tLoc = args.get('targetLoc',None)
-    tImg = None
-    tLink = rInfo.get('tInfo')
-    
-    if printBase: print('MS: target_image_compare: %s'%pName)
+    if printAll: print('MS: target_direct_image_compare: %s'%pName)
     
     if printAll:
-        im.tabprint(' paramName: %s'%pName)
-        im.tabprint(' modelName: %s'%mName)
-        im.tabprint('targetName: %s'%tName)
+        gm.tabprint(' paramName: %s'%pName)
+        gm.tabprint(' modelName: %s'%mName)
+        gm.tabprint('targetName: %s'%tName)
     
-    # Exit if invalid request
-    if type(tLoc) == type(None) and type(tLink) == type(None):
+    # Get Target info
+    tInfo = rInfo.get('tInfo')
+    
+    # Function now requires a target info class
+    if tInfo == type(None):
         if printBase:
-                print("MS: Error: target_image_compare: no target image or link given")
+                print("ERROR: MS: target_direct_image_compare: Invalid target")
         return None
         
-    # Check if image location given
-    if gm.validPath(tLoc, printWarning=printBase):
-        tImg = gm.readImg(tLoc)
-        
-    # If given tInfo link, have tInfo search and get image.
-    else:        
-        tImg = tLink.getTargetImage(tName)
+    # GET TARGET IMAGE
+    tImg = tInfo.getTargetImage(tName)
     
     # Finally, should have tImg.  Leave if not
     if type(tImg) == None:
-        if printBase:
-            print("MS: Error: target_image_compare: failed to load target image")
+        if printBase: print("Error: MS: target_image_compare: failed to load target image")
         return None
-    elif printAll: gm.tabprint("Read target image")
+    elif printAll: 
+        gm.tabprint("Read target image")
     
     # GET MODEL IMAGE    
-    mImg = None
-    mloc = None
-    
-    # Create dict for storing target and model images if needed        
-    if rInfo.get('modelImg') == None:
-        rInfo.modelImg = {}
-        
-    # Check if in rInfo has model Image already
-    if type( rInfo.modelImg.get(mName) ) != type(None):
-        mImg = rInfo.modelImg.get(mName)
-    
-    # Else, have rInfo retrieve img location
-    else:
-        mImg = rInfo.getModelImage(mName)
-        rInfo.modelImg[mName] = mImg
+    mImg = rInfo.getModelImage( mName )
         
     if type(mImg) == type(None): 
         if printBase: 
-            print("MS: Error: target_image_compare: failed to load model image")
-            gm.tabprint("runId: %s"%rInfo.get('run_id'))
-            gm.tabprint("model: %s"%mName)
+            print("Error: MS: target_direct_image_compare: failed to load model image")
+            gm.tabprint("runID - model: %s - %s"% (rInfo.get('run_id'),mName))
         return None
         
-    elif printAll: print("MS: run: Read model image")
+    elif printAll: 
+        print("MS: run: Read model image")
     
     # Create score and add to rInfo
     
-    score = dc.createScore( tImg, mImg, param['cmpArg'] )
+    score = dc.createScore( tImg, mImg, param['cmpArg'], printBase=rInfo.printBase )
     newScore = rInfo.addScore( name = param['name'], score=score )
-    #rInfo.saveInfoFile()
     
     if printAll: print("MS: New Score!: %s - %f - %f" % (param['name'],score, newScore))
     
@@ -345,7 +336,7 @@ def perturbation_compare( rInfo, param, args ):
     
     # Create score and add to rInfo
     
-    score = dc.createScore( mImg, iImg, param['cmpArg'] )
+    score = dc.createScore( mImg, iImg, param['cmpArg'], printBase=rInfo.printBase )
     newScore = rInfo.addScore( name = pName, score=score )
     
     return score

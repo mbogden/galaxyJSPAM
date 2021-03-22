@@ -120,6 +120,41 @@ Support code features two programs as of now.
     - Misc functions.  Such as reading images, json files, validating and getting full path to files, and print statements. 
 - `info_module.py`: Contains several classes that server as the interface between programs and disk storage.  Organizes the target/model directories and reads/saves files needed by the programs.  (Ex. Targets, models, and score parameters)
    
+## Score Parameters (TODO)
+    For each model, there are a variety of methods for scoring how well the model fits observation data.  The primary goal of this software suite is to find a fitness scoring method that matches.  
+    Our primary method for getting this fitness score is by simulating the orbital parameters of the model in SPAM.  The simulation creates orbiting stars that get tidally displaced as the galaxies interact. 
+    
+    
+### NOTE:  All code is assuming you have a group of possible score parameters. 
+
+### Example JSON
+```json
+'zoo_2': {'cmpArg': {'cmpMethod': 'correlation'},  // Fitness score
+           'imgArg': {'blur': {'size': 5,
+                               'type': 'gaussian_blur',
+                               'weight': 0.75},
+                      'comment': 'Smaller '
+                                 'Image '
+                                 'by '
+                                 'Matthew.',
+                      'galaxy_centers': {'px': 50,
+                                         'py': 50,
+                                         'sx': 100,
+                                         'sy': 50},
+                      'image_size': {'height': 100,
+                                     'width': 150},
+                      'name': 'zoo_2',
+                      'normalization': {'norm_constant': 2.5,
+                                        'type': 'type1'},
+                      'radial_const': [-1.5,
+                                       -1.5],
+                      'target_id': '587722984435351614'},
+           'name': 'zoo_2',
+           'scoreType': 'target',
+           'simArg': {'nPts': '100k',
+                      'name': '100k'},
+           'targetName': 'zoo_2'}
+```
     
 ## References<a id="references">
 A. Holincheck. *A Pipeline for Constructing a Catalog of Multi-method Models

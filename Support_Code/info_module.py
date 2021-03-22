@@ -143,7 +143,7 @@ class run_info_class:
         # Avoiding confusing things
         if self.printAll: self.printBase = True
 
-        if self.printBase: 
+        if self.printAll: 
             print("IM: run_info_class.__init__")
             print("\t - runDir: " , runDir )
 
@@ -407,7 +407,7 @@ class run_info_class:
     def getAllScores( self  ):
         return self.get('machine_scores')
 
-    def printScores( self, allScores=False):
+    def printScores( self, allScores=True):
 
         print("IM: run_info_class.printScores()")
         tabprint( 'run_id: %s' % self.get('run_id') )
@@ -428,8 +428,6 @@ class run_info_class:
             return None
 
         self.rDict['machine_scores'][name] = score
-
-        self.saveInfoFile()
 
         return self.rDict['machine_scores'][name]
 
@@ -961,7 +959,7 @@ class target_info_class:
 
         self.allInfoLoc = self.infoDir + 'target_info.json'
         self.baseInfoLoc = self.infoDir + 'base_target_info.json'
-        self.imgParamLoc = self.infoDir + 'image_params.json'
+        self.imgParamLoc = self.infoDir + 'param_target_images.json'
         
         self.scoreLoc = self.infoDir + 'scores.csv'
         self.baseScoreLoc = self.infoDir + 'base_scores.csv'
@@ -1231,44 +1229,56 @@ def getTargetInputData( tInfo, printAll=False ):
     
     # Copy starting target zoo image param
     from copy import deepcopy
-    new_params = gm.readJson('../param/zoo_base.json')
-    if new_params == None:        
-        if printBase: print("WARNING: IM: Start zoo image param not found: %s"%'../param/start_zoo_image.json')
+    pLoc = '../param/zoo_blank.json'
+    
+    
+    blank_param = gm.readJson(pLoc)
+    if blank_param == None:        
+        if printBase: print("WARNING: IM: Start zoo image param not found: %s"%pLoc)
+            
     #if printAll: gm.pprint(new_params)
     
-    # Add comment on specific target name
-    new_params['zoo_0']['imgArg']['target_id'] = "%s"%tid
+    # Copy blank parameter
+    new_params = {}
+    new_name = 'zoo_0'
+    new_params[new_name] = deepcopy(blank_param['zoo_blank'])
     
-    # Open file for target image
+    # Make name and comments initial comments.
+    new_params[new_name]['name'] = new_name
+    new_params[new_name]['comment'] = 'Starting score parameters for %s'%tid
+    new_params[new_name]['imgArg']['comment'] = "Starting image parameter for %s"%tid
+    
+    # Open file for target galaxy zoo merger image information
     mFile = open(metaPath,'r')
     
+    # Grab information
     for l in mFile:
         l = l.strip()
         
         if 'height' in l:
             h = l.split('=')[1]
-            new_params['zoo_0']['imgArg']['image_size']['width'] = h
+            new_params[new_name]['imgArg']['image_size']['width'] = int(h)
         if 'width' in l:
             w = l.split('=')[1]
-            new_params['zoo_0']['imgArg']['image_size']['width'] = w
+            new_params[new_name]['imgArg']['image_size']['width'] = int(w)
         if 'px' in l:
             px = l.split('=')[1]
-            new_params['zoo_0']['imgArg']['galaxy_centers']['px'] = px
+            new_params[new_name]['imgArg']['galaxy_centers']['px'] = int(px)
         if 'py' in l:
             py = l.split('=')[1]
-            new_params['zoo_0']['imgArg']['galaxy_centers']['py'] = py
+            new_params[new_name]['imgArg']['galaxy_centers']['py'] = int(py)
         if 'sx' in l:
             sx = l.split('=')[1]
-            new_params['zoo_0']['imgArg']['galaxy_centers']['sx'] = sx
+            new_params[new_name]['imgArg']['galaxy_centers']['sx'] = int(sx)
         if 'sy' in l:
             sy = l.split('=')[1]
-            new_params['zoo_0']['imgArg']['galaxy_centers']['sy'] = sy
+            new_params[new_name]['imgArg']['galaxy_centers']['sy'] = int(sy)
     
     if printAll: gm.pprint(new_params)
     
     # Save new target image parameter
-    imgPath = infoDir + 'image_params.json'
-    gm.saveJson( new_params, imgPath )    
+    newParamLoc = tInfo.imgParamLoc
+    gm.saveJson( new_params, newParamLoc )
     
     
 if __name__=='__main__':

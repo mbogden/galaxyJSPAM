@@ -795,7 +795,10 @@ def adjustTargetImage( tInfo, new_param, startingImg = 'zoo_0', printAll = False
     if printAll:
         gm.tabprint("File should exist: %s"%gm.validPath(newLoc))
     
-    return newImg
+    # Have tInfo load image
+    tImg = tInfo.getTargetImage( new_param['imgArg']['name'] )
+    
+    return tImg
 
 
 # Run main after declaring functions

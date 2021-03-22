@@ -4,6 +4,20 @@ Might* be good for others to view.
 
 # Matt's Working To-Do
 
+- reorganize working score type
+	- Potential types
+		- Direct image comparison (2-images)
+		- Triple image comparison
+			- Can this be under weight mask between model and target?
+			- mask just comes from comparing model and unperturbed
+		- Neaural Network (single image)
+		- Neural Network (Image and target)
+		- Weighted mask between two images
+
+- Triple image comparison
+	- Compare all Model, Unperturbated, and target image
+	- Where Model and unperturbed closely match, lower weight on model image
+
 - Masked comparison
     - Apply mask to both images
     - Send to specified compr method
