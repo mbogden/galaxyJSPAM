@@ -188,16 +188,28 @@ def new_target_scores( tInfo, tArg ):
 
     # Check if parameter are given
     params = tArg.get('scoreParams')
-    paramLoc = gm.validPath( tArg.get('paramLoc') )
+    paramName = tArg.get('paramName',None) 
+    paramLoc = gm.validPath( tArg.get('paramLoc',None) )
     
     # If invalid, complain
-    if params == None and paramLoc == None:
+    if params == None and paramLoc == None and paramName == None:
         if printBase:
             print("SIMR: WARNING: new_target_scores: params not valid")
+            gm.tabprint('Params: %s'%type(params))
+            gm.tabprint('ParamName: %s'%paramName)
+            gm.tabprint('ParamLoc : %s'%paramLoc)
         return
     
-    # If params not there, read from file
-    elif params == None:
+    # If params there, move on
+    elif params != None:
+        params = gm.readJson(paramLoc)
+    
+    # If given a param name, assume target knows where it is.
+    elif paramName != None:
+        params = tInfo.readScoreParam(paramName)
+    
+    # If given param location, directly read file
+    elif paramLoc != None:
         params = gm.readJson(paramLoc)
 
     # Check for final parameter file is valid
@@ -331,7 +343,7 @@ def simr_run( arg = None, rInfo = None, rDir = None ):
         if printBase: print("WARNING: SIMR: run: newSim not functioning at this time")
 
     if newImage or newAll:
-        ic.main_ic_run( arg )
+        ic.main_ic_run( rInfo = rInfo, arg=arg )
 
     if newScore or newAll:
 

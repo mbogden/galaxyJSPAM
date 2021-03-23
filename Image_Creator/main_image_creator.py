@@ -54,7 +54,7 @@ def main(arg):
 # End main
 
 
-def main_ic_run( arg, ):
+def main_ic_run( rInfo = None, arg = gm.inArgClass() ):
     
     # extract variables
     rDir = arg.runDir
@@ -62,7 +62,9 @@ def main_ic_run( arg, ):
     printAll=arg.printAll
     overWrite = arg.get('overWrite',False)
     
-    rInfo = arg.get('rInfo')
+    if rInfo == None:
+        rInfo = arg.get('rInfo')
+        
     scoreParams = arg.get('scoreParams',None)
 
     if printBase:

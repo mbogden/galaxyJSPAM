@@ -695,16 +695,20 @@ class target_info_class:
                 self.tDict['score_parameters'][pKey] = params[pKey]
 
 
-    def getScores( self, scrName = None ):
+    def getScores( self, scrName = None, reload=False): 
 
         # Reading from file
         if type(self.sFrame) == type(None):
             if gm.validPath( self.scoreLoc, printWarning=False ):
                 self.sFrame = pd.read_csv( self.scoreLoc )
+                
             else:
                 if self.printAll: print( "IM: WARNING: Target.getScores:" )
                 self.createBaseScore()
-
+                
+        if reload:
+            self.sFrame = pd.read_csv( self.scoreLoc )
+            
         return self.sFrame
 
     def createBaseScore( self, ):
@@ -967,7 +971,9 @@ class target_info_class:
         self.imgParamLocOld = self.infoDir + 'param_target_images.json'
         self.imgParamLoc = self.imgDir + 'param_target_images.json'        
         
-        self.maskDir = self.infoDir + 'target_masks/'
+        self.maskDir = self.infoDir + 'target_masks/'       
+        
+        self.scoreParamDir = self.infoDir + 'score_parameters/'
         
         self.scoreLoc = self.infoDir + 'scores.csv'
         self.baseScoreLoc = self.infoDir + 'base_scores.csv'
@@ -1003,6 +1009,7 @@ class target_info_class:
         # Create target image and mask directories
         if not path.exists( self.imgDir ): mkdir( self.imgDir )
         if not path.exists( self.maskDir ): mkdir( self.maskDir )
+        if not path.exists( self.scoreParamDir ): mkdir( self.scoreParamDir )
         
         # Create or move misc directories if not created.
         if gm.validPath( self.imgParamLocOld ) != None:
@@ -1206,14 +1213,37 @@ class target_info_class:
     def overWriteImageParams( self, in_params ):
         gm.saveJson( in_params, self.imgParamLoc )
     
-    def addMaskImage( self, maskImage, maskName ):
+    def saveMaskImage( self, maskImage, maskName ):
         maskLoc = self.maskDir + '%s.png'%maskName
         gm.saveImg( maskImage, maskLoc)
     
-    def getMask( self, maskName ):
+    def getMaskImage( self, maskName ):
+        
+        if self.get('targetMasks',None) == None:
+            self.targetMasks = {}
+            
+        if type( self.targetMasks.get(maskName,None) ) != type( None ):
+            return self.targetMasks[maskName]
+        
+        else:
+            mask = self.readMaskImage( maskName )
+            self.targetMasks[maskName] = mask
+            return self.targetMasks[maskName]
+        
+    
+    def readMaskImage( self, maskName ):
         maskLoc = self.maskDir + '%s.png'%maskName
         mask = gm.readImg(  maskLoc )
         return mask
+    
+    def saveScoreParam( self, score_params, param_file_name ):
+        paramLoc = self.scoreParamDir + '%s.json'%param_file_name
+        gm.saveJson( score_params, paramLoc )
+    
+    def readScoreParam( self, param_file_name ):
+        paramLoc = self.scoreParamDir + '%s.json'%param_file_name
+        score_params = gm.readJson(  paramLoc )
+        return score_params
         
         
 # End target info class

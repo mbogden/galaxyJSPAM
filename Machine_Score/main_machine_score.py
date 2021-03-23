@@ -185,12 +185,12 @@ def MS_Run( \
             if cmpType == 'direct_image_comparison':
                 target_compare_setup( rInfo, param, arg )
                 
-            if cmpType == 'mask_binary_simple_compare':
+            elif cmpType == 'mask_binary_simple_compare':
                 mask_compare_setup( rInfo, param, arg )
                 
             else:
                 if printBase:
-                    print("WARNING: MS: Scoring method not implemented: %s"%cmpType)
+                    print("WARNING: MS: MS_Run: Scoring method not implemented: %s"%cmpType)
                     
         elif scoreType == 'perturbation':
             perturbation_compare_setup( rInfo, param, arg )
@@ -304,7 +304,7 @@ def mask_compare_setup( rInfo, param, args ):
     # GET TARGET IMAGE, leave if unable to get
     tImg = tInfo.getTargetImage(tName)
     
-    if type(tImg) == None:
+    if type(tImg) == type(None):
         if printBase: print("Error: MS: mask_compare_setup: failed to load target image")
         return None
     elif printAll: 
@@ -323,9 +323,9 @@ def mask_compare_setup( rInfo, param, args ):
     
     if maskType == 'target':
         # Get target mask
-        mask = tInfo.getMask(maskName)
+        mask = tInfo.getMaskImage(maskName)
 
-        if type(mask) == None:
+        if type(mask) == type(None):
             if printBase: print("Error: MS: mask_compare_setup: failed to load target mask")
             return None
         elif printAll: 
@@ -346,10 +346,10 @@ def mask_compare_setup( rInfo, param, args ):
     
     # Create score and add to rInfo
     
-    score = dc.createScore( tImg, mImg, param['cmpArg'], printBase=rInfo.printBase )
+    score = mc.mask_binary_simple_compare( tImg, mImg, mask, param['cmpArg'] )
     newScore = rInfo.addScore( name = param['name'], score=score )
     
-    if printAll: print("MS: New Score!: %s - %f - %f" % (param['name'],score, newScore))
+    if printAll: print("MS: mask_compare_setup: New Score!: %s - %f - %f" % (param['name'],score, newScore))
     
     return score
 

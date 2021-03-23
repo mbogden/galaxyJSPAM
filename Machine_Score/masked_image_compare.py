@@ -57,7 +57,7 @@ def applyBinaryMask( in_img, mask ):
 
 
 def extractBinaryMask( in_img, mask ):
-    e_img = np.extract( mask==1.0, in_img )
+    e_img = np.extract( mask>0.9, in_img )
     return e_img
 
 

@@ -55,10 +55,10 @@ def float32_to_uint8( f_img ):
     if f_img.dtype != np.float32:
         print("WARNING: GM: float32_to_uint8: In image not type np.float32.")
         return None
-    
-    f_img *= 255.
-    i_img = f_img.astype(np.uint8)
-    return i_img
+    to_img = np.copy(f_img)
+    to_img *= 255.
+    to_img = to_img.astype(np.uint8)
+    return to_img
 # End float32 to uint8
 
 # Read json file

@@ -49,7 +49,7 @@ def score_test_compare( img1, img2, cmpArg ):
 def createScore( img1, img2, cmpArg, printBase=True ):
     
     if img1.dtype != np.float32 or img2.dtype != np.float32:
-        printBase("WARNING: DC: Images are not type np.float32.")
+        if printBase: print("WARNING: DC: Images are not type np.float32.")
         return None
     
     # Check if altering brightness values
@@ -71,7 +71,15 @@ def createScore( img1, img2, cmpArg, printBase=True ):
     
     else:
         return None
+
+
+# Have images match total brightness
+def matchTotalBrightness( img, to_img ):
+    sumB = np.sum( img )
+    to_sumB = np.sum( to_img )    
+    r_img = (to_sumB/sumB) * img
     
+    return r_img    
     
 def getScoreFunc( funcName, printAll = False ):
 
@@ -93,8 +101,6 @@ def score_absolute_difference( img1, img2, cmpArg ):
 
     score = None
 
-    # adjust so mean brightness matches
-
     dImg = np.abs( img1 - img2 )
     score = np.sum( dImg ) / dImg.size
     score = 1 - score
@@ -108,8 +114,6 @@ def score_absolute_difference( img1, img2, cmpArg ):
 def score_absolute_difference_squared( img1, img2, cmpArg ):
 
     score = None
-
-    # adjust so mean brightness matches
 
     dImg = np.power( np.abs( img1 - img2 ), 2 )
     score = np.sum( dImg ) / dImg.size
@@ -218,14 +222,6 @@ def matchAvgBrightness( img, to_img ):
     avg = np.average( img )
     to_avg = np.average( to_img )    
     r_img = (to_avg/avg) * img
-    
-    return r_img    
-
-# Have images match total brightness
-def matchTotalBrightness( img, to_img ):
-    sumB = np.sum( img )
-    to_sumB = np.sum( to_img )    
-    r_img = (to_sumB/sumB) * img
     
     return r_img    
 
