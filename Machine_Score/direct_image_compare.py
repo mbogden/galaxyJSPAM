@@ -1,28 +1,68 @@
 '''
      Author:    Matthew Ogden
     Created:    31 Oct 2019
-    Altered:    21 Feb 2020
 Description:    Created so comparison methods are simply maintained
 '''
 
 from inspect import getmembers, isfunction
-from sys import modules as sysModules
-
+from os import path
+from sys import modules as sysModules, path as sysPath
 import numpy as np
 import cv2
 from skimage.metrics import structural_similarity as ssim
 
-#from skimage.metrics import structural_similarity as ssim
+# For importing my useful support module
+supportPath = path.abspath( path.join( __file__, "../../Support_Code/" ) )
+sysPath.append( supportPath )
 
-def test():
-    print("DC: Hi!  You're in direct_image_compare.py")
-    
+import general_module as gm
+
 
 # Populate global list of score functions
 scoreFunctions = None
 
     
-def createScore( img1, img2, cmpArg ):
+def test():
+    print("DC: Hi!  You're in direct_image_compare.py")
+
+
+# For testing new modules from a Jupyter Notebook
+test_compare = None
+
+def set_test_compare( inLink ):
+    global test_compare
+    test_compare = inLink
+    updateScoreFunctions()
+    print("New Score Function: ",test_compare)
+
+    
+def score_test_compare( img1, img2, cmpArg ):
+    
+    # Check if valid link
+    if test_compare == None:
+        return -1
+    
+    else:
+        return test_compare( img1, img2, cmpArg )
+    
+
+def createScore( img1, img2, cmpArg, printBase=True ):
+    
+    if img1.dtype != np.float32 or img2.dtype != np.float32:
+        printBase("WARNING: DC: Images are not type np.float32.")
+        return None
+    
+    # Check if altering brightness values
+    bMatch = cmpArg.get('brightness_match',None)
+    
+    if bMatch == None:
+        pass
+    
+    if bMatch == 'match_average':
+        img2 = matchAvgBrightness( img2, img1 )
+        
+    elif bMatch == 'match_total':
+        img2 = matchTotalBrightness( img2, img1 )
 
     funcPtr = getScoreFunc( cmpArg['function_name'] )
 
@@ -48,45 +88,6 @@ def getScoreFunc( funcName, printAll = False ):
     return funcPtr
 # End get score
 
-# For testing new modules from a Jupyter Notebook
-test_compare = None
-
-def set_test_compare( inLink ):
-    global test_compare
-    test_compare = inLink
-    updateScoreFunctions()
-    print("New Score Function: ",test_compare)
-
-    
-def score_test_compare( img1, img2, cmpArg ):
-    
-    # Check if valid link
-    if test_compare == None:
-        return -1
-    
-    else:
-        return test_compare( img1, img2, cmpArg )
-    
-
-# TODO
-# For testing new mask functions from Jupyter Notebook
-test_mask = None
-
-def set_test_mask( inLink ):
-    global test_mask
-    test_mask = inLink
-    
-
-def mask_test_compare( img1, img2, mask, cmpArg ):
-    
-    # Check if valid link
-    if test_compare == None:
-        return 0
-    
-    else:
-        return test_compare( img1, img2, cmpArg )
-# TODO    
-
 
 def score_absolute_difference( img1, img2, cmpArg ):
 
@@ -95,7 +96,7 @@ def score_absolute_difference( img1, img2, cmpArg ):
     # adjust so mean brightness matches
 
     dImg = np.abs( img1 - img2 )
-    score = np.sum( dImg ) / dImg.size / 255
+    score = np.sum( dImg ) / dImg.size
     score = 1 - score
 
     # if simply return score
@@ -103,26 +104,21 @@ def score_absolute_difference( img1, img2, cmpArg ):
 
 # End absDiff
 
-def score_absolute_difference_lower_scale( img1, img2, cmpArg  ):
+
+def score_absolute_difference_squared( img1, img2, cmpArg ):
 
     score = None
-    
-    l = 0.9
-    
-    if cmpArg.get('l',None) != None:
-        l = cmpArg['l']
 
-    dImg = np.abs( img1 - img2 )
-    score = np.sum( dImg ) / dImg.size / 255
+    # adjust so mean brightness matches
+
+    dImg = np.power( np.abs( img1 - img2 ), 2 )
+    score = np.sum( dImg ) / dImg.size
     score = 1 - score
 
-    # arbitrary adjustment to make score more human readable 
-    score = (score - l) / (1-l)
-    if score < 0.0: score = 0.0
-
+    # if simply return score
     return score
 
-# end createMScores()
+# End absDiff
 
 def score_ssim( img1, img2, cmpArg ):
     score = -1
@@ -135,8 +131,8 @@ def score_overlap_fraction( img1, img2, cmpArg ):
 
     score = None
     
-    h1 = 80
-    h2 = 80
+    h1 = .25
+    h2 = .25
     
     if cmpArg.get('h1',None) != None:
         h1 = cmpArg['h1']
@@ -147,15 +143,15 @@ def score_overlap_fraction( img1, img2, cmpArg ):
     i1 = np.copy( img1 )
     i2 = np.copy( img2 )
 
-    i1[ i1 <  h1 ] = 0
-    i1[ i1 >= h1 ] = 1
+    i1[ i1 <  h1 ] = 0.0
+    i1[ i1 >= h1 ] = 1.0
 
-    i2[ i2 <  h2 ] = 0
-    i2[ i2 >= h2 ] = 1
+    i2[ i2 <  h2 ] = 0.0
+    i2[ i2 >= h2 ] = 1.0
 
     bImg = i1 + i2
-    bImg[ bImg <  2 ] = 0
-    bImg[ bImg >= 2 ] = 1
+    bImg[ bImg <  2.0 ] = 0.0
+    bImg[ bImg >= 2.0 ] = 1.0
 
     x = np.sum( i1 )
     y = np.sum( i2 )
@@ -187,7 +183,7 @@ def score_correlation( img1, img2, cmpArg  ):
 def binImg( imgIn, threshold ):
 
     cpImg = np.copy( imgIn )
-    cpImg[ cpImg >= threshold] = 255
+    cpImg[ cpImg >= threshold] = 1.0
     cpImg[ cpImg < threshold] = 0
 
     return cpImg
@@ -196,8 +192,8 @@ def binImg( imgIn, threshold ):
 def score_binary_correlation( img1, img2, cmpArg  ):
 
     score = None
-    h1=80
-    h2=80
+    h1=.25
+    h2=.25
     bin1=True
     bin2=True
     
@@ -215,6 +211,23 @@ def score_binary_correlation( img1, img2, cmpArg  ):
     return score
 # end createBinaryCorrelation()
 
+
+# Have images match average brightness
+def matchAvgBrightness( img, to_img ):
+    
+    avg = np.average( img )
+    to_avg = np.average( to_img )    
+    r_img = (to_avg/avg) * img
+    
+    return r_img    
+
+# Have images match total brightness
+def matchTotalBrightness( img, to_img ):
+    sumB = np.sum( img )
+    to_sumB = np.sum( to_img )    
+    r_img = (to_sumB/sumB) * img
+    
+    return r_img    
 
 # Gather direct image score functions into a single list
 def updateScoreFunctions():

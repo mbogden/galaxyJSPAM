@@ -6,12 +6,12 @@ Description:	I have finally commited to creating a dedicated file for all things
 
 # For loading in Matt's general purpose python libraries
 import json
+import numpy as np
+import cv2
 from os import path
 from sys import path as sysPath
 supportPath = path.abspath( path.join( __file__ , "../../Support_Code/" ) )
 sysPath.append( supportPath )
-
-cv2 = None
 
 from pprint import PrettyPrinter
 pp = PrettyPrinter(width=41, compact=True)
@@ -39,6 +39,27 @@ def validPath( inPath, printWarning = False, pathType = None ):
     return outPath
 
 # End valid path function
+
+# converting between two common image types
+def uint8_to_float32( in_img ):
+    if in_img.dtype != np.uint8:
+        print("WARNING: GM: uint8_to_float32: In image not type np.uint8.")
+        return None
+    
+    f_img = in_img.astype(np.float32)
+    f_img /= 255.
+    return f_img
+# End converting to float image between 0 and 1
+
+def float32_to_uint8( f_img ):
+    if f_img.dtype != np.float32:
+        print("WARNING: GM: float32_to_uint8: In image not type np.float32.")
+        return None
+    
+    f_img *= 255.
+    i_img = f_img.astype(np.uint8)
+    return i_img
+# End float32 to uint8
 
 # Read json file
 def readJson( jPath ):
@@ -71,28 +92,10 @@ def getScores( scoreLoc ):
     
     return scores
 
-def getImg( imgLoc, printAll = False ):
-    global cv2
-
-    if cv2 == None:
-        import cv2
-
-    if not path.exists( imgLoc ):
-        if printAll:
-            print("GM: WARNING: image not found")
-            print("\t - %s: " %imgLoc )
-        return None
-
-    img = cv2.imread( imgLoc, 0)
-    return img
-
 
 def saveImg( img, imgLoc, printAll = False ):
-    
-    global cv2
-
-    if cv2 == None:
-        import cv2
+    if img.dtype == np.float32:
+        img = float32_to_uint8(img)
     
     cv2.imwrite(imgLoc,img)
 
@@ -380,8 +383,6 @@ def checkPP(arg):
 
 def readImg( imgLoc, printAll = False, toSize=None ):
 
-    import cv2
-
     # Check if path is valid
     if not path.exists( imgLoc ):
         if printAll:
@@ -391,6 +392,10 @@ def readImg( imgLoc, printAll = False, toSize=None ):
 
     # Read image from disk
     img = cv2.imread( imgLoc, 0 ) 
+    
+    # Convert to floating point with values between 0 and 1
+    if img.dtype == np.uint8:
+        img = uint8_to_float32(img)
 
     # Resize if requested
     if toSize != None:

@@ -668,7 +668,7 @@ class target_info_class:
     def findTargetImage( self, tName = None, newImg = False ):
 
         # Expected location
-        tLoc = self.infoDir + 'target_%s.png' % tName
+        tLoc = self.imgDir + 'target_%s.png' % tName
         
         # If needing path for new image, return
         if newImg:
@@ -931,6 +931,9 @@ class target_info_class:
     # initialize target directories
     def initTargetDir( self, tArg ):
         
+        from shutil import move
+        from os import mkdir
+        
         if self.printAll:
             print( 'IM: Target.initTargetDir():' )
             print( '\t - targetDir: %s' % tArg.targetDir )
@@ -959,7 +962,12 @@ class target_info_class:
 
         self.allInfoLoc = self.infoDir + 'target_info.json'
         self.baseInfoLoc = self.infoDir + 'base_target_info.json'
-        self.imgParamLoc = self.infoDir + 'param_target_images.json'
+        
+        self.imgDir = self.infoDir + 'target_images/'
+        self.imgParamLocOld = self.infoDir + 'param_target_images.json'
+        self.imgParamLoc = self.imgDir + 'param_target_images.json'        
+        
+        self.maskDir = self.infoDir + 'target_masks/'
         
         self.scoreLoc = self.infoDir + 'scores.csv'
         self.baseScoreLoc = self.infoDir + 'base_scores.csv'
@@ -991,6 +999,18 @@ class target_info_class:
                 tabprint("Consider using -newInfo command")
                 
             return False
+        
+        # Create target image and mask directories
+        if not path.exists( self.imgDir ): mkdir( self.imgDir )
+        if not path.exists( self.maskDir ): mkdir( self.maskDir )
+        
+        # Create or move misc directories if not created.
+        if gm.validPath( self.imgParamLocOld ) != None:
+            print("Hi")
+            print("OLD: %s"%gm.validPath(self.imgParamLocOld))
+            move( self.imgParamLocOld, self.imgParamLoc)
+            print("NEW: %s"%gm.validPath(self.imgParamLoc))
+            
         
         # Check if info directory has needed objects
         if not path.exists( self.allInfoLoc ) \
@@ -1033,6 +1053,8 @@ class target_info_class:
         # Create directories
         if not path.exists( self.infoDir ): mkdir( self.infoDir )
         if not path.exists( self.plotDir ): mkdir( self.plotDir )
+        if not path.exists( self.imgDir ): mkdir( self.imgDir )
+        if not path.exists( self.maskDir ): mkdir( self.maskDir )
 
         if not path.exists( self.zooMergerDir ):
             print("IM: WARNING: This message should not be seen.")
@@ -1180,8 +1202,20 @@ class target_info_class:
                 old_params[sKey] = in_params[sKey]            
         
         gm.saveJson( old_params, self.imgParamLoc )
-            
     
+    def overWriteImageParams( self, in_params ):
+        gm.saveJson( in_params, self.imgParamLoc )
+    
+    def addMaskImage( self, maskImage, maskName ):
+        maskLoc = self.maskDir + '%s.png'%maskName
+        gm.saveImg( maskImage, maskLoc)
+    
+    def getMask( self, maskName ):
+        maskLoc = self.maskDir + '%s.png'%maskName
+        mask = gm.readImg(  maskLoc )
+        return mask
+        
+        
 # End target info class
     
 def tabprint( inprint, begin = '\t - ', end = '\n' ):
