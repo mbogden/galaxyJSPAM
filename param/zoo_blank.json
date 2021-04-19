@@ -1,1 +1,31 @@
-{"zoo_blank": {"name": "zoo_blank", "simArg": {"name": "100k", "nPts": "100k"}, "imgArg": {"name": "zoo_0", "comment": "Blank image parameters", "image_size": {"width": 1024, "height": 1024}, "galaxy_centers": {"px": -1, "py": -1, "sx": -1, "sy": -1}}, "scoreType": "model_fitness_score", "cmpArg": {"type": "direct_image_comparison", "targetType": "target_image", "targetName": "zoo_0", "function_name": "absolute_difference"}, "comment": "blank score parameter file"}}
+{
+    "zoo_blank": {
+        "name": "zoo_blank",
+        "simArg": {
+            "name": "100k",
+            "nPts": "100k"
+        },
+        "imgArg": {
+            "name": "zoo_0",
+            "comment": "Blank image parameters",
+            "image_size": {
+                "width": 1024,
+                "height": 1024
+            },
+            "galaxy_centers": {
+                "px": -1,
+                "py": -1,
+                "sx": -1,
+                "sy": -1
+            }
+        },
+        "scoreType": "model_fitness_score",
+        "cmpArg": {
+            "type": "direct_image_comparison",
+            "targetType": "target_image",
+            "targetName": "zoo_0",
+            "direct_compare_function": "absolute_difference"
+        },
+        "comment": "blank score parameter file"
+    }
+}

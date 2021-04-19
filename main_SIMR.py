@@ -205,7 +205,7 @@ def new_target_scores( tInfo, tArg ):
         pass
     
     # If given a param name, assume target knows where it is.
-    elif params == none and paramName != None:
+    elif params == None and paramName != None:
         params = tInfo.readScoreParam(paramName)
     
     # If given param location, directly read file

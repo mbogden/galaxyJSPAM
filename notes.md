@@ -6,7 +6,7 @@ Might* be good for others to view.
 
 - Capstone Project
     - Get target pipeline working
-        - Updating old data to new layout
+        - (Working) Updating old data to new layout
         - Getting scores for current machine comparisons
         
     - Get MPI working for a target

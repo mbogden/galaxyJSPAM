@@ -18,7 +18,7 @@ import direct_image_compare as dc
 import masked_image_compare as mc
 
 def test():
-    print("MC: Hi!  You're in masked_image_compare.py")
+    print("FC: Hi!  You're in feature_image_compare.py")
 
 # For testing new modules from a Jupyter Notebook
 test_func = None
