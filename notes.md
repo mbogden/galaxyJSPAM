@@ -4,6 +4,19 @@ Might* be good for others to view.
 
 # Matt's Working To-Do
 
+- Capstone Project
+    - Get target pipeline working
+        - Updating old data to new layout
+        - Getting scores for current machine comparisons
+        
+    - Get MPI working for a target
+        - Copied/Shared target class object?   
+        
+    - Get a single-layer neural network going
+        - Gather and pickle images into a temp file/folder
+        - Use GPU to make the creation faster
+        - Generalize it to all targets.        
+
 - reorganize working score type
 	- Potential types
 		- Direct image comparison (2-images)

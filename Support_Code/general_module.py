@@ -76,9 +76,13 @@ def readJson( jPath ):
     return jDict
 
 # Save json file
-def saveJson( jDict, jPath ):    
+def saveJson( jDict, jPath, pretty=False ):    
     with open( jPath, 'w' ) as jFile:
-        json.dump( jDict, jFile )
+        if pretty:
+            json.dump( jDict, jFile, indent=4 )
+        else:
+            json.dump( jDict, jFile )
+            
     
 def getScores( scoreLoc ):
     
@@ -333,7 +337,6 @@ class ppClass:
             # Will exist loop if queue is empty
             except self.Empty:
                 #print('%s - queue empty' % self.mp.current_process().name)
-                print('')
                 break
 
             if self.printProg:

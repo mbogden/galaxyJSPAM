@@ -202,10 +202,10 @@ def new_target_scores( tInfo, tArg ):
     
     # If params there, move on
     elif params != None:
-        params = gm.readJson(paramLoc)
+        pass
     
     # If given a param name, assume target knows where it is.
-    elif paramName != None:
+    elif params == none and paramName != None:
         params = tInfo.readScoreParam(paramName)
     
     # If given param location, directly read file
@@ -224,11 +224,13 @@ def new_target_scores( tInfo, tArg ):
     runDicts = tInfo.getAllRunDicts()
 
     runArgs = gm.inArgClass()
-    runArgs.setArg('printBase', False)
     
     if printAll: 
         runArgs.setArg('printAll', True)
         runArgs.setArg('printBase', True)
+    else:
+        runArgs.setArg('printBase', False)
+        
     
     runArgs.setArg('tInfo', tInfo)
     runArgs.setArg('scoreParams', params)

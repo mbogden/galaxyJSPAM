@@ -26,6 +26,42 @@ def set_test_func( inLink ):
     global test_func
     test_func = inLink
 
+# Newer ellipse function
+def addEllipse( in_img, roi ):
+        
+    # Contruct axis as intuitie to me, Matthew Ogden
+    axis = ( int( roi['A'] ), int( roi['B'] ) )
+    
+    # Construct center to use 
+    center = ( roi['center'][0], roi['center'][1] )
+    
+    c_img = np.copy(in_img)
+
+    # Add an Ellipse onto image
+    c_img = cv2.ellipse( c_img, center, \
+                        axis, roi['angle'], 
+                        roi['arc'][0], roi['arc'][1], \
+                        roi['weight'], roi['thickness'], \
+                       )
+    return c_img
+
+# End adding ellipse
+
+# Starting mask in form of python dictionary. 
+mask_roi_blank = {}
+mask_roi_blank['name'] = 'blank'
+mask_roi_blank['target_name'] = 'zoo_blank'
+mask_roi_blank['g1_start'] = {}
+mask_roi_blank['g1_start']['center'] = ( 0, 0 )
+mask_roi_blank['g1_start']['primary_angle'] = 45
+mask_roi_blank['g1_start']['primary_length'] = 20
+mask_roi_blank['g1_start']['secondary_ratio'] = 0.25
+mask_roi_blank['g1_start']['thickness'] = 2
+mask_roi_blank['g1_start']['weight'] = 1.0
+mask_roi_blank['g1_start']['start_angle'] = 0
+mask_roi_blank['g1_start']['stop_angle'] = 360
+    
+# Old create ellipse function
 def createEllipse( 
        in_img,    # image adding ellips to
        center,     # Pixel center of the ellipse
@@ -54,6 +90,13 @@ def applyBinaryMask( in_img, mask ):
     m_img = np.copy(in_img)
     m_img[ mask < 1.0 ] = 0
     return m_img
+
+def non_zero_mask( img1, img2 ):    
+    e1 = img1 > 0.0
+    e2 = img2 > 0.0
+    eImg = np.bitwise_or( e1, e2 )
+    
+    return eImg
 
 
 def extractBinaryMask( in_img, mask ):

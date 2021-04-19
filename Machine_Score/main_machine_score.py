@@ -20,6 +20,7 @@ import general_module as gm
 import info_module as im
 import direct_image_compare as dc
 import masked_image_compare as mc
+import feature_image_compare as fc
 
 def test():
     print("MS: Hi!  You're in Matthew's SIMR module for all things machine scoring images")
@@ -183,11 +184,19 @@ def MS_Run( \
         if scoreType == 'model_fitness_score':
             
             if cmpType == 'direct_image_comparison':
-                target_compare_setup( rInfo, param, arg )
+                score_target_compare( rInfo, param, arg )
                 
             elif cmpType == 'mask_binary_simple_compare':
                 mask_compare_setup( rInfo, param, arg )
                 
+            elif cmpType == 'feature_compare':
+                tImg, mImg = target_compare_setup( rInfo, param, arg )
+                if type(tImg) == type(None) or type(mImg) == type(None):
+                    continue
+                score = fc.create_feature_score( tImg, mImg, cmpArg )                
+                newScore = rInfo.addScore( name = param['name'], score=score )
+                if printAll: print("MS: New Score!: %s - %f - %f" % (param['name'],score, newScore))
+
             else:
                 if printBase:
                     print("WARNING: MS: MS_Run: Scoring method not implemented: %s"%cmpType)
@@ -204,9 +213,68 @@ def MS_Run( \
     
 # end processing run dir
 
+def target_compare_setup( rInfo, param, args): 
+    # Get variables
+    printBase = args.printBase
+    printAll = args.printAll
+    
+    # Base info
+    pName = param['name']
+    tName = param['cmpArg']['targetName']
+    mName = param['imgArg']['name']
+    
+    if printAll: print('MS: target_compare_setup: %s'%pName)
+    
+    if printAll:
+        gm.tabprint(' paramName: %s'%pName)
+        gm.tabprint(' modelName: %s'%mName)
+        gm.tabprint('targetName: %s'%tName)
+    
+    # Get Target info
+    tInfo = rInfo.get('tInfo')
+    
+    # Function now requires a target info class
+    if tInfo == type(None):
+        if printBase:
+                print("ERROR: MS: target_compare_setup: Invalid target")
+        return None, None
+        
+    # GET TARGET IMAGE
+    tImg = tInfo.getTargetImage(tName)
+    
+    # Finally, should have tImg.  Leave if not
+    if type(tImg) == None:
+        if printBase: print("Error: MS: target_compare_setup: failed to load target image")
+        return None, None
+    elif printAll: 
+        gm.tabprint("Read target image")
+    
+    # GET MODEL IMAGE    
+    mImg = rInfo.getModelImage( mName )
+        
+    if type(mImg) == type(None):
+        if printBase: 
+            print("Error: MS: target_compare_setup: failed to load model image")
+            gm.tabprint("runID - model: %s - %s"% (rInfo.get('run_id'),mName))
+        return None, None
+        
+    elif printAll: 
+        gm.tabprint("Read model image")
+    
+    # Check if all images have the same size
+    if not ( mImg.shape == tImg.shape ):
+        if printBase: 
+            print("WARNING: MS: mask_compare_setup: Image shapes are not the same:")
+            gm.tabprint("mImg: %s"%str(mImg.shape))
+            gm.tabprint("tImg: %s"%str(tImg.shape))
+        return None, None
+    
+    # Everything should be good!
+    return tImg, mImg
+    
 
 # compares a target and image with given score parameters
-def target_compare_setup( rInfo, param, args ):
+def score_target_compare( rInfo, param, args ):
     
     # Get variables
     printBase = args.printBase

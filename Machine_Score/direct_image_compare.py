@@ -17,7 +17,6 @@ sysPath.append( supportPath )
 
 import general_module as gm
 
-
 # Populate global list of score functions
 scoreFunctions = None
 
@@ -64,7 +63,7 @@ def createScore( img1, img2, cmpArg, printBase=True ):
     elif bMatch == 'match_total':
         img2 = matchTotalBrightness( img2, img1 )
 
-    funcPtr = getScoreFunc( cmpArg['function_name'] )
+    funcPtr = getScoreFunc( cmpArg['direct_compare_function'] )
 
     if funcPtr != None:
         return funcPtr( img1, img2, cmpArg )
@@ -131,37 +130,35 @@ def score_ssim( img1, img2, cmpArg ):
 
 # All basic scoring methods
 
+def binImg( imgIn, threshold ):
+
+    cpImg = np.copy( imgIn )
+    cpImg[ cpImg >= threshold] = 1.0
+    cpImg[ cpImg < threshold] = 0
+
+    return cpImg
+
+
 def score_overlap_fraction( img1, img2, cmpArg ):
 
-    score = None
+    score = None    
+        
+    h1 = cmpArg.get( 'h1', .25 )    
+    h2 = cmpArg.get( 'h2', .25 )
     
-    h1 = .25
-    h2 = .25
+    bImg1 = binImg( img1, h1 )
+    bImg2 = binImg( img2, h2 )
+
+    oImg = bImg1 + bImg2    # Overlap of both images
+    oImg = binImg( bImg1 + bImg2, 1.9 )
     
-    if cmpArg.get('h1',None) != None:
-        h1 = cmpArg['h1']
-    
-    if cmpArg.get('h2',None) != None:
-        h1 = cmpArg['h2']
+    bImg1, bImg2, oImg = img_overlap_fraction( img1, img2, cmpArg )
 
-    i1 = np.copy( img1 )
-    i2 = np.copy( img2 )
+    s1 = np.sum( bImg1 )
+    s2 = np.sum( bImg2 )
+    s3 = np.sum( oImg )
 
-    i1[ i1 <  h1 ] = 0.0
-    i1[ i1 >= h1 ] = 1.0
-
-    i2[ i2 <  h2 ] = 0.0
-    i2[ i2 >= h2 ] = 1.0
-
-    bImg = i1 + i2
-    bImg[ bImg <  2.0 ] = 0.0
-    bImg[ bImg >= 2.0 ] = 1.0
-
-    x = np.sum( i1 )
-    y = np.sum( i2 )
-    z = np.sum( bImg )
-
-    score = ( z / ( x + y - 1.0*z ) )
+    score = ( s3 / ( s1 + s2 - 1.0*s3 ) )
     
     return score
 
@@ -183,14 +180,6 @@ def score_correlation( img1, img2, cmpArg  ):
     score = np.corrcoef( ar1, ar2 )[0,1]
 
     return score
-
-def binImg( imgIn, threshold ):
-
-    cpImg = np.copy( imgIn )
-    cpImg[ cpImg >= threshold] = 1.0
-    cpImg[ cpImg < threshold] = 0
-
-    return cpImg
 
 
 def score_binary_correlation( img1, img2, cmpArg  ):
