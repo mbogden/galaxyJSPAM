@@ -477,7 +477,7 @@ class run_info_class:
         if not path.exists( oldLoc ):
             print("IM: Run.txt2Json: ERROR:") 
             print("\t - info.txt file not found.")
-            print("\t - oldLoc: %s" % infoLoc)
+            print("\t - oldLoc: %s" % oldLoc)
             return False
 
         infoData = gm.readFile( oldLoc )
