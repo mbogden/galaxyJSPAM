@@ -23,12 +23,12 @@ If you are making modifications, checkout a different branch
 - For Software Engineering execute `git checkout working_SE` 
 
 ####Python install
-I am currently testing virtual environments with this package.  To initialize please run the following. This should create a new virtual environment, and install needed python packages.
+I am currently testing virtual environments with this package.  To initialize please run the following. This should create a new virtual environment name "simr_env", and install needed python packages. NOTE: Then name "simr_env" is arbitrary and you can name it however you please.  Be sure to remember the name of course. 
 
 ```
-python3 -m venv env
-source env/bin/activate
-python3 -m pip --upgrade pip
+python3 -m venv simr_env
+source simr_env/bin/activate
+python3 -m pip install --upgrade pip
 python3 -m pip install -r requirements.txt
 ```
 
@@ -38,9 +38,10 @@ Once you have installed the required packages, you will need to activate the env
     
     
 ### Activate environment
+NOTE: If you just installed the above, you are likley already in the environment.
     
 ```
-source env/vin/activate
+source simr_env/vin/activate
 ```
     
 ### Python Notebook
