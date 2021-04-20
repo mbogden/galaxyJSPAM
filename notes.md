@@ -7,34 +7,19 @@ Might* be good for others to view.
 - Capstone Project
     - Get target pipeline working
         - (Working) Updating old data to new layout
-        - Getting scores for current machine comparisons
+        - (Working) Automate scores for direct machine comparisons
+    
+    - Commands to remember
+        - python3 main_SIMR.py -targetDir path/to/target -newInfo -newRunInfo -newBase -newRunBase -newScore -newImage -paramName zoo_0_direct_scores
         
     - Get MPI working for a target
-        - Copied/Shared target class object?   
+        - Copied/Shared target class object?
+        - Tasker/Workers?
         
     - Get a single-layer neural network going
         - Gather and pickle images into a temp file/folder
         - Use GPU to make the creation faster
-        - Generalize it to all targets.        
-
-- Triple image comparison
-	- Compare all Model, Unperturbated, and target image
-	- Where Model and unperturbed closely match, lower weight on model image
-
-- Masked comparison
-    - Apply mask to both images 
-    - Send to specified compr method 
-    - Mask Creation 
-        - Arbitrary ovals that capture edge of target? 
-        - single-layer nn? 
-        - HOG abs-val of gradient? 
-  
-- Sparce Correlation 
-    - Take 3+ "Rings" of the image 
-    - Transorm into radial coordinates? 
-    - Take correlation with flat matrix 
-    - Send new matrix to std comparison methods? 
-
+        - Generalize it to all targets.
 
 ## Big picture
 - Create automatic pipeline for evolution
@@ -84,6 +69,24 @@ Might* be good for others to view.
       - Use line to determine direction of brightness.
     - Weigh all machine scores together. 
       - Take score of all comparison methods and send through machine learning.
+
+- Triple image comparison
+	- Compare all Model, Unperturbated, and target image
+	- Where Model and unperturbed closely match, lower weight on model image
+
+- Masked comparison
+    - Apply mask to both images 
+    - Send to specified compr method 
+    - Mask Creation 
+        - Arbitrary ovals that capture edge of target? 
+        - single-layer nn? 
+        - HOG abs-val of gradient? 
+  
+- Sparce Correlation 
+    - Take 3+ "Rings" of the image 
+    - Transorm into radial coordinates? 
+    - Take correlation with flat matrix 
+    - Send new matrix to std comparison methods? 
 
 
 ## MISC Items

@@ -11,6 +11,11 @@ from copy import deepcopy
 import pandas as pd
 import numpy as np
 
+from sys import path as sysPath
+sysPath.append('../')
+
+
+
 
 from pprint import PrettyPrinter
 pp = PrettyPrinter(width=41, compact=True)
@@ -972,7 +977,7 @@ class target_info_class:
         self.imgParamLocOld = self.infoDir + 'param_target_images.json'
         self.imgParamLoc = self.imgDir + 'param_target_images.json'        
         
-        self.maskDir = self.infoDir + 'target_masks/'       
+        self.maskDir = self.infoDir + 'target_masks/'
         
         self.scoreParamDir = self.infoDir + 'score_parameters/'
         
@@ -980,6 +985,19 @@ class target_info_class:
         self.baseScoreLoc = self.infoDir + 'base_scores.csv'
 
         self.zooMergerLoc = self.infoDir + 'galaxy_zoo_models.txt'
+        
+        # Create target image and mask directories
+        if not path.exists( self.infoDir ): mkdir( self.infoDir )
+        if not path.exists( self.imgDir ): mkdir( self.imgDir )
+        if not path.exists( self.maskDir ): mkdir( self.maskDir )
+        if not path.exists( self.scoreParamDir ): mkdir( self.scoreParamDir )
+        
+        # Create or move misc directories if not created.
+        if gm.validPath( self.imgParamLocOld ) != None:
+            print("Hi")
+            print("OLD: %s"%gm.validPath(self.imgParamLocOld))
+            move( self.imgParamLocOld, self.imgParamLoc)
+            print("NEW: %s"%gm.validPath(self.imgParamLoc))
         
         # If using old folder layout, rename        
         if gm.validPath( self.gen0 ):
@@ -1006,18 +1024,6 @@ class target_info_class:
                 tabprint("Consider using -newInfo command")
                 
             return False
-        
-        # Create target image and mask directories
-        if not path.exists( self.imgDir ): mkdir( self.imgDir )
-        if not path.exists( self.maskDir ): mkdir( self.maskDir )
-        if not path.exists( self.scoreParamDir ): mkdir( self.scoreParamDir )
-        
-        # Create or move misc directories if not created.
-        if gm.validPath( self.imgParamLocOld ) != None:
-            print("Hi")
-            print("OLD: %s"%gm.validPath(self.imgParamLocOld))
-            move( self.imgParamLocOld, self.imgParamLoc)
-            print("NEW: %s"%gm.validPath(self.imgParamLoc))
             
         
         # Check if info directory has needed objects
@@ -1078,7 +1084,6 @@ class target_info_class:
         
         if newBase:
             if self.printBase:
-                print("IM: newTargetSetup:  Creating base files.")
                 createGood = self.createBaseInfo()
                 if not createGood: return False
         
@@ -1118,6 +1123,8 @@ class target_info_class:
         from os import getcwd, listdir
         from shutil import copyfile 
         from copy import deepcopy
+        
+        # For basic scores later on
         
         # Get parent directory this code suite is located in.
         simrDir = __file__.split('Support_Code/info_module.py')[0]
@@ -1228,6 +1235,9 @@ class target_info_class:
         # Save new target image parameter
         newParamLoc = self.imgParamLoc
         gm.saveJson( new_params, newParamLoc, pretty=True )
+        
+        # Create basic scoring parameters
+        self.createDirectScoreParameters( new_params['zoo_0'] )
 
         # Find pair file 
         pairPath = gm.validPath( inputDir + 'sdss%s.pair'%tName )
@@ -1286,9 +1296,40 @@ class target_info_class:
 
         self.saveMaskRoi( start_roi_mask, 'mask_roi_zoo_0')
         
+        
         return True
         
     # end creating base info file
+    
+    def createDirectScoreParameters( self, startParam ):
+        
+        # Create basic scoring parameters with zoo_0
+        import Machine_Score.direct_image_compare as dc
+        score_functions = dc.get_score_functions()
+
+        direct_params = {}
+        imgName = startParam['imgArg']['name']
+        
+        modParam = deepcopy( startParam )
+        modParam['cmpArg']['type'] = 'direct_image_comparison'
+        modParam['comment'] = 'Direct Image Comparison functions for image %s' % imgName
+        
+        for score_name, ptr in score_functions:
+            new_name = '%s_%s' % ( imgName, score_name )
+            direct_params[ new_name ] = deepcopy( modParam )
+            direct_params[ new_name ]['name'] = new_name            
+            direct_params[ new_name ]['cmpArg']['direct_compare_function'] =  score_name
+            
+        if self.printAll: 
+            print("IM: Target_Class: createDirectScoreParameters")
+            for name in direct_params.keys():
+                gm.tabprint(name)
+        
+        # Save created score files
+        self.saveScoreParam( direct_params, '%s_direct_scores'%imgName)            
+        
+    
+
     
     def getImageParams( self, imgName=None):
         
@@ -1358,7 +1399,7 @@ class target_info_class:
     
     def saveScoreParam( self, score_params, param_file_name ):
         paramLoc = self.scoreParamDir + '%s.json'%param_file_name
-        gm.saveJson( score_params, paramLoc )
+        gm.saveJson( score_params, paramLoc, pretty=True )
     
     def readScoreParam( self, param_file_name ):
         paramLoc = self.scoreParamDir + '%s.json'%param_file_name

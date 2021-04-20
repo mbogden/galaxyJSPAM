@@ -152,8 +152,6 @@ def score_overlap_fraction( img1, img2, cmpArg ):
 
     oImg = bImg1 + bImg2    # Overlap of both images
     oImg = binImg( bImg1 + bImg2, 1.9 )
-    
-    bImg1, bImg2, oImg = img_overlap_fraction( img1, img2, cmpArg )
 
     s1 = np.sum( bImg1 )
     s2 = np.sum( bImg2 )

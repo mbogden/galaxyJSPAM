@@ -116,7 +116,6 @@ def simr_many_target( arg ):
         else:
             print("Bad Dir : %s" % tArg.targetDir )
             
-
 # End data dir
 
 
