@@ -19,7 +19,8 @@ import general_module as gm
 
 # Populate global list of score functions
 scoreFunctions = None
-
+def get_score_functions():
+    return scoreFunctions
     
 def test():
     print("DC: Hi!  You're in direct_image_compare.py")

@@ -17,36 +17,22 @@ Might* be good for others to view.
         - Use GPU to make the creation faster
         - Generalize it to all targets.        
 
-- reorganize working score type
-	- Potential types
-		- Direct image comparison (2-images)
-		- Triple image comparison
-			- Can this be under weight mask between model and target?
-			- mask just comes from comparing model and unperturbed
-		- Neaural Network (single image)
-		- Neural Network (Image and target)
-		- Weighted mask between two images
-
 - Triple image comparison
 	- Compare all Model, Unperturbated, and target image
 	- Where Model and unperturbed closely match, lower weight on model image
 
 - Masked comparison
-    - Apply mask to both images
-    - Send to specified compr method
-    - Mask Creation
-        - Arbitrary ovals that capture edge of target?
+    - Apply mask to both images 
+    - Send to specified compr method 
+    - Mask Creation 
+        - Arbitrary ovals that capture edge of target? 
         - single-layer nn? 
         - HOG abs-val of gradient? 
-    
-- Prestep for images.  
-    - Convert to float
-    - Normalize between 0 and 1.
   
-- Sparce Correlation
-    - Take 3+ "Rings" of the image
-    - Transorm into radial coordinates?
-    - Take correlation with flat matrix
+- Sparce Correlation 
+    - Take 3+ "Rings" of the image 
+    - Transorm into radial coordinates? 
+    - Take correlation with flat matrix 
     - Send new matrix to std comparison methods? 
 
 
@@ -54,7 +40,6 @@ Might* be good for others to view.
 - Create automatic pipeline for evolution
     - Get function to create status update!
     - Create reports for any missing items. 
-    - Implement NN for each target
 
 - Simulator
     - Produce initial impact approximation w/o points

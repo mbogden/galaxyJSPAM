@@ -1118,6 +1118,9 @@ class target_info_class:
         from os import getcwd, listdir
         from shutil import copyfile 
         from copy import deepcopy
+        
+        # Get parent directory this code suite is located in.
+        simrDir = __file__.split('Support_Code/info_module.py')[0]
          
         # Assume directory name of target is target name
         tName = self.targetDir.split('/')[-2]
@@ -1138,8 +1141,7 @@ class target_info_class:
             json.dump( self.tDict, infoFile )
         
         # Get starting target files from input data folder
-        cDir = getcwd()  # Assuming this program if called from galaxyJSPAM folder
-        inputDir = gm.validPath( cDir  + '/Input_Data/targets/' + tName + '/')        
+        inputDir = gm.validPath( simrDir  + 'Input_Data/targets/' + tName + '/')        
         if self.printAll: gm.tabprint('Input Dir: %s'%inputDir)
             
         # Check if valid directory, exit if not
@@ -1178,7 +1180,7 @@ class target_info_class:
             return False
 
         # Copy starting target zoo image param
-        pLoc = 'param/zoo_blank.json'
+        pLoc = simrDir + 'param/zoo_blank.json'
         blank_param = gm.readJson(pLoc)
         if blank_param == None:        
             if self.printBase: 
@@ -1234,7 +1236,7 @@ class target_info_class:
             if self.printBase: print("WARNING: IM: Pair data not found: %s"%pairPath)
             return
 
-        start_roi_mask = gm.readJson('param/mask_roi_blank.json')
+        start_roi_mask = gm.readJson(simrDir+'param/mask_roi_blank.json')
 
         start_roi_mask['name'] = 'mask_roi_zoo_0'
         start_roi_mask['comment'] = 'Starting mask for %s' % tName
@@ -1283,10 +1285,6 @@ class target_info_class:
             gm.pprint(start_roi_mask)
 
         self.saveMaskRoi( start_roi_mask, 'mask_roi_zoo_0')
-        
-        ##########################################################
-        #End working
-
         
         return True
         
@@ -1369,7 +1367,7 @@ class target_info_class:
     
     def saveMaskRoi( self, mask_roi, file_name ):
         roiLoc = self.maskDir + '%s.json'%file_name
-        gm.saveJson( mask_roi, roiLoc )
+        gm.saveJson( mask_roi, roiLoc, pretty=True )
     
     def readMaskRoi( self, file_name ):
         roiLoc = self.maskDir + '%s.json'%file_name
@@ -1383,156 +1381,6 @@ def tabprint( inprint, begin = '\t - ', end = '\n' ):
     print('%s%s' % (begin,inprint), end=end )
 
 
-def getTargetInputData( tInfo, printAll=False ):
-    
-    from os import listdir
-    from shutil import copyfile
-    
-    printBase = tInfo.printBase
-    
-    # Get target id and info folder
-    tid = tInfo.get('target_id')
-    infoDir = tInfo.get('infoDir')
-    if printAll: 
-        print(tid)  
-        print(infoDir)
-        
-    # Find target data from input folders
-    inPath = gm.validPath('../Input_Data/targets/'+tid+'/')
-    if printAll: print(inPath)
-    if inPath == None:
-        if printBase: print("WARNING: IM: Input directory not found: %s"%tid)
-        return
-    if printAll: print(listdir(inPath))
-    
-    # Copy target image
-    tLoc = gm.validPath( inPath + 'sdss%s.png'%tid )
-    if printAll: print(tLoc)
-    if tLoc == None:
-        if printBase: print("WARNING: IM: Target image not found: %s"%inPath)
-        return  
-
-    toLoc = tInfo.findTargetImage( 'zoo_0', newImg = True )
-    copyfile( tLoc, toLoc )
-    
-    # Grab specific target image data
-    metaPath = gm.validPath( inPath + 'sdss%s.meta'%tid )
-    if printAll: print(metaPath)
-    if metaPath == None:
-        if printBase: print("WARNING: IM: Meta data not found: %s"%metaPath)
-        return
-    
-    # Copy starting target zoo image param
-    from copy import deepcopy
-    pLoc = '../param/zoo_blank.json'
-    
-    
-    blank_param = gm.readJson(pLoc)
-    if blank_param == None:        
-        if printBase: print("WARNING: IM: Start zoo image param not found: %s"%pLoc)
-            
-    #if printAll: gm.pprint(new_params)
-    
-    # Copy blank parameter
-    new_params = {}
-    new_name = 'zoo_0'
-    new_params[new_name] = deepcopy(blank_param['zoo_blank'])
-    
-    # Make name and comments initial comments.
-    new_params[new_name]['name'] = new_name
-    new_params[new_name]['comment'] = 'Starting score parameters for %s'%tid
-    new_params[new_name]['imgArg']['comment'] = "Starting image parameter for %s"%tid
-    
-    # Open file for target galaxy zoo merger image information
-    mFile = open(metaPath,'r')
-    
-    # Grab information
-    for l in mFile:
-        l = l.strip()
-        
-        if 'height' in l:
-            h = l.split('=')[1]
-            new_params[new_name]['imgArg']['image_size']['width'] = int(h)
-        if 'width' in l:
-            w = l.split('=')[1]
-            new_params[new_name]['imgArg']['image_size']['width'] = int(w)
-        if 'px' in l:
-            px = l.split('=')[1]
-            new_params[new_name]['imgArg']['galaxy_centers']['px'] = int(px)
-        if 'py' in l:
-            py = l.split('=')[1]
-            new_params[new_name]['imgArg']['galaxy_centers']['py'] = int(py)
-        if 'sx' in l:
-            sx = l.split('=')[1]
-            new_params[new_name]['imgArg']['galaxy_centers']['sx'] = int(sx)
-        if 'sy' in l:
-            sy = l.split('=')[1]
-            new_params[new_name]['imgArg']['galaxy_centers']['sy'] = int(sy)
-    
-    if printAll: gm.pprint(new_params)
-    
-    # Save new target image parameter
-    newParamLoc = tInfo.imgParamLoc
-    gm.saveJson( new_params, newParamLoc )
-    
-    # Find pair file 
-    pairPath = gm.validPath( inPath + 'sdss%s.pair'%tid )
-    if printAll: print('pairPath: ',pairPath)
-    if pairPath == None:
-        if printBase: print("WARNING: IM: Pair data not found: %s"%pairPath)
-        return
-    
-    start_roi_mask = gm.readJson('../param/mask_roi_blank.json')
-    
-    start_roi_mask['name'] = 'mask_roi_zoo_0'
-    start_roi_mask['comment'] = 'Starting mask for %s' % tid
-    start_roi_mask['target_name'] =  tid
-    start_roi_mask['primary_start']['thickness'] =  10
-    start_roi_mask['secondary_start']['thickness'] =  10
-    
-    pairFile = open(pairPath, 'r' )
-    
-    for l in pairFile: 
-        
-        if 'primaryA=' in l:
-            l = l.strip()
-            start_roi_mask['primary_start']['A'] =  round( float( l.split('=')[1] ) )
-            
-        elif 'primaryB=' in l:
-            start_roi_mask['primary_start']['B'] =  round( float( l.split('=')[1] ) )
-            
-        elif 'primaryAngle=' in l:
-            start_roi_mask['primary_start']['angle'] =   float( l.split('=')[1] ) 
-            
-        elif 'primaryX=' in l:
-            start_roi_mask['primary_start']['center'][0] =  round( float( l.split('=')[1] ) )
-            
-        elif 'primaryY=' in l:
-            start_roi_mask['primary_start']['center'][1] =  round( float( l.split('=')[1] ) )
-        
-        elif 'secondaryA=' in l:
-            l = l.strip()
-            start_roi_mask['secondary_start']['A'] =  round( float( l.split('=')[1] ) )
-            
-        elif 'secondaryB=' in l:
-            start_roi_mask['secondary_start']['B'] =  round( float( l.split('=')[1] ) )
-            
-        elif 'secondaryAngle=' in l:
-            start_roi_mask['secondary_start']['angle'] =   float( l.split('=')[1] ) 
-            
-        elif 'secondaryX=' in l:
-            start_roi_mask['secondary_start']['center'][0] =  round( float( l.split('=')[1] ) )
-            
-        elif 'secondaryY=' in l:
-            start_roi_mask['secondary_start']['center'][1] =  round( float( l.split('=')[1] ) )
-            
-        
-    if printAll: 
-        gm.pprint(start_roi_mask)
-    
-    tInfo.saveMaskRoi( start_roi_mask, 'mask_roi_zoo_0')
-
-    
     
 if __name__=='__main__':
 
