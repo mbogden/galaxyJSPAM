@@ -7,7 +7,7 @@ Might* be good for others to view.
 - Capstone Project
     - Get target pipeline working
         - (DONE) Updating old data to new layout
-        - (Working) Automate scores for direct machine comparisons
+        - (DONE) Automate scores for direct machine comparisons
     
     - Commands to remember
         - python3 main_SIMR.py -targetDir path/to/target -newInfo -newRunInfo -newBase -newRunBase 

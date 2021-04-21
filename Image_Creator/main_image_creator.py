@@ -140,7 +140,10 @@ def create_image_from_parameters( rInfo, sParam, overwrite=False, printAll = Fal
             return
     
     # Get particles
-    pts = getParticles( rInfo, simName, printAll=printAll )
+    pts = getParticles( rInfo, simName, printAll=printAll )    
+    if type( pts ) == type( None ):
+        if rInfo.printBase: print("WARNING: IC: Exiting Image Creation")
+        return None
     
     if printAll: im.tabprint("Creating image from points")
 
