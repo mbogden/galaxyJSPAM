@@ -1210,10 +1210,13 @@ class target_info_class:
         # Grab information
         for l in mFile:
             l = l.strip()
-
+            
+            
+            
             if 'height' in l:
                 h = l.split('=')[1]
                 new_params[new_name]['imgArg']['image_size']['width'] = int(h)
+                
             if 'width' in l:
                 w = l.split('=')[1]
                 new_params[new_name]['imgArg']['image_size']['width'] = int(w)
@@ -1257,6 +1260,9 @@ class target_info_class:
         pairFile = open(pairPath, 'r' )
 
         for l in pairFile: 
+            
+            if ';' in l:                
+                l = l[0:-2]
 
             if 'primaryA=' in l:
                 l = l.strip()
