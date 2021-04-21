@@ -157,6 +157,9 @@ class run_info_class:
         dirGood = self.initRunDir( rArg )
 
         if not dirGood:
+            if self.printBase: 
+                print("WARNING: IM: Run_info_class: Directory not set up properly")
+                gm.tabprint('runDir: %s' % rArg.runDir )
             self.status = False
             return
                  
@@ -219,16 +222,11 @@ class run_info_class:
         # Check if things are working
         dirGood = True
 
-        if not path.exists( self.ptsDir ):
-            print("IM: Run. WARNING!  Particle directory not found!")
-            dirGood = False
-
-        if not path.exists( self.imgDir ):
-            print("IM: Run. WARNING!  Model Image directory not found!")
-            dirGood = False
-
-        if not path.exists( self.miscDir ):
-            print("IM: Run. WARNING!  Misc Image directory not found!")
+        if not path.exists( self.ptsDir ) or not path.exists( self.imgDir ) or not path.exists( self.miscDir ):
+            if self.printAll: 
+                print("IM: Run. WARNING!  Particle directory not found!")
+                print("IM: Run. WARNING!  Model Image directory not found!")
+                print("IM: Run. WARNING!  Misc Image directory not found!")
             dirGood = False
 
         # If you made it this far.  
@@ -752,7 +750,15 @@ class target_info_class:
         for i, row in self.sFrame.iterrows():
 
             rKey = row['run_id']
-            rDict = zDict[rKey]
+            rDict = zDict.get(rKey,None)
+            
+            # Occasional bug when I force end a program
+            if rDict == None:
+                rInfo = self.getRunInfo( rID = rKey )
+                if rInfo == None:
+                    continue
+                else:
+                    rDict = rInfo.rDict
             rScores = rDict['machine_scores']
 
             for sKey in rScores:
@@ -832,7 +838,7 @@ class target_info_class:
 
     # end gather Run Infos
 
-    def getRunDict( self, rDir, modelSet, rArg=gm.inArgClass() ):
+    def getRunDict( self, rDir, modelSet=None, rArg=gm.inArgClass() ):
 
         rArg.runDir = rDir
         rInfo = run_info_class( printBase=False, rArg=rArg )
@@ -848,11 +854,12 @@ class target_info_class:
             rInfo.rDict['run_id'] = 'r'+str(rID)
             rInfo.saveInfoFile()
 
-        modelSet[rID] = rInfo.rDict
+        if modelSet != None:
+            modelSet[rID] = rInfo.rDict
 
         # update progress
 
-        return modelSet[rID]
+        return rInfo.rDict
 
     # End get Run Dir Info
 
