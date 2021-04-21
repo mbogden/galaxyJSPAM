@@ -1178,12 +1178,22 @@ class target_info_class:
             copyfile( fromLoc, toLoc )
             
         # Grab specific target image data
-        metaLocRaw = inputDir + 'sdss%s.meta'%tName
-        metaLoc = gm.validPath( metaLocRaw )
+        metaLocRaw1 = inputDir + 'sdss%s.meta'%tName
+        metaLocRaw2 = inputDir + '%s.meta'%tName
+        metaLoc1 = gm.validPath( metaLocRaw1 )
+        metaLoc2 = gm.validPath( metaLocRaw2 )
+        
         if self.printAll: 
-            gm.tabprint('Meta Data Loc: %s'% metaLocRaw )
-        if metaLoc == None:
-            if self.printBase: print("WARNING: IM: Meta data not found: %s"%metaLoc)
+            gm.tabprint('Meta Data Loc1: %s'% metaLocRaw1 )
+            gm.tabprint('Meta Data Loc2: %s'% metaLocRaw2 )
+            
+        # Open file for target galaxy zoo merger image information
+        if metaLoc1 != None:
+            mFile = open(metaLoc1,'r')
+        elif metaLoc2 != None:
+            mFile = open(metaLoc2,'r')
+        else:
+            if self.printBase: print("WARNING: IM: Meta data not found:")
             return False
 
         # Copy starting target zoo image param
@@ -1203,9 +1213,6 @@ class target_info_class:
         new_params[new_name]['name'] = new_name
         new_params[new_name]['comment'] = 'Starting score parameters file for %s'%tName
         new_params[new_name]['imgArg']['comment'] = "Starting image parameters for %s"%tName
-
-        # Open file for target galaxy zoo merger image information
-        mFile = open(metaLoc,'r')
 
         # Grab information
         for l in mFile:
@@ -1243,11 +1250,21 @@ class target_info_class:
         self.createDirectScoreParameters( new_params['zoo_0'] )
 
         # Find pair file 
-        pairPath = gm.validPath( inputDir + 'sdss%s.pair'%tName )
-        if self.printAll: print('pairPath: ',pairPath)
-        if pairPath == None:
+        pairPath1 = gm.validPath( inputDir + 'sdss%s.pair'%tName )
+        pairPath2 = gm.validPath( inputDir + '%s.pair'%tName )
+        if self.printAll: 
+            gm.tabprint('pairPath1: ',pairPath1)
+            gm.tabprint('pairPath2: ',pairPath2)
+            
+        if pairPath1 != None:            
+            pairFile = open(pairPath1, 'r' )
+            
+        elif pairPath2 != None:            
+            pairFile = open(pairPath2, 'r' )
+            
+        else:
             if self.printBase: print("WARNING: IM: Pair data not found: %s"%pairPath)
-            return
+            return False
 
         start_roi_mask = gm.readJson(simrDir+'param/mask_roi_blank.json')
 
@@ -1256,8 +1273,6 @@ class target_info_class:
         start_roi_mask['target_name'] =  tName
         start_roi_mask['primary_start']['thickness'] =  10
         start_roi_mask['secondary_start']['thickness'] =  10
-
-        pairFile = open(pairPath, 'r' )
 
         for l in pairFile: 
             
