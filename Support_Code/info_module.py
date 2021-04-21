@@ -212,9 +212,9 @@ class run_info_class:
 
         # Print stuff if needed
         if self.printAll:
-            print("\t - runDir: (%s) %s" % ( path.exists( self.runDir ), self.runDir ) )
-            print("\t - ptsDir: (%s) %s" % ( path.exists( self.ptsDir ), self.ptsDir ) )
-            print("\t - imgDir: (%s) %s" % ( path.exists( self.imgDir ), self.imgDir ) )
+            print("\t -  runDir: (%s) %s" % ( path.exists( self.runDir ), self.runDir ) )
+            print("\t -  ptsDir: (%s) %s" % ( path.exists( self.ptsDir ), self.ptsDir ) )
+            print("\t -  imgDir: (%s) %s" % ( path.exists( self.imgDir ), self.imgDir ) )
             print("\t - miscDir: (%s) %s" % ( path.exists( self.miscDir ), self.miscDir ) )
             print("\t - infoLoc: (%s) %s" % ( path.exists( self.infoLoc ), self.infoLoc ) )
             print("\t - baseLoc: (%s) %s" % ( path.exists( self.baseLoc ), self.baseLoc ) )
@@ -223,10 +223,6 @@ class run_info_class:
         dirGood = True
 
         if not path.exists( self.ptsDir ) or not path.exists( self.imgDir ) or not path.exists( self.miscDir ):
-            if self.printAll: 
-                print("IM: Run. WARNING!  Particle directory not found!")
-                print("IM: Run. WARNING!  Model Image directory not found!")
-                print("IM: Run. WARNING!  Misc Image directory not found!")
             dirGood = False
 
         # If you made it this far.  
