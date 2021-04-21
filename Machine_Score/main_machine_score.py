@@ -19,17 +19,19 @@ sysPath.append( supportPath )
 import general_module as gm
 import info_module as im
 import direct_image_compare as dc
+import masked_image_compare as mc
+import feature_image_compare as fc
 
 def test():
     print("MS: Hi!  You're in Matthew's SIMR module for all things machine scoring images")
 
 # global variables
-testFunc = None
+test_func = None
 
 # When creating and testing new functions from outside of module (Ex. Jupyter)
-def set_test_score( inFuncLink ):
-    global testFunc
-    testFunc = inFuncLink
+def set_test_func( inFuncLink ):
+    global test_func
+    test_func = inFuncLink
 
 def main(argList):
 
@@ -146,7 +148,8 @@ def MS_Run( \
                 print("MS: Error: MS_Run: Bad score parameters")
                 gm.tabprint('param_type: %s'%type(params))
             return None
-    
+       
+    overwrite = arg.get('overWrite',False)
 
     # Assume group of parameters and loop through.    
     for pKey in params:
@@ -156,107 +159,270 @@ def MS_Run( \
         if printAll: print("MS: scoreName: %s"%pKey)
         
         # If score exists, move to next score parameter
-        if score != None and not arg.get('overWrite',False):
+        if score != None and not overwrite:
             continue
         
         # Grab parameter and score type
         param = params[pKey]
-        scoreType = param['scoreType']
+        
+        # Check if score parameter if valid
+        scoreType = param.get('scoreType',None)
+        cmpArg = param.get('cmpArg',None)
+        if scoreType == None or cmpArg == None:
+            if printBase: 
+                print("WARNING: MS: Score Parameters invalid: %s"%param.get('name',None))
+            continue
+        
+        cmpType = param['cmpArg'].get('type',None)
+        
+        if cmpType == None:
+            if printBase: 
+                print("WARNING: MS: Score Parameters invalid: %s"%param.get('name',None))
+            continue
         
         # Call function with correct score type
-        if scoreType == 'target':
-            target_image_compare( rInfo, param, arg )
+        if scoreType == 'model_fitness_score':
+            
+            if cmpType == 'direct_image_comparison':
+                score_target_compare( rInfo, param, arg )
+                
+            elif cmpType == 'mask_binary_simple_compare':
+                mask_compare_setup( rInfo, param, arg )
+                
+            elif cmpType == 'feature_compare':
+                tImg, mImg = target_compare_setup( rInfo, param, arg )
+                if type(tImg) == type(None) or type(mImg) == type(None):
+                    continue
+                score = fc.create_feature_score( tImg, mImg, cmpArg )                
+                newScore = rInfo.addScore( name = param['name'], score=score )
+                if printAll: print("MS: New Score!: %s - %f - %f" % (param['name'],score, newScore))
+
+            else:
+                if printBase:
+                    print("WARNING: MS: MS_Run: Scoring method not implemented: %s"%cmpType)
+                    
         elif scoreType == 'perturbation':
-            perturbation_compare( rInfo, param, arg )
+            perturbation_compare_setup( rInfo, param, arg )
+            
         else:
             print("WARNING: MS: Run")
-            print("Score Type of '%s' not yet implemented"%(scoreType))
+            print("Score Type not yet implemented: '%s'"%(scoreType))
+            
+    # Save results
+    rInfo.saveInfoFile()
     
 # end processing run dir
 
-
-# compares a target and image with given score parameters
-def target_image_compare( rInfo, param, args ):
-    
+def target_compare_setup( rInfo, param, args): 
+    # Get variables
     printBase = args.printBase
     printAll = args.printAll
     
     # Base info
     pName = param['name']
-    tName = param['targetName'] 
+    tName = param['cmpArg']['targetName']
     mName = param['imgArg']['name']
     
-    # GET TARGET IMAGE
-    tLoc = args.get('targetLoc',None)
-    tImg = None
-    tLink = rInfo.get('tInfo')
-    
-    if printBase: print('MS: target_image_compare: %s'%pName)
+    if printAll: print('MS: target_compare_setup: %s'%pName)
     
     if printAll:
-        im.tabprint(' paramName: %s'%pName)
-        im.tabprint(' modelName: %s'%mName)
-        im.tabprint('targetName: %s'%tName)
+        gm.tabprint(' paramName: %s'%pName)
+        gm.tabprint(' modelName: %s'%mName)
+        gm.tabprint('targetName: %s'%tName)
     
-    # Exit if invalid request
-    if type(tLoc) == type(None) and type(tLink) == type(None):
+    # Get Target info
+    tInfo = rInfo.get('tInfo')
+    
+    # Function now requires a target info class
+    if tInfo == type(None):
         if printBase:
-                print("MS: Error: target_image_compare: no target image or link given")
-        return None
+                print("ERROR: MS: target_compare_setup: Invalid target")
+        return None, None
         
-    # Check if image location given
-    if gm.validPath(tLoc, printWarning=printBase):
-        tImg = gm.readImg(tLoc)
-        
-    # If given tInfo link, have tInfo search and get image.
-    else:        
-        tImg = tLink.getTargetImage(tName)
+    # GET TARGET IMAGE
+    tImg = tInfo.getTargetImage(tName)
     
     # Finally, should have tImg.  Leave if not
     if type(tImg) == None:
-        if printBase:
-            print("MS: Error: target_image_compare: failed to load target image")
-        return None
-    elif printAll: gm.tabprint("Read target image")
+        if printBase: print("Error: MS: target_compare_setup: failed to load target image")
+        return None, None
+    elif printAll: 
+        gm.tabprint("Read target image")
     
     # GET MODEL IMAGE    
-    mImg = None
-    mloc = None
-    
-    # Create dict for storing target and model images if needed        
-    if rInfo.get('modelImg') == None:
-        rInfo.modelImg = {}
+    mImg = rInfo.getModelImage( mName )
         
-    # Check if in rInfo has model Image already
-    if type( rInfo.modelImg.get(mName) ) != type(None):
-        mImg = rInfo.modelImg.get(mName)
+    if type(mImg) == type(None):
+        if printBase: 
+            print("Error: MS: target_compare_setup: failed to load model image")
+            gm.tabprint("runID - model: %s - %s"% (rInfo.get('run_id'),mName))
+        return None, None
+        
+    elif printAll: 
+        gm.tabprint("Read model image")
     
-    # Else, have rInfo retrieve img location
-    else:
-        mImg = rInfo.getModelImg(mName)
-        rInfo.modelImg[mName] = mImg
+    # Check if all images have the same size
+    if not ( mImg.shape == tImg.shape ):
+        if printBase: 
+            print("WARNING: MS: mask_compare_setup: Image shapes are not the same:")
+            gm.tabprint("mImg: %s"%str(mImg.shape))
+            gm.tabprint("tImg: %s"%str(tImg.shape))
+        return None, None
+    
+    # Everything should be good!
+    return tImg, mImg
+    
+
+# compares a target and image with given score parameters
+def score_target_compare( rInfo, param, args ):
+    
+    # Get variables
+    printBase = args.printBase
+    printAll = args.printAll
+    
+    # Base info
+    pName = param['name']
+    tName = param['cmpArg']['targetName']
+    mName = param['imgArg']['name']
+    
+    if printAll: print('MS: target_compare_setup: %s'%pName)
+    
+    if printAll:
+        gm.tabprint(' paramName: %s'%pName)
+        gm.tabprint(' modelName: %s'%mName)
+        gm.tabprint('targetName: %s'%tName)
+    
+    # Get Target info
+    tInfo = rInfo.get('tInfo')
+    
+    # Function now requires a target info class
+    if tInfo == type(None):
+        if printBase:
+                print("ERROR: MS: target_compare_setup: Invalid target")
+        return None
+        
+    # GET TARGET IMAGE
+    tImg = tInfo.getTargetImage(tName)
+    
+    # Finally, should have tImg.  Leave if not
+    if type(tImg) == None:
+        if printBase: print("Error: MS: target_compare_setup: failed to load target image")
+        return None
+    elif printAll: 
+        gm.tabprint("Read target image")
+    
+    # GET MODEL IMAGE    
+    mImg = rInfo.getModelImage( mName )
         
     if type(mImg) == type(None): 
         if printBase: 
-            print("MS: Error: target_image_compare: failed to load model image")
-            gm.tabprint("runId: %s"%rInfo.get('run_id'))
-            gm.tabprint("model: %s"%mName)
+            print("Error: MS: target_compare_setup: failed to load model image")
+            gm.tabprint("runID - model: %s - %s"% (rInfo.get('run_id'),mName))
         return None
         
-    elif printAll: print("MS: run: Read model image")
+    elif printAll: 
+        gm.tabprint("Read model image")
+    
+    # Check if all images have the same size
+    if not ( mImg.shape == tImg.shape ):
+        if printBase: 
+            print("WARNING: MS: mask_compare_setup: Image shapes are not the same:")
+            gm.tabprint("mImg: %s"%str(mImg.shape))
+            gm.tabprint("tImg: %s"%str(tImg.shape))
+        return None    
+    
     
     # Create score and add to rInfo
-    
-    score = dc.createScore( tImg, mImg, param['cmpArg'] )
+    score = dc.createScore( tImg, mImg, param['cmpArg'], printBase=rInfo.printBase )
     newScore = rInfo.addScore( name = param['name'], score=score )
-    #rInfo.saveInfoFile()
     
     if printAll: print("MS: New Score!: %s - %f - %f" % (param['name'],score, newScore))
     
     return score
 
+# compares a target and image with given score parameters
+def mask_compare_setup( rInfo, param, args ):
+    
+    # Get variables
+    printBase = args.printBase
+    printAll = args.printAll
+    
+    # Base info
+    pName = param['name']
+    tName = param['cmpArg']['targetName']
+    mName = param['imgArg']['name']
+    maskName = param['cmpArg']['mask']['name']
+    maskType = param['cmpArg']['mask']['type']
+    
+    if printAll: print('MS: mask_compare_setup: %s'%pName)
+    
+    if printAll:
+        gm.tabprint(' paramName: %s'%pName)
+        gm.tabprint(' modelName: %s'%mName)
+        gm.tabprint('targetName: %s'%tName)
+        gm.tabprint('  maskName: %s'%maskName)
+    
+    # Get Target info, Function now requires a target info class
+    tInfo = rInfo.get('tInfo')    
+    if tInfo == type(None):
+        if printBase:
+                print("ERROR: MS: mask_compare_setup: Requires a target info class")
+        return None
+        
+    # GET TARGET IMAGE, leave if unable to get
+    tImg = tInfo.getTargetImage(tName)
+    
+    if type(tImg) == type(None):
+        if printBase: print("Error: MS: mask_compare_setup: failed to load target image")
+        return None
+    elif printAll: 
+        gm.tabprint("Read target image")
+    
+    # GET MODEL IMAGE    
+    mImg = rInfo.getModelImage( mName )
+        
+    if type(mImg) == type(None): 
+        if printBase: 
+            print("Error: MS: mask_compare_setup: failed to load model image")
+            gm.tabprint("runID - model: %s - %s"% (rInfo.get('run_id'),mName))
+        return None        
+    elif printAll: 
+        gm.tabprint("Read model image")
+    
+    if maskType == 'target':
+        # Get target mask
+        mask = tInfo.getMaskImage(maskName)
 
-def perturbation_compare( rInfo, param, args ):
+        if type(mask) == type(None):
+            if printBase: print("Error: MS: mask_compare_setup: failed to load target mask")
+            return None
+        elif printAll: 
+            gm.tabprint("Read target mask")
+    else:
+        if printBase: print("WARNING: MS: mask_compare_setup: cannot load mask type: %s"%maskType)
+        return None
+    
+    
+    # Check if all images have the same size
+    if not ( mImg.shape == tImg.shape and tImg.shape == mask.shape ):
+        if printBase: 
+            print("WARNING: MS: mask_compare_setup: Image shapes are not the same:")
+            gm.tabprint("mImg: %s"%str(mImg.shape))
+            gm.tabprint("tImg: %s"%str(tImg.shape))
+            gm.tabprint("mask: %s"%str(mask.shape))
+        return None
+    
+    # Create score and add to rInfo
+    
+    score = mc.mask_binary_simple_compare( tImg, mImg, mask, param['cmpArg'] )
+    newScore = rInfo.addScore( name = param['name'], score=score )
+    
+    if printAll: print("MS: mask_compare_setup: New Score!: %s - %f - %f" % (param['name'],score, newScore))
+    
+    return score
+
+
+def perturbation_compare_setup( rInfo, param, args ):
     
     printBase = args.printBase
     printAll = args.printAll
@@ -291,7 +457,7 @@ def perturbation_compare( rInfo, param, args ):
     
     # Else, have rInfo retrieve img location
     else:
-        mImg = rInfo.getModelImg(mName)
+        mImg = rInfo.getModelImage(mName)
         rInfo.modelImg[mName] = mImg
     
     # Check if valid image
@@ -319,7 +485,7 @@ def perturbation_compare( rInfo, param, args ):
     
     # Else, have rInfo retrieve img location
     else:
-        iImg = rInfo.getModelImg(mName,initImg=True)
+        iImg = rInfo.getModelImage(mName,initImg=True)
         rInfo.initImg[mName] = iImg
         
     if type(iImg) == type(None): 
@@ -333,7 +499,7 @@ def perturbation_compare( rInfo, param, args ):
     
     # Create score and add to rInfo
     
-    score = dc.createScore( mImg, iImg, param['cmpArg'] )
+    score = dc.createScore( mImg, iImg, param['cmpArg'], printBase=rInfo.printBase )
     newScore = rInfo.addScore( name = pName, score=score )
     
     return score

@@ -11,6 +11,11 @@ from copy import deepcopy
 import pandas as pd
 import numpy as np
 
+from sys import path as sysPath
+sysPath.append('../')
+
+
+
 
 from pprint import PrettyPrinter
 pp = PrettyPrinter(width=41, compact=True)
@@ -102,181 +107,7 @@ def main(arg):
 
 # End main
 
-class group_score_parameter_class:
-
-    group = {}
-    status = False
-
-    def __init__( self, pLoc = None, params = None ):
-
-        if pLoc != None:			
-            with open( pLoc, 'r' ) as iFile:
-                self.group = json.load( iFile )
-        
-        elif params != None:
-            self.group = params            
-        
-        if self.group != {} and type(self.group) == type( {} ):
-            self.status = True
-
-    def addGroupParam( self, inDict ):
-        self.group = inDict
-
-    def addParamClass( self, paramIn ):		
-        if paramIn.status:
-            self.group[paramIn.get('name')] = paramIn.pDict
-
-    def addParam( self, pDict ):
-        self.group[ pDict['name'] ] = pDict
-
-    def rmParam( self, pKey ):
-        if pKey in self.group:
-            del self.group[ pKey ]
-
-    def printGroup( self, ):		
-        print(self.group)
-
-    def get( self, inVal, default = None, pName = None ):
-
-        # Grab from class first
-        cVal = getattr( self, inVal, None )
-        if cVal != None:
-            return cVal
-
-        # Grab from param dicts next
-        if pName == None:
-            dVal = self.group.get( inVal, default )
-        else:
-            dVal = self.group[pName].get( inVal, default )
-
-        return dVal	
-
-    def saveParam(self, saveLoc=None):
-
-        if saveLoc == None:
-            return
-
-        with open( saveLoc, 'w' ) as pFile:
-            json.dump( self.group, pFile, indent=4 )
-
-    def readParam(self, pLoc):
-        with open( pLoc, 'r' ) as iFile:
-            self.group = json.load( iFile )
-
-
-class score_parameter_class:
-
-    pDict = None
-    status = False
-
-    baseDict = {
-            'name' : None,
-            'simArg' : {
-                    'name' : '100k',
-                    'nPts' : '100k',
-                },
-            'imgArg' : {
-                    'name' : 'default',
-                    'pType' : 'default',
-                },
-            'tgtArg' : "zoo",
-            'scrArg' : {
-                    'cmpMethod' : 'correlation',
-                },
-        }
-
-    def __init__( self, paramLoc = None, paramDict = None, new=False, printBase = True, printAll = False ):
-
-        self.printBase = printBase
-        self.printAll = printAll
-        if self.printAll: self.printBase = True
-
-        if self.printBase:
-            print("IM: score_param_class.__init__")
-            print("\t - paramLoc: ", paramLoc)
-            print("\t - paramDict: ", type(paramDict))
-
-        # If creating param new from scratch
-        if new:
-            self.pDict = self.baseDict
-            self.status = True
-
-        elif paramDict != None:
-            self.pDict = paramDict
-            self.status = True
-
-        # Else reading a param file
-        elif paramLoc != None:
-            self.readParam( paramLoc )
-
-        if self.printAll:
-            pprint( self.pDict )
-
-    def setDict( self, paramDict):
-        self.pDict = paramDict
-
-    def get( self, inVal, defaultVal = None ):
-
-        cVal = getattr( self, inVal, defaultVal )
-
-        if cVal != defaultVal:
-            return cVal
-
-        dVal = self.pDict.get( inVal, defaultVal )
-        if dVal != defaultVal:
-            return dVal
-
-        return defaultVal
-
-
-    def readParam( self, paramLoc ):
-
-        if self.printAll:
-            print("IM: score_param_class.readParam")
-            print("\t - paramLoc: ", paramLoc)
-
-        # Check if param File is valid
-        if paramLoc == None:
-            if self.printBase: 
-                print('IM: WARNING: Please give a param File Location')
-                print('\t -paramLoc /path/to/file.txt')
-            return
-
-        elif type( paramLoc) != type('String'):
-            if self.printBase: 
-                print('IM: WARNING: paramLoc variable not string')
-                print('\t -paramLoc: %s ' % type(paramLoc), paramLoc)
-            return
-
-        elif not path.exists( paramLoc ):
-            if self.printBase: 
-                print('IM: WARNING: Param File location not found')
-                print('\t -paramLoc: %s' % paramLoc)
-            return
-
-        # Read file Contents
-        with open( paramLoc ) as iFile:
-            self.pDict = json.load( iFile )
-
-        if self.pDict == None:
-            if self.printBase: 
-                print('IM: WARNING: Failed to read param file')
-                print('\t -paramLoc: %s' % paramLoc)
-            return
-
-        self.status = True
-
-    # End reading param file
-
-    def printParam( self, ):
-        pprint( self.pDict )
-    # end print
-
-# End score parameter class
-
-
-
-class run_info_class: 
+class run_info_class:
 
     rDict = None	# Primary dict of information contained in info.json
     initDict = None	# State of json upon initial reading.
@@ -317,7 +148,7 @@ class run_info_class:
         # Avoiding confusing things
         if self.printAll: self.printBase = True
 
-        if self.printBase: 
+        if self.printAll: 
             print("IM: run_info_class.__init__")
             print("\t - runDir: " , runDir )
 
@@ -326,6 +157,9 @@ class run_info_class:
         dirGood = self.initRunDir( rArg )
 
         if not dirGood:
+            if self.printBase: 
+                print("WARNING: IM: Run_info_class: Directory not set up properly")
+                gm.tabprint('runDir: %s' % rArg.runDir )
             self.status = False
             return
                  
@@ -388,16 +222,11 @@ class run_info_class:
         # Check if things are working
         dirGood = True
 
-        if not path.exists( self.ptsDir ):
-            print("IM: Run. WARNING!  Particle directory not found!")
-            dirGood = False
-
-        if not path.exists( self.imgDir ):
-            print("IM: Run. WARNING!  Model Image directory not found!")
-            dirGood = False
-
-        if not path.exists( self.miscDir ):
-            print("IM: Run. WARNING!  Misc Image directory not found!")
+        if not path.exists( self.ptsDir ) or not path.exists( self.imgDir ) or not path.exists( self.miscDir ):
+            if self.printAll: 
+                print("IM: Run. WARNING!  Particle directory not found!")
+                print("IM: Run. WARNING!  Model Image directory not found!")
+                print("IM: Run. WARNING!  Misc Image directory not found!")
             dirGood = False
 
         # If you made it this far.  
@@ -482,19 +311,48 @@ class run_info_class:
 
     # End findPtsFile
     
-    def getModelImg( self, imgName = 'default', initImg = False ):
+    def getModelImage( self, imgName = 'default', initImg = False ):
         
+        # Create place to store images if needed.
+        if self.get('img',None) == None:
+            self.img = {}
+            
+        if self.get('init',None) == None:
+            self.init = {}
+        
+        # Return model image if already loaded.
+        if not initImg:
+            mImg = self.img.get(imgName,None)
+            if type(mImg) != type(None):
+                return mImg
+        
+        else:            
+            img = self.init.get(imgName,None)
+            if type(img) != type(None):
+                return img
+        
+        # Get image location
         imgLoc = self.findImgLoc( imgName = imgName, initImg = initImg )
-        
-        if imgLoc != None:
-            if self.printAll: print("IM: Loading imgLoc: %s" % imgName, initImg )
-            img = gm.readImg(imgLoc)
-            return img
-        
-        else:
+        if self.printAll: print("IM: Loading imgLoc: %s" % imgName, initImg )
+        if imgLoc == None:
             return None
+        
+        # Read image
+        img = gm.readImg(imgLoc)
+        
+        # Store image if called upon later
+        if not initImg: 
+            self.img[imgName] = img
+        else:
+            self.init[imgName] = img
 
-    def findImgLoc( self, imgName, initImg = False ):		 
+        # Return image
+        return img
+    
+    # End getting model, unperturbed image
+
+
+    def findImgLoc( self, imgName, initImg = False, newImg=False ):
 
         # Assume model image
         if not initImg:
@@ -503,6 +361,11 @@ class run_info_class:
         else:
             imgLoc = self.miscDir + imgName + '_init.png'
 
+        # If new image, return location it will become
+        if newImg: 
+            return imgLoc
+        
+        # Return if path exists
         if path.exists( imgLoc ):
             return imgLoc
         else:
@@ -547,7 +410,7 @@ class run_info_class:
     def getAllScores( self  ):
         return self.get('machine_scores')
 
-    def printScores( self, allScores=False):
+    def printScores( self, allScores=True):
 
         print("IM: run_info_class.printScores()")
         tabprint( 'run_id: %s' % self.get('run_id') )
@@ -568,8 +431,6 @@ class run_info_class:
             return None
 
         self.rDict['machine_scores'][name] = score
-
-        self.saveInfoFile()
 
         return self.rDict['machine_scores'][name]
 
@@ -614,7 +475,7 @@ class run_info_class:
         if not path.exists( oldLoc ):
             print("IM: Run.txt2Json: ERROR:") 
             print("\t - info.txt file not found.")
-            print("\t - oldLoc: %s" % infoLoc)
+            print("\t - oldLoc: %s" % oldLoc)
             return False
 
         infoData = gm.readFile( oldLoc )
@@ -784,18 +645,15 @@ class target_info_class:
     # End target init 
 
     def getTargetImage( self, tName = None ):
-
-        # return if invalid request
-        if tName == None:
-            return
         
-        # Create tmp target image dict if not found
+        # Create place to store images if needed.
         if self.get('targetImgs',None) == None:
             self.targetImgs = {}
         
-        # Search if target image was previously loded. 
-        if type( self.targetImgs.get(tName,None) ) != type( None ):
-            return self.targetImgs[tName]
+        # Return target image if already loaded.
+        tImg = self.targetImgs.get(tName,None)
+        if type(tImg) != type(None):
+            return tImg
         
         # Else find and open target image
         tLoc = self.findTargetImage(tName)
@@ -810,13 +668,21 @@ class target_info_class:
     # End getTargetImage()
 
 
-    def findTargetImage( self, tName = None ):
+    def findTargetImage( self, tName = None, newImg = False ):
 
-        tLoc = self.infoDir + 'target_%s.png' % tName
+        # Expected location
+        tLoc = self.imgDir + 'target_%s.png' % tName
+        
+        # If needing path for new image, return
+        if newImg:
+            return tLoc
+        
+        # Only return if file exists
         if path.exists( tLoc ):
             return tLoc
         else:
             return None
+    # End find target image by name
 
     def printParams( self, ):
 
@@ -832,16 +698,20 @@ class target_info_class:
                 self.tDict['score_parameters'][pKey] = params[pKey]
 
 
-    def getScores( self, scrName = None ):
+    def getScores( self, scrName = None, reload=False): 
 
         # Reading from file
         if type(self.sFrame) == type(None):
             if gm.validPath( self.scoreLoc, printWarning=False ):
                 self.sFrame = pd.read_csv( self.scoreLoc )
+                
             else:
                 if self.printAll: print( "IM: WARNING: Target.getScores:" )
                 self.createBaseScore()
-
+                
+        if reload:
+            self.sFrame = pd.read_csv( self.scoreLoc )
+            
         return self.sFrame
 
     def createBaseScore( self, ):
@@ -880,7 +750,15 @@ class target_info_class:
         for i, row in self.sFrame.iterrows():
 
             rKey = row['run_id']
-            rDict = zDict[rKey]
+            rDict = zDict.get(rKey,None)
+            
+            # Occasional bug when I force end a program
+            if rDict == None:
+                rInfo = self.getRunInfo( rID = rKey )
+                if rInfo == None:
+                    continue
+                else:
+                    rDict = rInfo.rDict
             rScores = rDict['machine_scores']
 
             for sKey in rScores:
@@ -917,10 +795,11 @@ class target_info_class:
 
         if cVal != defaultVal:
             return cVal
-
-        dVal = self.tDict.get( inVal, defaultVal )
-        if dVal != defaultVal:
-            return dVal
+        
+        if self.tDict != None:
+            dVal = self.tDict.get( inVal, defaultVal )
+            if dVal != defaultVal:
+                return dVal
 
         return defaultVal
 
@@ -959,7 +838,7 @@ class target_info_class:
 
     # end gather Run Infos
 
-    def getRunDict( self, rDir, modelSet, rArg=gm.inArgClass() ):
+    def getRunDict( self, rDir, modelSet=None, rArg=gm.inArgClass() ):
 
         rArg.runDir = rDir
         rInfo = run_info_class( printBase=False, rArg=rArg )
@@ -975,11 +854,12 @@ class target_info_class:
             rInfo.rDict['run_id'] = 'r'+str(rID)
             rInfo.saveInfoFile()
 
-        modelSet[rID] = rInfo.rDict
+        if modelSet != None:
+            modelSet[rID] = rInfo.rDict
 
         # update progress
 
-        return modelSet[rID]
+        return rInfo.rDict
 
     # End get Run Dir Info
 
@@ -1010,6 +890,8 @@ class target_info_class:
             
         else: 
             rInfo = run_info_class( runDir = runDir, rArg=rArg )
+        
+        rInfo.tInfo = self
 
         if rInfo.status:
             return rInfo
@@ -1066,6 +948,9 @@ class target_info_class:
     # initialize target directories
     def initTargetDir( self, tArg ):
         
+        from shutil import move
+        from os import mkdir
+        
         if self.printAll:
             print( 'IM: Target.initTargetDir():' )
             print( '\t - targetDir: %s' % tArg.targetDir )
@@ -1095,10 +980,31 @@ class target_info_class:
         self.allInfoLoc = self.infoDir + 'target_info.json'
         self.baseInfoLoc = self.infoDir + 'base_target_info.json'
         
+        self.imgDir = self.infoDir + 'target_images/'
+        self.imgParamLocOld = self.infoDir + 'param_target_images.json'
+        self.imgParamLoc = self.imgDir + 'param_target_images.json'        
+        
+        self.maskDir = self.infoDir + 'target_masks/'
+        
+        self.scoreParamDir = self.infoDir + 'score_parameters/'
+        
         self.scoreLoc = self.infoDir + 'scores.csv'
         self.baseScoreLoc = self.infoDir + 'base_scores.csv'
 
         self.zooMergerLoc = self.infoDir + 'galaxy_zoo_models.txt'
+        
+        # Create target image and mask directories
+        if not path.exists( self.infoDir ): mkdir( self.infoDir )
+        if not path.exists( self.imgDir ): mkdir( self.imgDir )
+        if not path.exists( self.maskDir ): mkdir( self.maskDir )
+        if not path.exists( self.scoreParamDir ): mkdir( self.scoreParamDir )
+        
+        # Create or move misc directories if not created.
+        if gm.validPath( self.imgParamLocOld ) != None:
+            print("Hi")
+            print("OLD: %s"%gm.validPath(self.imgParamLocOld))
+            move( self.imgParamLocOld, self.imgParamLoc)
+            print("NEW: %s"%gm.validPath(self.imgParamLoc))
         
         # If using old folder layout, rename        
         if gm.validPath( self.gen0 ):
@@ -1107,13 +1013,6 @@ class target_info_class:
             print("Propose new path : %s" % self.zooMergerDir)
             rename(self.gen0,self.zooMergerDir)
             print("New Path? : %s" % gm.validPath(self.zooMergerDir) )
-        
-        elif gm.validPath( self.zooMergerDir ):
-            if self.printBase:
-                print("NEW PATH EXISTS: %s" % self.zooMergerDir)
-        
-        else: 
-            print("IM: You shouldn't be seeing me.")
         
         if tArg.get('newInfo',False): 
             status = self.newTargetSetup( tArg )
@@ -1132,6 +1031,7 @@ class target_info_class:
                 tabprint("Consider using -newInfo command")
                 
             return False
+            
         
         # Check if info directory has needed objects
         if not path.exists( self.allInfoLoc ) \
@@ -1174,6 +1074,8 @@ class target_info_class:
         # Create directories
         if not path.exists( self.infoDir ): mkdir( self.infoDir )
         if not path.exists( self.plotDir ): mkdir( self.plotDir )
+        if not path.exists( self.imgDir ): mkdir( self.imgDir )
+        if not path.exists( self.maskDir ): mkdir( self.maskDir )
 
         if not path.exists( self.zooMergerDir ):
             print("IM: WARNING: This message should not be seen.")
@@ -1184,12 +1086,11 @@ class target_info_class:
             if self.printBase: 
                 print("IM: WARNING: newTargetSetup:")
                 tabprint("No base info file!")
-                tabprint("Consider '-newInfo -newBase' command")
+                tabprint("Consider '-newBase' command")
             return False
         
         if newBase:
             if self.printBase:
-                print("IM: newTargetSetup:  Creating base files.")
                 createGood = self.createBaseInfo()
                 if not createGood: return False
         
@@ -1226,67 +1127,330 @@ class target_info_class:
     
     def createBaseInfo( self, ):
         
-        from os import getcwd
-        from shutil import copyfile
+        from os import getcwd, listdir
+        from shutil import copyfile 
+        from copy import deepcopy
+        
+        # For basic scores later on
+        
+        # Get parent directory this code suite is located in.
+        simrDir = __file__.split('Support_Code/info_module.py')[0]
+         
+        # Assume directory name of target is target name
+        tName = self.targetDir.split('/')[-2]
+        
+        if self.printAll: 
+            print('IM: createBaseInfo')
+            gm.tabprint('Target ID: %s'%tName)  
+            gm.tabprint('Target Dir: %s'%self.get('target_dir'))
                 
         # Create blank base dict
         self.tDict = {}
         for key in self.baseHeaders:
-            self.tDict[key] = {}
+            self.tDict[key] = {}        
+        self.tDict['target_id'] = tName  
         
-        # Find target id
-        
-        # Ask if parent directory name the target name
-        tName = self.targetDir.split('/')[-2]
-        '''
-        print("Is this the target name? : %s" % tName)
-        inVal = input('[y]es / [n]o?: ')
-        print("input value: ",inVal)
-        if inVal.lower() == 'y' or inVal.lower == 'yes':
-            self.tDict['target_id'] = tName
-
-        
-        # Implement other methods if needed later
-        else:
-            print("Please implement new target naming method.")
-            return False
-        
-        '''
-        self.tDict['target_id'] = tName
-        
-        # Save
+        # Save target_id
         with open( self.baseInfoLoc, 'w' ) as infoFile:
             json.dump( self.tDict, infoFile )
         
-        # Get starting target files
-        cDir = getcwd()
-        tImgDir = gm.validPath( cDir  + '/Input_Data/targets/' + tName + '/')
-        tImgLoc = None
+        # Get starting target files from input data folder
+        inputDir = gm.validPath( simrDir  + 'Input_Data/targets/' + tName + '/')        
+        if self.printAll: gm.tabprint('Input Dir: %s'%inputDir)
+            
+        # Check if valid directory, exit if not
+        if inputDir == None:
+            if self.printBase: 
+                print("WARNING: IM: Input directory not found: %s"%tName)
+                gm.tabprint('Input Dir: %s'%inputDir)
+            return False
+        
+        # Get folder contents
+        inputFiles = listdir(inputDir)            
 
-        if tImgDir == None:
-            return False
+        if self.printAll: 
+            gm.tabprint("Input Dir contents:")
+            for f in inputFiles:
+                gm.tabprint('    - %s'%f)
         
-        tFiles = listdir( tImgDir )
-        for fName in tFiles:
+        # Search for target image
+        fromLoc = None        
+        for fName in inputFiles:
             if '.png' in fName:
-                tImgLoc = tImgDir + fName      
+                fromLoc = inputDir + fName      
         
-        if gm.validPath( tImgLoc ) != None:
-            newImgLoc = self.infoDir + 'target_zoo.png'
-            copyfile( tImgLoc, newImgLoc )
+        # If found, copy target image from input folder to targetInfo folder
+        if gm.validPath( fromLoc ) != None:
+            toLoc = self.findTargetImage( 'zoo_0', newImg = True )
+            copyfile( fromLoc, toLoc )
+            
+        # Grab specific target image data
+        metaLocRaw1 = inputDir + 'sdss%s.meta'%tName
+        metaLocRaw2 = inputDir + '%s.meta'%tName
+        metaLoc1 = gm.validPath( metaLocRaw1 )
+        metaLoc2 = gm.validPath( metaLocRaw2 )
         
-        if gm.validPath( newImgLoc ) == None:
+        if self.printAll: 
+            gm.tabprint('Meta Data Loc1: %s'% metaLocRaw1 )
+            gm.tabprint('Meta Data Loc2: %s'% metaLocRaw2 )
+            
+        # Open file for target galaxy zoo merger image information
+        if metaLoc1 != None:
+            mFile = open(metaLoc1,'r')
+        elif metaLoc2 != None:
+            mFile = open(metaLoc2,'r')
+        else:
+            if self.printBase: print("WARNING: IM: Meta data not found:")
             return False
+
+        # Copy starting target zoo image param
+        pLoc = simrDir + 'param/zoo_blank.json'
+        blank_param = gm.readJson(pLoc)
+        if blank_param == None:        
+            if self.printBase: 
+                print("WARNING: IM: Start zoo image param not found: %s"%pLoc)
+            return False
+
+        # Copy blank parameter
+        new_params = {}
+        new_name = 'zoo_0'
+        new_params[new_name] = deepcopy(blank_param['zoo_blank'])
+
+        # Make name and comments initial comments.
+        new_params[new_name]['name'] = new_name
+        new_params[new_name]['comment'] = 'Starting score parameters file for %s'%tName
+        new_params[new_name]['imgArg']['comment'] = "Starting image parameters for %s"%tName
+
+        # Grab information
+        for l in mFile:
+            l = l.strip()
+            
+            
+            
+            if 'height' in l:
+                h = l.split('=')[1]
+                new_params[new_name]['imgArg']['image_size']['width'] = int(h)
+                
+            if 'width' in l:
+                w = l.split('=')[1]
+                new_params[new_name]['imgArg']['image_size']['width'] = int(w)
+            if 'px' in l:
+                px = l.split('=')[1]
+                new_params[new_name]['imgArg']['galaxy_centers']['px'] = int(px)
+            if 'py' in l:
+                py = l.split('=')[1]
+                new_params[new_name]['imgArg']['galaxy_centers']['py'] = int(py)
+            if 'sx' in l:
+                sx = l.split('=')[1]
+                new_params[new_name]['imgArg']['galaxy_centers']['sx'] = int(sx)
+            if 'sy' in l:
+                sy = l.split('=')[1]
+                new_params[new_name]['imgArg']['galaxy_centers']['sy'] = int(sy)
+
+        if self.printAll: gm.pprint(new_params)
+
+        # Save new target image parameter
+        newParamLoc = self.imgParamLoc
+        gm.saveJson( new_params, newParamLoc, pretty=True )
+        
+        # Create basic scoring parameters
+        self.createDirectScoreParameters( new_params['zoo_0'] )
+
+        # Find pair file 
+        pairPath1 = gm.validPath( inputDir + 'sdss%s.pair'%tName )
+        pairPath2 = gm.validPath( inputDir + '%s.pair'%tName )
+        if self.printAll: 
+            gm.tabprint('pairPath1: ',pairPath1)
+            gm.tabprint('pairPath2: ',pairPath2)
+            
+        if pairPath1 != None:            
+            pairFile = open(pairPath1, 'r' )
+            
+        elif pairPath2 != None:            
+            pairFile = open(pairPath2, 'r' )
+            
+        else:
+            if self.printBase: print("WARNING: IM: Pair data not found: %s"%pairPath)
+            return False
+
+        start_roi_mask = gm.readJson(simrDir+'param/mask_roi_blank.json')
+
+        start_roi_mask['name'] = 'mask_roi_zoo_0'
+        start_roi_mask['comment'] = 'Starting mask for %s' % tName
+        start_roi_mask['target_name'] =  tName
+        start_roi_mask['primary_start']['thickness'] =  10
+        start_roi_mask['secondary_start']['thickness'] =  10
+
+        for l in pairFile: 
+            
+            if ';' in l:                
+                l = l[0:-2]
+
+            if 'primaryA=' in l:
+                l = l.strip()
+                start_roi_mask['primary_start']['A'] =  round( float( l.split('=')[1] ) )
+
+            elif 'primaryB=' in l:
+                start_roi_mask['primary_start']['B'] =  round( float( l.split('=')[1] ) )
+
+            elif 'primaryAngle=' in l:
+                start_roi_mask['primary_start']['angle'] =   float( l.split('=')[1] ) 
+
+            elif 'primaryX=' in l:
+                start_roi_mask['primary_start']['center'][0] =  round( float( l.split('=')[1] ) )
+
+            elif 'primaryY=' in l:
+                start_roi_mask['primary_start']['center'][1] =  round( float( l.split('=')[1] ) )
+
+            elif 'secondaryA=' in l:
+                l = l.strip()
+                start_roi_mask['secondary_start']['A'] =  round( float( l.split('=')[1] ) )
+
+            elif 'secondaryB=' in l:
+                start_roi_mask['secondary_start']['B'] =  round( float( l.split('=')[1] ) )
+
+            elif 'secondaryAngle=' in l:
+                start_roi_mask['secondary_start']['angle'] =   float( l.split('=')[1] ) 
+
+            elif 'secondaryX=' in l:
+                start_roi_mask['secondary_start']['center'][0] =  round( float( l.split('=')[1] ) )
+
+            elif 'secondaryY=' in l:
+                start_roi_mask['secondary_start']['center'][1] =  round( float( l.split('=')[1] ) )
+
+
+        if self.printAll: 
+            gm.pprint(start_roi_mask)
+
+        self.saveMaskRoi( start_roi_mask, 'mask_roi_zoo_0')
+        
         
         return True
         
     # end creating base info file
     
+    def createDirectScoreParameters( self, startParam ):
+        
+        # Create basic scoring parameters with zoo_0
+        import Machine_Score.direct_image_compare as dc
+        score_functions = dc.get_score_functions()
+
+        direct_params = {}
+        imgName = startParam['imgArg']['name']
+        
+        modParam = deepcopy( startParam )
+        modParam['cmpArg']['type'] = 'direct_image_comparison'
+        modParam['comment'] = 'Direct Image Comparison functions for image %s' % imgName
+        
+        for score_name, ptr in score_functions:
+            new_name = '%s_%s' % ( imgName, score_name )
+            direct_params[ new_name ] = deepcopy( modParam )
+            direct_params[ new_name ]['name'] = new_name            
+            direct_params[ new_name ]['cmpArg']['direct_compare_function'] =  score_name
+            
+        if self.printAll: 
+            print("IM: Target_Class: createDirectScoreParameters")
+            for name in direct_params.keys():
+                gm.tabprint(name)
+        
+        # Save created score files
+        self.saveScoreParam( direct_params, '%s_direct_scores'%imgName)            
+        
+    
+
+    
+    def getImageParams( self, imgName=None):
+        
+        from copy import deepcopy
+        
+        # Read image parameters common for target
+        img_params = gm.readJson( self.imgParamLoc )
+        
+        # If None, initialize target images and try again.
+        if img_params == None:
+            getTargetInputData( self )
+            img_params = gm.readJson( self.imgParamLoc )
+        
+        # Return all if none specified.
+        if imgName == None:     
+            return deepcopy( img_params )
+        
+        # Return single image parameter if specified.
+        else:
+            return deepcopy( img_params.get(imgName,None) )
+    # End getting image parameters
+    
+    def addImageParams( self, in_params, overWrite = False ):
+        
+        # If file doesn't exist
+        if gm.validPath( self.imgParamLoc ) == None:
+            gm.saveJson( in_params, self.imgParamLoc )
+            return
+        
+        # Else file does exsit
+        old_params = gm.readJson( self.imgParamLoc )
+        
+        # Loop through new image parameters
+        for sKey in in_params:
+            
+            # Add to old if overwrite or not found
+            if overWrite or sKey not in old_params:
+                old_params[sKey] = in_params[sKey]            
+        
+        gm.saveJson( old_params, self.imgParamLoc )
+    
+    def overWriteImageParams( self, in_params ):
+        gm.saveJson( in_params, self.imgParamLoc )
+    
+    def saveMaskImage( self, maskImage, maskName ):
+        maskLoc = self.maskDir + '%s.png'%maskName
+        gm.saveImg( maskImage, maskLoc)
+    
+    def getMaskImage( self, maskName ):
+        
+        if self.get('targetMasks',None) == None:
+            self.targetMasks = {}
+            
+        if type( self.targetMasks.get(maskName,None) ) != type( None ):
+            return self.targetMasks[maskName]
+        
+        else:
+            mask = self.readMaskImage( maskName )
+            self.targetMasks[maskName] = mask
+            return self.targetMasks[maskName]
+        
+    
+    def readMaskImage( self, maskName ):
+        maskLoc = self.maskDir + '%s.png'%maskName
+        mask = gm.readImg(  maskLoc )
+        return mask
+    
+    def saveScoreParam( self, score_params, param_file_name ):
+        paramLoc = self.scoreParamDir + '%s.json'%param_file_name
+        gm.saveJson( score_params, paramLoc, pretty=True )
+    
+    def readScoreParam( self, param_file_name ):
+        paramLoc = self.scoreParamDir + '%s.json'%param_file_name
+        score_params = gm.readJson(  paramLoc )
+        return score_params
+    
+    def saveMaskRoi( self, mask_roi, file_name ):
+        roiLoc = self.maskDir + '%s.json'%file_name
+        gm.saveJson( mask_roi, roiLoc, pretty=True )
+    
+    def readMaskRoi( self, file_name ):
+        roiLoc = self.maskDir + '%s.json'%file_name
+        mask_roi = gm.readJson(  roiLoc )
+        return mask_roi
+        
+        
+# End target info class
     
 def tabprint( inprint, begin = '\t - ', end = '\n' ):
     print('%s%s' % (begin,inprint), end=end )
 
 
+    
 if __name__=='__main__':
 
     from sys import argv

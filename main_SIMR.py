@@ -28,6 +28,13 @@ from Machine_Score import main_machine_score as ms
 def test():
     print("SIMR: Hi!  You're in Matthew's main program for all things galaxy collisions")
 
+# For testing and developement
+new_func = None
+def set_new_func( inFunc ):
+    global new_func
+    new_func = inFunc
+# End set new function
+
 def main(arg):
 
     if arg.printBase:
@@ -109,7 +116,6 @@ def simr_many_target( arg ):
         else:
             print("Bad Dir : %s" % tArg.targetDir )
             
-
 # End data dir
 
 
@@ -160,17 +166,14 @@ def simr_target( arg=gm.inArgClass(), tInfo = None ):
         tInfo.updateScores()
         tInfo.saveInfoFile()
 
-    newSim = arg.get('newSim',False)
-    newImg = arg.get('newImg',False)
-    newScore = arg.get('newScore',False)
-    newPlot = arg.get('newPlot',False)
+    newImage = arg.get('newImage',False)
+    newScore = arg.get('newScore') 
     newAll = arg.get('newAll',False)
-
+    
     # Create new files/scores if called upon
-    if arg.get('newAll') or arg.get('newScore') :
+    if newImage or newScore or newAll :
         new_target_scores( tInfo, arg )
     
-    if newPlot: sa.target_report_2(tInfo = tInfo)
 
 
 def new_target_scores( tInfo, tArg ):
@@ -184,20 +187,29 @@ def new_target_scores( tInfo, tArg ):
 
     # Check if parameter are given
     params = tArg.get('scoreParams')
-    paramLoc = gm.validPath( tArg.get('paramLoc') )
+    paramName = tArg.get('paramName',None) 
+    paramLoc = gm.validPath( tArg.get('paramLoc',None) )
     
     # If invalid, complain
-    if params == None and paramLoc == None:
+    if params == None and paramLoc == None and paramName == None:
         if printBase:
             print("SIMR: WARNING: new_target_scores: params not valid")
-        return        
+            gm.tabprint('Params: %s'%type(params))
+            gm.tabprint('ParamName: %s'%paramName)
+            gm.tabprint('ParamLoc : %s'%paramLoc)
+        return
     
-    # If params not there, read from file
-    elif params == None:
-        pClass = im.group_score_parameter_class(paramLoc)
-        if pClass.status:
-            params = pClass.get('group',None)
-            del pClass
+    # If params there, move on
+    elif params != None:
+        pass
+    
+    # If given a param name, assume target knows where it is.
+    elif params == None and paramName != None:
+        params = tInfo.readScoreParam(paramName)
+    
+    # If given param location, directly read file
+    elif paramLoc != None:
+        params = gm.readJson(paramLoc)
 
     # Check for final parameter file is valid
     if params == None:
@@ -211,17 +223,19 @@ def new_target_scores( tInfo, tArg ):
     runDicts = tInfo.getAllRunDicts()
 
     runArgs = gm.inArgClass()
-    runArgs.setArg('printBase', False)
     
     if printAll: 
         runArgs.setArg('printAll', True)
         runArgs.setArg('printBase', True)
+    else:
+        runArgs.setArg('printBase', False)
+        
     
-    runArgs.setArg('newScore', tArg.get('newScore',False))
     runArgs.setArg('tInfo', tInfo)
     runArgs.setArg('scoreParams', params)
+    runArgs.setArg('newImage', tArg.get('newImage',False))
+    runArgs.setArg('newScore', tArg.get('newScore',False))
     runArgs.setArg('overWrite', tArg.get('overWrite',False))
-
 
     # Find out which runs need new scores
     argList = []
@@ -235,7 +249,7 @@ def new_target_scores( tInfo, tArg ):
                 scoreGood = False
                 break
 
-        if not scoreGood:
+        if not scoreGood or tArg.get('overWrite',False):
             rDir = tInfo.getRunDir(rID=rKey)
             argList.append( dict( arg = runArgs, rDir=rDir, ) )
 
@@ -280,7 +294,12 @@ def simr_run( arg = None, rInfo = None, rDir = None ):
 
     # Initialize info file
     if rInfo == None:
-        rInfo = im.run_info_class( runDir=rDir, rArg=arg )
+        
+        if arg.get('rInfo') != None:
+            rInfo = arg.rInfo
+            
+        elif rDir != None:
+            rInfo = im.run_info_class( runDir=rDir, rArg=arg )
 
     if printBase:
         print('SIMR.pipelineRun: ')
@@ -291,24 +310,25 @@ def simr_run( arg = None, rInfo = None, rDir = None ):
         return None
 
     # Check if parameter are given
-    arg.scoreParams = arg.get('scoreParams')
+    scoreParams = arg.get('scoreParams',None)
     paramLoc = gm.validPath( arg.get('paramLoc') )
     
     # If invalid, complain
-    if arg.scoreParams == None and paramLoc == None:
+    if scoreParams == None and paramLoc == None:
         if printBase:
             print("SIMR: WARNING: simr_run: params not valid")
         return        
     
     # If params not there, read from file
-    elif arg.scoreParams == None:
+    elif scoreParams == None:
         pClass = im.group_score_parameter_class(paramLoc)
         if pClass.status:
-            arg.scoreParams = pClass.get('group',None)
+            scoreParams = pClass.get('group',None)
+            arg.scoreParams = scoreParams
             del pClass
 
     # Check for valid parameter file
-    if arg.scoreParams == None:
+    if scoreParams == None:
         if printBase:
             print("SIMR: WARNING: Target_New: Failed to load parameter class")
             gm.tabprint('paramLoc: %s',paramLoc)
@@ -316,15 +336,15 @@ def simr_run( arg = None, rInfo = None, rDir = None ):
 
     # Check if new files should be created/altered
     newSim = arg.get('newSim')
-    newImg = arg.get('newImg')
+    newImage = arg.get('newImage')
     newScore = arg.get('newScore')
     newAll = arg.get('newAll')
 
     if newSim or newAll:
-        if printBase: print("SIMR: run: newSim not functioning at this time")
+        if printBase: print("WARNING: SIMR: run: newSim not functioning at this time")
 
-    if newImg or newAll:
-        if printBase: print("SIMR: run: newImg not functioning at this time")
+    if newImage or newAll:
+        ic.main_ic_run( rInfo = rInfo, arg=arg )
 
     if newScore or newAll:
 
@@ -334,6 +354,9 @@ def simr_run( arg = None, rInfo = None, rDir = None ):
 
     if arg.get('tInfo',None) != None:
         arg.tInfo.addRunDict(rInfo)
+    
+    # Clean up run directory if temporary files were created
+    rInfo.delTmp()
 
 # end processing run
 

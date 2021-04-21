@@ -46,10 +46,14 @@ def basicHeatPlot( s1, s2, s3, titleName=None, ):
     return plot
 
 
-def getNamedPlot( scores = None, sName = 'new_score', pertName = 'base_perturbation', printAll = False ):
+def getNamedPlot( scores = None, sName = 'new_score', pertName = 'base_perturbation', fig=None, ax=None, printAll = False ):
         
     # Grab dataframe of human, machine, and perturbation scores, drop invalid rows. 
     hmScores = scores[['zoo_merger_score',sName,pertName]].dropna()
+    
+    if printAll:
+        print("SA: valid scores: %d"%len(hmScores))
+        print(hmScores)
     
     # Seperate human and machine scores        
     hScores = hmScores['zoo_merger_score'].values
@@ -65,7 +69,8 @@ def getNamedPlot( scores = None, sName = 'new_score', pertName = 'base_perturbat
     title = '%s:' % (sName) 
     title += '\nCorr: %.4f' % corr
     
-    fig, ax = plt.subplots(1)
+    if ax==None:
+        fig, ax = plt.subplots(1)
 
     basicHeatSubPlot( fig, ax, hs, ms, ps, titleName=title)    
     return ax

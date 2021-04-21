@@ -23,12 +23,12 @@ If you are making modifications, checkout a different branch
 - For Software Engineering execute `git checkout working_SE` 
 
 ####Python install
-I am currently testing virtual environments with this package.  To initialize please run the following. This should create a new virtual environment, and install needed python packages.
+I am currently testing virtual environments with this package.  To initialize please run the following. This should create a new virtual environment name "simr_env", and install needed python packages. NOTE: Then name "simr_env" is arbitrary and you can name it however you please.  Be sure to remember the name of course. 
 
 ```
-python3 -m venv env
-source env/bin/activate
-python3 -m pip --upgrade pip
+python3 -m venv simr_env
+source simr_env/bin/activate
+python3 -m pip install --upgrade pip
 python3 -m pip install -r requirements.txt
 ```
 
@@ -38,9 +38,10 @@ Once you have installed the required packages, you will need to activate the env
     
     
 ### Activate environment
+NOTE: If you just installed the above, you are likley already in the environment.
     
 ```
-source env/vin/activate
+source simr_env/vin/activate
 ```
     
 ### Python Notebook
@@ -66,9 +67,10 @@ ___
 - `-paramLoc path/to/score/param.json`    Path to an existing score parameter file.
 - `-targetLoc path/to/score/target.png`    Path to an existing target image of colliding galaxies.
 ___
-- `-newScore`  (Default: False) Tells program to create a new machine score.
-- `-newImg`    (Default: False) Tells program to create a new model image. (TODO)
 - `-newSim`    (Default: False) Tells program to create a new simulation of a model. (TODO)
+- `-newImage`  (Default: False) Tells program to create a new model image. (Working)
+- `-newScore`  (Default: False) Tells program to create a new machine score.
+- `-newPlot`   (Default: False) Tells program to create series of plots for a target.
 - `-newAll`    (Default: False) Tells program to create a new simulation, image, and score.
 - `-overWrite` (Default: False) Tells program to create a new simulation, image, and/or score even if that file already exists.
 ___
@@ -119,6 +121,41 @@ Support code features two programs as of now.
     - Misc functions.  Such as reading images, json files, validating and getting full path to files, and print statements. 
 - `info_module.py`: Contains several classes that server as the interface between programs and disk storage.  Organizes the target/model directories and reads/saves files needed by the programs.  (Ex. Targets, models, and score parameters)
    
+## Score Parameters (TODO)
+    For each model, there are a variety of methods for scoring how well the model fits observation data.  The primary goal of this software suite is to find a fitness scoring method that matches.  
+    Our primary method for getting this fitness score is by simulating the orbital parameters of the model in SPAM.  The simulation creates orbiting stars that get tidally displaced as the galaxies interact. 
+    
+    
+### NOTE:  All code is assuming you have a group of possible score parameters. 
+
+### Example JSON
+```json
+'zoo_2': {'cmpArg': {'cmpMethod': 'correlation'},  // Fitness score
+           'imgArg': {'blur': {'size': 5,
+                               'type': 'gaussian_blur',
+                               'weight': 0.75},
+                      'comment': 'Smaller '
+                                 'Image '
+                                 'by '
+                                 'Matthew.',
+                      'galaxy_centers': {'px': 50,
+                                         'py': 50,
+                                         'sx': 100,
+                                         'sy': 50},
+                      'image_size': {'height': 100,
+                                     'width': 150},
+                      'name': 'zoo_2',
+                      'normalization': {'norm_constant': 2.5,
+                                        'type': 'type1'},
+                      'radial_const': [-1.5,
+                                       -1.5],
+                      'target_id': '587722984435351614'},
+           'name': 'zoo_2',
+           'scoreType': 'target',
+           'simArg': {'nPts': '100k',
+                      'name': '100k'},
+           'targetName': 'zoo_2'}
+```
     
 ## References<a id="references">
 A. Holincheck. *A Pipeline for Constructing a Catalog of Multi-method Models

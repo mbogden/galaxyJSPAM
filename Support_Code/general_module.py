@@ -4,17 +4,14 @@
 Description:	I have finally commited to creating a dedicated file for all things relating to the input arguments and processing.
 '''
 
-
 # For loading in Matt's general purpose python libraries
+import json
+import numpy as np
+import cv2
 from os import path
 from sys import path as sysPath
 supportPath = path.abspath( path.join( __file__ , "../../Support_Code/" ) )
 sysPath.append( supportPath )
-
-cv2 = None
-
-# Common json/dict functions
-from copy import deepcopy
 
 from pprint import PrettyPrinter
 pp = PrettyPrinter(width=41, compact=True)
@@ -23,7 +20,7 @@ pprint = pp.pprint
 def test():
     print("GM: Hi!  You're in Matthew's module for generally useful functions and classes")
 
-def validPath( inPath, printWarning = False, pathType = None):
+def validPath( inPath, printWarning = False, pathType = None ):
 
     # Check if valid string
     if type( inPath ) != type( 'string' ):
@@ -43,6 +40,50 @@ def validPath( inPath, printWarning = False, pathType = None):
 
 # End valid path function
 
+# converting between two common image types
+def uint8_to_float32( in_img ):
+    if in_img.dtype != np.uint8:
+        print("WARNING: GM: uint8_to_float32: In image not type np.uint8.")
+        return None
+    
+    f_img = in_img.astype(np.float32)
+    f_img /= 255.
+    return f_img
+# End converting to float image between 0 and 1
+
+def float32_to_uint8( f_img ):
+    if f_img.dtype != np.float32:
+        print("WARNING: GM: float32_to_uint8: In image not type np.float32.")
+        return None
+    to_img = np.copy(f_img)
+    to_img *= 255.
+    to_img = to_img.astype(np.uint8)
+    return to_img
+# End float32 to uint8
+
+# Read json file
+def readJson( jPath ):
+    
+    # Check for valid path/file
+    jPath = validPath( jPath )
+    if jPath == None:
+        return
+    
+    # Read json file
+    jDict = None
+    with open( jPath, 'r' ) as jFile:
+        jDict = json.load( jFile )
+    return jDict
+
+# Save json file
+def saveJson( jDict, jPath, pretty=False ):    
+    with open( jPath, 'w' ) as jFile:
+        if pretty:
+            json.dump( jDict, jFile, indent=4 )
+        else:
+            json.dump( jDict, jFile )
+            
+    
 def getScores( scoreLoc ):
     
     import pandas as pd
@@ -55,28 +96,10 @@ def getScores( scoreLoc ):
     
     return scores
 
-def getImg( imgLoc, printAll = False ):
-    global cv2
-
-    if cv2 == None:
-        import cv2
-
-    if not path.exists( imgLoc ):
-        if printAll:
-            print("GM: WARNING: image not found")
-            print("\t - %s: " %imgLoc )
-        return None
-
-    img = cv2.imread( imgLoc, 0)
-    return img
-
 
 def saveImg( img, imgLoc, printAll = False ):
-    
-    global cv2
-
-    if cv2 == None:
-        import cv2
+    if img.dtype == np.float32:
+        img = float32_to_uint8(img)
     
     cv2.imwrite(imgLoc,img)
 
@@ -314,7 +337,6 @@ class ppClass:
             # Will exist loop if queue is empty
             except self.Empty:
                 #print('%s - queue empty' % self.mp.current_process().name)
-                print('')
                 break
 
             if self.printProg:
@@ -364,8 +386,6 @@ def checkPP(arg):
 
 def readImg( imgLoc, printAll = False, toSize=None ):
 
-    import cv2
-
     # Check if path is valid
     if not path.exists( imgLoc ):
         if printAll:
@@ -375,6 +395,10 @@ def readImg( imgLoc, printAll = False, toSize=None ):
 
     # Read image from disk
     img = cv2.imread( imgLoc, 0 ) 
+    
+    # Convert to floating point with values between 0 and 1
+    if img.dtype == np.uint8:
+        img = uint8_to_float32(img)
 
     # Resize if requested
     if toSize != None:
