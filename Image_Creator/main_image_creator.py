@@ -194,7 +194,7 @@ def getParticles( rInfo, simName, printAll=False ):
     if printAll: im.tabprint("Loading points from file: %s"%ptsZipLoc)
         
     if ptsZipLoc == None:
-        if printBase: print("WARNING: IC: zipped points not found: %s"%ptsZipLoc)
+        if rInfo.printBase: print("WARNING: IC: zipped points not found: %s"%ptsZipLoc)
         return None
     
     # Read particles using particle class
