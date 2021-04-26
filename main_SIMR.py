@@ -117,35 +117,41 @@ def simr_many_target( arg ):
     targetList = listdir( dataDir )   # List of items found in folder
     targetList.sort()
     
-    if mpi_rank == 0:
+    # Normal local machine runs
+    if mpi_size == 1:
         
-        for folder in targetList:        
-
-            tArg.targetDir = dataDir + folder
-            tInfo = im.target_info_class( tArg=tArg )
+        for folder in targetList:  
             
-            if tInfo.status:
-                print("SIMR: many_targets: Good: %s" % tArg.get('target_id') )
+            tArg.targetDir = dataDir + folder            
+            simr_target( arg = tArg )
+
+    
+    elif mpi_size > 1:
+
+        for folder in targetList:  
+            
+            tInfo = None
+            if mpi_rank == 0:
+                tArg.targetDir = dataDir + folder
+                tInfo = im.target_info_class( tArg=tArg )
                 
-                # Check if others are expecting this tInfo
-                if mpi_size > 1:
+                if tInfo.status:                    
+                    if printAll: gm.tabprint("Rank %d sending tInfo: %s" % (mpi_rank, tInfo.get('target_id')))
                     tInfo = mpi_comm.bcast( tInfo, root=0 )
-                    mpi_comm.Barrier()
-                    print("Rank %d msg: %s" % (mpi_rank, tInfo.get('target_id')))
                     
-                simr_target( arg = tArg, tInfo = tInfo )
-
+                else:
+                    if printAll: gm.tabprint("Rank %d sending None:" % (mpi_rank))
+                    tInfo = mpi_comm.bcast( None, root=0 )
+                    
             else:
-                print("SIMR: many_targets: Bad Dir : %s" % tArg.targetDir )
-            
-            break
-    else:
-        msg = None
-        tInfo = mpi_comm.bcast( msg, root=0 )
-        mpi_comm.Barrier()
-        print("Rank %d msg: %s" % (mpi_rank, tInfo.get('target_id')))
-        simr_target( arg = tArg, tInfo = tInfo )
-            
+                tInfo = mpi_comm.bcast( tInfo, root=0 )
+
+            if type( tInfo ) != type( None ):
+                if printAll: gm.tabprint("Rank %d received: %s" % (mpi_rank, tInfo.get('target_id')))
+                simr_target( tInfo = tInfo, arg = tArg )
+            elif printAll:
+                gm.tabprint("Rank %d received None:"%mpi_rank)
+
 # End data dir
 
 
@@ -159,14 +165,14 @@ def simr_target( arg=gm.inArgClass(), tInfo = None ):
     if arg.printAll:
         arg.printBase = True
 
-    if printBase and mpi_rank == 0:
-        print("SIMR: pipelineTarget: input")
+    if printAll and mpi_rank == 0:
+        print("SIMR: simr_target: input")
         print("\t - tDir: %s" % tDir )
         print("\t - tInfo: %s" % type(tInfo) )
 
     # Check if given a target
     if tInfo == None and tDir == None and arg.get('tInfo') == None:
-        print("SIMR: WARNING: simr_target")
+        print("WARNING: SIMR: simr_target")
         print("\t - Please provide either target directory or target_info_class")
         return
 
@@ -190,8 +196,7 @@ def simr_target( arg=gm.inArgClass(), tInfo = None ):
         tInfo = arg.tInfo
 
     if printBase and mpi_rank == 0:
-        print("SIMR: simr_target status:")
-        print("\t - tInfo.status: %s" % tInfo.status )
+        print("SIMR: %s - %s" % ( tInfo.status, tInfo.get('target_id'), ) )
 
     # Check if valid directory
     if tInfo.status == False:
@@ -365,7 +370,7 @@ def new_target_scores( tInfo, tArg ):
                 for i in range(mpi_size):
                     scatter_lists.append([])
             
-            if printBase:
+            if printAll:
                 print("SIMR: new_target_scores: MPI Scatter argList")
                 gm.tabprint("Rank 0 argList: %d"%len(argList))
                 gm.tabprint("Rank 0 scatter_lists: %d"%len(scatter_lists))
@@ -374,7 +379,7 @@ def new_target_scores( tInfo, tArg ):
                 
         # Scatter argument lists to everyone
         argList = mpi_comm.scatter(scatter_lists,root=0)
-        if printBase:
+        if printAll:
             gm.tabprint("Rank %d received: %d"%(mpi_rank,len(argList)))
         
         # Everyone go through their list and execute runs    
@@ -382,9 +387,10 @@ def new_target_scores( tInfo, tArg ):
             simr_run( **args )
             
             if mpi_rank == 0:
-                gm.tabprint("Rank 0: Progress: %d / %d " % (i,len(argList)), end='\r')
+                gm.tabprint("Rank 0: Progress: %d / %d " % (i+1,len(argList)), end='\r')
         
         # Everyone wait for everyone else to finish
+        if mpi_rank == 0: print('')
         mpi_comm.Barrier()
         
         # Have rank 0 collect files and update scores
