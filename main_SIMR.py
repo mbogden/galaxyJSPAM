@@ -48,10 +48,8 @@ def main(arg):
     if mpi_size > 1:     
         if mpi_rank == 0:
             print( 'SIMR: main: In MPI environment!')
-        mpi_comm.Barrier()
-        gm.tabprint('I am %d of %d ' %( mpi_rank, mpi_size ) )  
-        sleep( mpi_rank * 0.1 )
-        mpi_comm.Barrier()
+        sleep(1)
+        if printAll: gm.tabprint('I am %d of %d ' %( mpi_rank, mpi_size ) ) 
         
     if arg.printAll and mpi_rank == 0:
         arg.printArg()
