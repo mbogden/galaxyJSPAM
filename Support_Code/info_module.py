@@ -726,10 +726,6 @@ class target_info_class:
             for sKey in rScores:
                 self.sFrame.at[i,sKey] = rScores[sKey]
 
-            # Save score info
-
-            continue
-
 
         # Update progress in tInfo
         if self.tDict['progress'].get('machine_scores') == None:

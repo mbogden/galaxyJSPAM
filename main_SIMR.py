@@ -50,6 +50,7 @@ def main(arg):
             print( 'SIMR: main: In MPI environment!')
         sleep(1)
         if arg.printAll: gm.tabprint('I am %d of %d ' %( mpi_rank, mpi_size ) ) 
+        mpi_comm.Barrier()
         
     if arg.printAll and mpi_rank == 0:
         arg.printArg()
@@ -181,6 +182,12 @@ def simr_target( arg=gm.inArgClass(), tInfo = None ):
             
             tInfo = im.target_info_class( targetDir=tDir, tArg = arg )
             
+            # Gather scores if called for
+            if arg.get('update',False):
+                tInfo.gatherRunInfos()
+                tInfo.updateScores()                
+                tInfo.saveInfoFile()
+            
             # Check if others are expecting this tInfo
             if mpi_size > 1:
                 tInfo = mpi_comm.bcast( tInfo, root=0 )
@@ -194,7 +201,7 @@ def simr_target( arg=gm.inArgClass(), tInfo = None ):
         tInfo = arg.tInfo
 
     if printBase and mpi_rank == 0:
-        print("SIMR: %s - %s" % ( tInfo.status, tInfo.get('target_id'), ) )
+        print("SIMR: target: %s - %s" % ( tInfo.status, tInfo.get('target_id'), ) )
 
     # Check if valid directory
     if tInfo.status == False:
@@ -203,12 +210,6 @@ def simr_target( arg=gm.inArgClass(), tInfo = None ):
 
     if arg.get('printParam', False) and mpi_rank == 0:
         tInfo.printParams()
-
-    # Gather scores if called for
-    if arg.get('update',False) and mpi_rank == 0:
-        tInfo.gatherRunInfos()
-        tInfo.updateScores()
-        tInfo.saveInfoFile()
 
     newImage = arg.get('newImage',False)
     newScore = arg.get('newScore') 
@@ -226,8 +227,7 @@ def new_target_scores( tInfo, tArg ):
     printAll = tArg.printAll
     
     if printBase and mpi_rank == 0:
-        print("SIMR: new_target_scores:")
-        print("\t - tInfo: %s" % tInfo.status )
+        print("SIMR: new_target_scores: %s" % tInfo.get('target_id') )
 
     # Check if parameter are given
     params = tArg.get('scoreParams')
@@ -288,10 +288,8 @@ def new_target_scores( tInfo, tArg ):
             print("SIMR: WARNING: new_target_scores: Failed to load parameter class")
         return
     
-    if tInfo.printAll and mpi_size > 1:  
-        mpi_comm.Barrier()       
-        sleep( mpi_rank*0.25 )
-        print( 'Rank %d in target_mpi_runs: %s: '% (mpi_rank, tInfo.get('target_id')))    
+    if tInfo.printAll and mpi_size > 1:
+        gm.tabprint( 'Rank %d in new_target_scores: %s: '% (mpi_rank, tInfo.get('target_id') ) )    
         mpi_comm.Barrier()
     
     runArgs = gm.inArgClass()
@@ -301,7 +299,6 @@ def new_target_scores( tInfo, tArg ):
         runArgs.setArg('printBase', True)
     else:
         runArgs.setArg('printBase', False)
-        
     
     runArgs.setArg('tInfo', tInfo)
     runArgs.setArg('scoreParams', params)
@@ -337,11 +334,11 @@ def new_target_scores( tInfo, tArg ):
         
         # If empty, new scores not needed
         if len(argList) == 0 and not tArg.get('overWrite',False):
-            if printBase and mpi_rank == 0: im.tabprint("Scores already exist")
+            if printBase:
+                gm.tabprint("Scores already exist")
             return
         
-        elif mpi_rank == 0:
-            if printBase: im.tabprint("Runs needing scores: %d"%len(argList))
+        elif printBase: gm.tabprint("Runs needing scores: %d"%len(argList))
                 
         # Prepare and run parallel class
         ppClass = gm.ppClass( tArg.nProc, printProg=True )
@@ -356,6 +353,13 @@ def new_target_scores( tInfo, tArg ):
         
     # If in MPI environment, distribute argument list evenly to others
     elif mpi_size > 1:
+        
+        # Print how many scores expecting to be completed.
+        if mpi_rank == 0 and printBase:
+            if len(argList) == 0:
+                gm.tabprint("Scores already exist!")        
+            else: 
+                gm.tabprint("Runs needing scores: %d"%len(argList))
         
         # Rank 0 has argList and will distribute
         scatter_lists = []
@@ -387,15 +391,15 @@ def new_target_scores( tInfo, tArg ):
             if mpi_rank == 0:
                 gm.tabprint("Rank 0: Progress: %d / %d " % (i+1,len(argList)), end='\r')
         
-        # Everyone wait for everyone else to finish
         if mpi_rank == 0: print('')
+            
+        # Everyone wait for everyone else to finish
         mpi_comm.Barrier()
         
         # Have rank 0 collect files and update scores
         if mpi_rank == 0:
             tInfo.gatherRunInfos()
             tInfo.updateScores()
-            tInfo.saveInfoFile()
 
 # End processing target dir for new scores
 
