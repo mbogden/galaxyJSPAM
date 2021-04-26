@@ -49,7 +49,7 @@ def main(arg):
         if mpi_rank == 0:
             print( 'SIMR: main: In MPI environment!')
         sleep(1)
-        if printAll: gm.tabprint('I am %d of %d ' %( mpi_rank, mpi_size ) ) 
+        if arg.printAll: gm.tabprint('I am %d of %d ' %( mpi_rank, mpi_size ) ) 
         
     if arg.printAll and mpi_rank == 0:
         arg.printArg()
