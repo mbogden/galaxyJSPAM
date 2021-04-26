@@ -10,6 +10,8 @@ import numpy as np
 import cv2
 from os import path
 from sys import path as sysPath
+from mpi4py import MPI
+
 supportPath = path.abspath( path.join( __file__ , "../../Support_Code/" ) )
 sysPath.append( supportPath )
 
@@ -273,8 +275,7 @@ class ppClass:
     def __init__(self, nCore, printProg=False):
         
         if type(nCore) != type( 123 ):
-            nCore = int(nCore)
-            
+            nCore = int(nCore)            
 
         # 0 for all, negative all minus negative
         if nCore < 1:
@@ -359,6 +360,7 @@ def printVal( n1, n2=1 ):
     from time import sleep
     #print("Val: %d %d" % ( n1, n2) )
     sleep(n1)
+    
 
 
 def checkPP(arg):
@@ -413,6 +415,10 @@ def readImg( imgLoc, printAll = False, toSize=None ):
 def tabprint( inprint, begin = '\t - ', end = '\n' ):
     print('%s%s' % (begin,inprint), end=end )
 
+class mpi_class:
+    status = "HI from MPI"
+    
+
 
 # Run main after declaring functions
 if __name__ == '__main__':
@@ -421,6 +427,12 @@ if __name__ == '__main__':
     from sys import argv
     arg = inArgClass( argv )
     arg.printArg()
+    
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    size = comm.Get_size()
+    print( 'MPI: ', rank, size )
 
     checkPP(arg)
-
+    
+    

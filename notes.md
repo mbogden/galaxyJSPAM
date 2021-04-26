@@ -5,13 +5,14 @@ Might* be good for others to view.
 # Matt's Working To-Do
 
 - Capstone Project
-    - Get target pipeline working
-        - (DONE) Updating old data to new layout
-        - (DONE) Automate scores for direct machine comparisons
     
     - Commands to remember
         - python3 main_SIMR.py -targetDir path/to/target -newInfo -newRunInfo -newBase -newRunBase 
         - python3 main_SIMR.py -dataDir path/to/data -newScore -newImage -paramName zoo_0_direct_scores
+        
+    - Get target pipeline working
+        - (DONE) Updating old data to new layout
+        - (DONE) Automate scores for direct machine comparisons
         
     - Get MPI working for a target
         - Copied/Shared target class object?

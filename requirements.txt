@@ -5,3 +5,4 @@ python-dateutil
 scikit-build
 scikit-image
 opencv-python
+mpi4py

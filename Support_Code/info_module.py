@@ -10,6 +10,10 @@ from copy import deepcopy
 
 import pandas as pd
 import numpy as np
+from mpi4py import MPI
+mpi_comm = MPI.COMM_WORLD    
+mpi_rank = mpi_comm.Get_rank()
+mpi_size = mpi_comm.Get_size()
 
 from sys import path as sysPath
 sysPath.append('../')
@@ -66,44 +70,6 @@ def main(arg):
         if tInfo.status:
             print("IM: target_info_class good")
 
-    if arg.dataDir != None:
-        print("IM: dataDir: %s" % arg.dataDir )
-
-        saveLoc = getattr( arg, 'saveLoc', None )
-        if saveLoc == None:
-            print("IM: dataDir: Please specify saveLoc")
-            return False
-
-        print("IM: dataDir: creating gathered info file: %s" % saveLoc )
-
-        dataJson = {}
-        dataJson['data_dump_name'] = '20200409 score dump'
-        dataJson['data_targets'] = []
-
-        print("IM: dataDir: Gathering info files" )
-
-        sdssDirs = listdir( arg.dataDir )
-        nDirs = len( sdssDirs )
-
-        for i, sDir in enumerate( sdssDirs ):
-            print(" %d / %d " % ( i, nDirs ), end='\r')
-
-            sdssDir = arg.dataDir + sDir +'/'
-            infoLoc = sdssDir + 'information/target_info.json'
-
-            if path.exists( infoLoc ):
-                with open( infoLoc ) as iFile:
-                    dataJson['data_targets'].append( json.load( iFile ) )
-
-        print('')
-        print("IM: dataDir: Found %d targets" % len( dataJson['data_targets'] ) )
-
-        with open( saveLoc, 'w' ) as oFile:
-            json.dump( dataJson, oFile )
-
-    if getattr( arg, 'param', None ) != None:
-        print('yAY')
-        sp = score_parameter_class( paramLoc = arg.param, printBase = arg.printBase, printAll = arg.printAll ) 
 
 # End main
 
@@ -815,48 +781,23 @@ class target_info_class:
             if self.tDict.get(h,None) == None:
                 self.tDict[h] = {}
 
-        modelSet = self.tDict['zoo_merger_models']
-
-        # Prepare parallel class
-        ppClass = gm.ppClass( tArg.nProc, printProg=True )
-        sharedModelSet = ppClass.manager.dict()
-
-        argList = [ dict( rDir=rDir, modelSet=sharedModelSet, rArg=rArg) for rDir in runDirList ]
-        ppClass.loadQueue( self.getRunDict, argList )
-
-        # Do parallel
-        ppClass.runCores()
-
-        # Save 
-        self.tDict['zoo_merger_models'] = sharedModelSet.copy()
+        # Go through directories and read run info files
+        for i,rDir in enumerate(runDirList):
+            rDict = self.getRunDict( rDir )
+            if rDict != None:
+                self.tDict['zoo_merger_models'][rDict['run_id']] = rDict
 
         self.saveInfoFile()
 
     # end gather Run Infos
 
-    def getRunDict( self, rDir, modelSet=None, rArg=gm.inArgClass() ):
+    def getRunDict( self, rDir ):
 
-        rArg.runDir = rDir
-        rInfo = run_info_class( printBase=False, rArg=rArg )
-
-        if rInfo.status == False:
-            return None
-
-        # Save info
-        rID = rInfo.get('run_id')
-
-        if 'r' not in rID:
-            rInfo.run_id = 'r'+str(rID)
-            rInfo.rDict['run_id'] = 'r'+str(rID)
-            rInfo.saveInfoFile()
-
-        if modelSet != None:
-            modelSet[rID] = rInfo.rDict
-
-        # update progress
-
-        return rInfo.rDict
-
+        if rDir[-1] != '/': rDir += '/'
+        dictLoc = rDir + 'info.json'
+        rDict = gm.readJson( dictLoc )
+        return rDict
+    
     # End get Run Dir Info
 
 
@@ -879,7 +820,7 @@ class target_info_class:
         runDir = self.getRunDir(rID=rID)
         
         if runDir == None:
-            return
+            return None
 
         if rArg == None:
             rInfo = run_info_class( runDir = runDir, )

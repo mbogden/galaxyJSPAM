@@ -9,6 +9,7 @@ from os import path, listdir
 from sys import path as sysPath
 import numpy as np
 import cv2
+from mpi4py import MPI
 
 # For loading in Matt's general purpose python libraries
 sysPath.append( path.abspath( "Support_Code/" ) )
