@@ -780,7 +780,7 @@ class target_info_class:
         # Go through directories and read run info files
         for i,rDir in enumerate(runDirList):
             rDict = self.getRunDict( rDir )
-            if rDict != None:
+            if rDict != None and rDict.get('run_id',None) != None:
                 self.tDict['zoo_merger_models'][rDict['run_id']] = rDict
 
         self.saveInfoFile()
@@ -894,6 +894,8 @@ class target_info_class:
         if type(self.targetDir) == type(None):
             if self.printBase:
                 print("IM: WARNING: Invalid directory.")
+                gm.tabprint('Input: %s'%tArg.targetDir)
+                gm.tabprint('Full:  %s' % self.targetDir)
             return False
 
         # If not directory, complain

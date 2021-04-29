@@ -15,6 +15,7 @@ import pandas as pd
 # For importing my useful support module
 supportPath = path.abspath( path.join( __file__, "../../Support_Code/" ) )
 sysPath.append( supportPath )
+sysPath.append( __file__[:-21] )  # The 21 originates from the name of this file being 21 chars long "main_machine_score.py"
 
 import general_module as gm
 import info_module as im

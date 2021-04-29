@@ -26,10 +26,12 @@ def validPath( inPath, printWarning = False, pathType = None ):
 
     # Check if valid string
     if type( inPath ) != type( 'string' ):
+        if printWarning: print('GM: validPath: Input not a string')
         return None
 
     # Check if path exists
     if not path.exists( inPath ):
+        if printWarning: print('GM: validPath: Input path does not exist')
         return None
 
     outPath = path.realpath( inPath )
