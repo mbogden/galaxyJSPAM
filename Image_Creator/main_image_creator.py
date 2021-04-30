@@ -204,6 +204,10 @@ def getParticles( rInfo, simName, printAll=False ):
     # Read particles using rInfo
     pts_i, pts_f = rInfo.getParticles( simName )
     
+    if type(pts_i) == type(None) or type( pts_f ) == type(None): 
+        if rInfo.printBase: print("WARNING: IC: zipped points failed to read: %s"%ptsZipLoc)
+        return None
+    
     # Analyze points with particle class
     pts = particle_class( pts_i, pts_f )  
     
