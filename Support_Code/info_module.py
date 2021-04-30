@@ -486,8 +486,8 @@ class run_info_class:
 
         # check if all infor information found
         if ( tid == None or rNum == None or mData == None or wins == None or hScore == None ):
-            print("Error: IM: Needed information not found in info.txt")
-            print("\t - infoLoc: %s" % infoLoc)
+            if self.printBase: print("Error: IM: Needed information not found in info.txt")
+            if self.printBase : print("\t - infoLoc: %s" % oldLoc)
             return None
 
         # readjust run_id
