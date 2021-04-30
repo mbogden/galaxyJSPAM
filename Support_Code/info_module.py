@@ -743,7 +743,7 @@ class target_info_class:
         runDirList = self.iter_runs()
         nRuns = len(runDirList)
         
-        if rArg.get('newInfo'):
+        if rArg.get('newInfo',False):
             if self.printBase: print("IM: Target: gatherRunInfos: Adjusting run infos")
             
             if mpi_size == 1:
