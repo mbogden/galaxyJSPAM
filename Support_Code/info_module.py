@@ -92,8 +92,6 @@ class run_info_class:
     tLink = None
 
 
-    runHeaders = ( 'run_id', 'model_data', \
-            'zoo_merger_score', 'machine_scores',)
 
     def __init__( self, runDir=None, rArg = gm.inArgClass(), \
                  printBase=None, printAll=None, ):
@@ -173,7 +171,7 @@ class run_info_class:
         self.baseLoc = self.runDir + 'base_info.json'
     
         # If newInfo or newBase
-        if rArg.get('newInfo',False) or rArg.get('newBase',False):
+        if rArg.get('newInfo',False):
             self.newRunSetup(rArg)
 
         # Print stuff if needed
@@ -202,42 +200,19 @@ class run_info_class:
         from os import remove
         from shutil import copyfile
         
-        # Remove info file(s) if condition given
-        newInfo = rArg.get('newInfo',False)
-        newBase = rArg.get('newBase',False)
-
         # Remove current info file
         if path.exists( self.infoLoc ): remove( self.infoLoc )
-            
-        # If new Base
-        if newBase:  self.newRunDir()
 
-        # WORKING
-        if path.exists( self.baseLoc ): copyfile( self.baseLoc, self.infoLoc )
-        # End
-    
-    # If creating directory from scratch or prior state
-    def newRunDir( self, ):
-        
-        from os import mkdir, remove
-        from shutil import move        
+        # Copy base info file.
+        if path.exists( self.baseLoc ): copyfile( self.baseLoc, self.infoLoc )     
         
         # Create directories if not found
         if not path.exists( self.ptsDir ): mkdir( self.ptsDir )
         if not path.exists( self.imgDir ): mkdir( self.imgDir )
         if not path.exists( self.miscDir ): mkdir( self.miscDir )
-        if not path.exists( self.tmpDir ): mkdir( self.tmpDir )
-        
-        # Check if unperturbed imgs are in model dir
-        imgList = listdir( self.imgDir )
-        for fName in imgList:
-            if 'init' in fName:
-                oldImgLoc = self.imgDir + fName
-                newImgLoc = self.miscDir + fName
-                move(oldImgLoc,newImgLoc)
+        if not path.exists( self.tmpDir ): mkdir( self.tmpDir ) 
 
-        # Remove current base file if present
-        self.txt2Json( )            
+
             
     def __del__(self,):
         pass
@@ -397,17 +372,6 @@ class run_info_class:
         return self.rDict['machine_scores'][name]
 
 
-    def createBlank( self, ):
-
-        # Create blank dictionary
-        tempDict = {}
-        for key in self.runHeaders:
-            tempDict[key] = {}
-
-        return tempDict
-    # End create Blank
-
-
     def get( self, inVal, defaultVal = None ):
 
         cVal = getattr( self, inVal, defaultVal )
@@ -423,6 +387,10 @@ class run_info_class:
 
 
     def txt2Json( self, ):
+        
+        print("\n" + "#"*120 + '\n')
+        print("THIS FUNCTION SHOULD BE FOREVER OBSOLETE!")
+        print("\n" + "#"*120 + '\n')
 
         if self.printAll: print("IM: Run.txt2Json")
 
@@ -485,13 +453,14 @@ class run_info_class:
 
 
         # check if all infor information found
-        if ( tid == None or rNum == None or mData == None or wins == None or hScore == None ):
+        if ( mData == None or wins == None or hScore == None ):
             if self.printBase: print("Error: IM: Needed information not found in info.txt")
             if self.printBase : print("\t - infoLoc: %s" % oldLoc)
             return None
 
         # readjust run_id
 
+        # Assume name of directory I'm in is the run_id
         self.rDict['run_id'] = 'r' + str( rNum )
         self.rDict['model_data'] = str(mData)
         self.rDict['zoo_merger_score'] = float(hScore)
@@ -780,7 +749,7 @@ class target_info_class:
             if mpi_size == 1:
                 for rDir in runDirList:
                     rInfo = run_info_class( runDir = rDir, rArg = rArg, printBase = self.printAll   )
-                    if self.printAll: gm.tabprint( '%s - %s' % (rInfo.status, rDir ) )
+                    if self.printAll and rInfo.status == False: gm.tabprint( '%s - %s' % (rInfo.status, rDir ) )
             else:
                 print("WARNING: IM: Target.gatherRunInfos:  initializing run directories not available in MPI environment.")
                 gm.tabprint(self.get('target_id'))
@@ -1040,7 +1009,7 @@ class target_info_class:
         
         if newBase:
             if self.printBase:
-                createGood = self.createBaseInfo()
+                createGood = self.createBaseInfo( tArg )
                 if not createGood: return False
         
         # Copy files if they exist
@@ -1067,17 +1036,17 @@ class target_info_class:
         self.gatherRunInfos( tArg=tArg, rArg=rArg )
         
         # Collect info 
-        if newBase: self.createBaseScore()
+        if newBase: self.createBaseScore(  )
         self.updateScores()
         self.saveInfoFile( )
 
     # End new target info dictionary
     
     
-    def createBaseInfo( self, ):
+    def createBaseInfo( self, tArg ):
         
-        from os import getcwd, listdir
-        from shutil import copyfile 
+        from os import getcwd, listdir, remove
+        from shutil import copyfile, move
         from copy import deepcopy
         
         # For basic scores later on
@@ -1174,8 +1143,6 @@ class target_info_class:
         for l in mFile:
             l = l.strip()
             
-            
-            
             if 'height' in l:
                 h = l.split('=')[1]
                 new_params[new_name]['imgArg']['image_size']['width'] = int(h)
@@ -1201,7 +1168,7 @@ class target_info_class:
         # Save new target image parameter
         newParamLoc = self.imgParamLoc
         gm.saveJson( new_params, newParamLoc, pretty=True )
-        
+                
         # Create basic scoring parameters
         self.createDirectScoreParameters( new_params['zoo_0'] )
 
@@ -1273,7 +1240,69 @@ class target_info_class:
 
         self.saveMaskRoi( start_roi_mask, 'mask_roi_zoo_0')
         
-        
+                
+        # Create run base info files.
+
+        # If creating new run base infos
+        if tArg.get("newRunBase",False):
+            
+            # Get directory with galaxy zoo merger files. 
+            modelLoc = gm.validPath( simrDir  + 'Input_Data/zoo_models/' + tName + '.txt')    
+            if self.printAll: gm.tabprint("Model File: %s - %s" % ( path.exists(modelLoc), modelLoc ) )
+
+            modelFile = gm.readFile( modelLoc )
+            if modelFile == None:
+                if self.printAll: print("WARNING: IM: target.createBaseInfo: Failed to open zoo model file.")
+                return False
+            
+            # Create a blank run info dict for copying
+            runHeaders = ( 'run_id', 'model_data', \
+                    'zoo_merger_score', 'machine_scores', 'human_scores')
+            
+            blank_run_info = {}
+            for rh in runHeaders:
+                blank_run_info[rh] = {}
+            
+            for i,l in enumerate(modelFile):
+                
+                # Grab galaxy zoo merger model data from file
+                score_data, model_data = l.strip().split()                
+                scores = score_data.split(',')        
+                if len( scores ) != 4:
+                    if self.printAll: gm.tabprint("Found Models: %d"%i)
+                    break
+                
+                zoo_merger_score = scores[1]
+                wins = scores[2] 
+                losses = scores[3]
+                
+                # Create / goto run directory
+                run_id = 'run_%s' % str(i).zfill(4)
+                runDir = self.zooMergerDir + run_id + '/'
+                
+                oldDir = self.zooMergerDir + 'run_%s' % str(i).zfill(5) + '/'
+                if gm.validPath( oldDir ) != None:
+                    move( oldDir, runDir )
+                
+                # Copy and fill in run info
+                rInfo = deepcopy( blank_run_info )
+                
+                rInfo['run_id'] = run_id
+                rInfo['zoo_merger_score'] = zoo_merger_score
+                rInfo['model_data'] = model_data
+                rInfo['human_scores']['zoo_merger_wins_losses'] = '%s/%s' % ( wins, losses )
+                rInfo['human_scores']['zoo_merger_score'] = zoo_merger_score
+                
+                # Save base run info
+                rInfoLoc = runDir + 'base_info.json'
+                gm.saveJson( rInfo, rInfoLoc, pretty = True )
+                
+                # Remove old info file if found
+                oldInfoLoc = runDir + 'info.txt'
+                if gm.validPath( oldInfoLoc ) != None:
+                    remove( oldInfoLoc )
+                               
+
         return True
         
     # end creating base info file
