@@ -462,6 +462,8 @@ class run_info_class:
         for i,l in enumerate( infoData ):
             line = l.strip().split()
             if self.printAll: print('\t-',i,line)
+                
+            if len(l) < 2: continue
 
             if line[0] == 'sdss_name':
                 tid = line[1]
