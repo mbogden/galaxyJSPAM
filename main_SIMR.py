@@ -202,7 +202,7 @@ def simr_target( arg=gm.inArgClass(), tInfo = None ):
 
     if printBase and mpi_rank == 0:
         if tInfo.status: print("SIMR: target: %s - %s - %d Models" % ( tInfo.status, tInfo.get('target_id'), len( tInfo.tDict['zoo_merger_models'] ) ) )
-        else: print("SIMR: target: %s - %s - %d Models" % ( tInfo.status, tInfo.get('target_id') ) )
+        else: print("SIMR: target: %s - %s" % ( tInfo.status, tDir ) )
 
     # Check if valid directory
     if tInfo.status == False:
