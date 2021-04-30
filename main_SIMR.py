@@ -212,9 +212,9 @@ def simr_target( arg=gm.inArgClass(), tInfo = None ):
     if arg.get('printParam', False) and mpi_rank == 0:
         tInfo.printParams()
 
-    newImage = arg.get('newImage',False)
-    newScore = arg.get('newScore') 
-    newAll = arg.get('newAll',False)
+    newImage = arg.get( 'newImage', False )
+    newScore = arg.get( 'newScore' ) 
+    newAll = arg.get( 'newAll', False )
     
     # Create new files/scores if called upon
     if newImage or newScore or newAll:

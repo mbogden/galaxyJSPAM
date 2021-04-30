@@ -743,17 +743,17 @@ class target_info_class:
         runDirList = self.iter_runs()
         nRuns = len(runDirList)
         
-        if rArg.newInfo or rArg.newBase:
+        if rArg.get('newInfo'):
             if self.printBase: print("IM: Target: gatherRunInfos: Adjusting run infos")
             
             if mpi_size == 1:
                 for rDir in runDirList:
                     rInfo = run_info_class( runDir = rDir, rArg = rArg, printBase = self.printAll   )
                     if self.printAll and rInfo.status == False: gm.tabprint( '%s - %s' % (rInfo.status, rDir ) )
+                        
             else:
                 print("WARNING: IM: Target.gatherRunInfos:  initializing run directories not available in MPI environment.")
                 gm.tabprint(self.get('target_id'))
-            
 
         # Prepare model Set
         for h in self.targetHeaders:
