@@ -1045,7 +1045,7 @@ class target_info_class:
     
     def createBaseInfo( self, tArg ):
         
-        from os import getcwd, listdir, remove
+        from os import getcwd, listdir, remove, mkdir
         from shutil import copyfile, move
         from copy import deepcopy
         
@@ -1280,9 +1280,13 @@ class target_info_class:
                 run_id = 'run_%s' % str(i).zfill(4)
                 runDir = self.zooMergerDir + run_id + '/'
                 
+                # Move old directory if found
                 oldDir = self.zooMergerDir + 'run_%s' % str(i).zfill(5) + '/'
                 if gm.validPath( oldDir ) != None:
                     move( oldDir, runDir )
+                    
+                if gm.validPath( runDir ) == None:
+                    mkdir( runDir )
                 
                 # Copy and fill in run info
                 rInfo = deepcopy( blank_run_info )
