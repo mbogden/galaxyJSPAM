@@ -315,6 +315,7 @@ def new_target_scores( tInfo, tArg ):
         runDicts = tInfo.getAllRunDicts()
         argList = []
         for i,rKey in enumerate(tInfo.get('zoo_merger_models')):
+            
             rScore = tInfo.get('zoo_merger_models')[rKey]['machine_scores']
 
             # Loop through wanted scores
@@ -326,6 +327,8 @@ def new_target_scores( tInfo, tArg ):
 
             if not scoreGood or tArg.get('overWrite',False):
                 rDir = tInfo.getRunDir(rID=rKey)
+                if rDir == None:
+                    if printBase: print("WARNING: Run invalid: %s" % rKey)
                 argList.append( dict( arg = runArgs, rDir=rDir, ) )
 
 
@@ -439,12 +442,17 @@ def simr_run( arg = None, rInfo = None, rDir = None ):
     if rInfo.status == False:
         if printBase: print("SIMR.pipelineRun: WARNING: runInfo bad")
         return None
-
-    # Check if parameter are given
-    scoreParams = arg.get('scoreParams',None)
+    
+    # Check if score parameters were given
+    if arg.get('paramLoc') != None and arg.get('scoreParams') == None:
+        sParams = gm.readJson( arg.paramLoc )
+        if sParams == None:
+            if arg.printBase: print("ERROR: SIMR: simr_run: Error reading param file: %s"%arg.paramLoc )
+        else:
+            arg.scoreParams = sParams
     
     # If invalid, complain
-    if scoreParams == None:
+    if arg.get('scoreParams',None) == None:
         if printBase:
             print("SIMR: WARNING: simr_run: params not valid")
         return   

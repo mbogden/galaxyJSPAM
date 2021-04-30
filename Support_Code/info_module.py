@@ -220,26 +220,34 @@ class run_info_class:
     def delTmp(self,):
 
         from os import remove
+        from shutil import rmtree
+        
         for f in listdir( self.tmpDir ):
-            #print('Removing: %s'%f)
-            remove(self.tmpDir + f)
-
+            
+            fLoc = self.tmpDir + f
+            
+            if path.isfile(fLoc):
+                remove(fLoc)
+                
+            elif path.isdir(fLoc):
+                rmtree(fLoc)
+            
 
     def findPtsLoc( self, ptsName ):
 
-        ptsLoc = self.ptsDir + ptsName + '_pts.zip'
-
-        # IF not found, try again without the k
-        if not path.exists( ptsLoc ):
-
-            # Check for a letter
-            if 'k' in ptsName:
-                ptsName = str( int( ptsName.strip('k') ) * 1000 )
-
-            elif 'K' in ptsName:
-                ptsName = str( int( ptsName.strip('K') ) * 1000 )
-
-            ptsLoc = self.ptsDir + ptsName + '_pts.zip'
+        ptsLoc = self.ptsDir + '%s.zip' % ptsName
+        oldLoc1 = self.ptsDir + '%s_pts.zip' % ptsName
+        oldLoc2 = self.ptsDir + '100000_pts.zip'
+        
+        # Updating how particile files are saved
+        if path.exists( oldLoc1 ) or path.exists( oldLoc2 ):
+            from os import rename
+            
+            if path.exists( oldLoc1 ):
+                rename( oldLoc1, ptsLoc )
+                
+            if path.exists( oldLoc2 ):
+                rename( oldLoc2, ptsLoc )
 
         if path.exists( ptsLoc ):
             return ptsLoc
@@ -247,6 +255,55 @@ class run_info_class:
             return None
 
     # End findPtsFile
+    
+    def getParticles( self, ptsName ):
+        
+        from zipfile import ZipFile    
+
+        zipLoc = self.findPtsLoc( ptsName )        
+        if zipLoc == None:
+            return None
+             
+        # Check if zip files need rezipping
+        self.delTmp()
+        rezip = True
+               
+        with ZipFile( zipLoc ) as zip:
+            
+            for zip_info in zip.infolist():
+                
+                if zip_info.filename[-1] == '/':
+                    continue
+                if len( zip_info.filename.split('/') ) > 1:
+                    rezip = True
+                    
+                zip_info.filename = path.basename( zip_info.filename)
+                zip.extract(zip_info, self.tmpDir)
+
+        if rezip:
+            from os import remove
+            remove(zipLoc)
+            
+            with ZipFile( zipLoc, 'w' ) as zip:
+                for f in listdir( self.tmpDir ):
+                    fLoc = self.tmpDir + f
+                    zip.write( fLoc, path.basename(fLoc) )
+                    
+        files = listdir( self.tmpDir )
+        pts1 = None
+        pts2 = None
+        
+        for f in files:
+            fLoc = self.tmpDir + f
+            
+            if '.000' in f:
+                pts1 = pd.read_csv( fLoc, header=None, delim_whitespace=True ).values
+                
+            if '.101' in f:
+                pts2 = pd.read_csv( fLoc, header=None, delim_whitespace=True ).values
+        
+        return pts1, pts2
+
     
     def getModelImage( self, imgName = 'default', initImg = False ):
         
@@ -781,17 +838,8 @@ class target_info_class:
 
 
     def getRunDir( self, rID=None,  ):
-
-        if rID[0] == 'r':
-            rID = rID[1:]
-            
-        runDir = self.zooMergerDir + 'run_%s/' % rID
-
-        # Try filling in zeros if short integer
-        if not path.exists( runDir ):
-            rID = rID.zfill(5)
-            runDir = self.zooMergerDir + 'run_%s/' % rID
-        
+           
+        runDir = self.zooMergerDir + '%s/' % rID        
         return gm.validPath(runDir)
 
     def getRunInfo( self, rID=None, rArg=None ):
