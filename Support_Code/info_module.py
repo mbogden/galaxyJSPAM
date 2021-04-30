@@ -197,7 +197,7 @@ class run_info_class:
     # If asked to create new info file
     def newRunSetup( self, rArg ):
         
-        from os import remove
+        from os import remove, mkdir
         from shutil import copyfile
         
         # Remove current info file
