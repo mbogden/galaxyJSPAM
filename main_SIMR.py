@@ -282,7 +282,6 @@ def new_target_scores( tInfo, tArg ):
             params = None
             params = mpi_comm.bcast( params, root=0 )
 
-            
     # Check for final parameter file is valid
     if params == None:
         if printBase:
@@ -343,11 +342,17 @@ def new_target_scores( tInfo, tArg ):
             return
         
         elif printBase: gm.tabprint("Runs needing scores: %d"%len(argList))
-                
-        # Prepare and run parallel class
-        ppClass = gm.ppClass( tArg.nProc, printProg=True )
-        ppClass.loadQueue( simr_run, argList )
-        ppClass.runCores()
+            
+        if tArg.nProc == 1:
+            
+            for args in argList:
+                simr_run( **args )
+            
+        else:
+            # Prepare and run parallel class
+            ppClass = gm.ppClass( tArg.nProc, printProg=True )
+            ppClass.loadQueue( simr_run, argList )
+            ppClass.runCores()
 
         # Save results
         tInfo.addScoreParameters( params, overWrite = tArg.get('overWrite',False) )

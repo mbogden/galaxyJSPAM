@@ -413,6 +413,17 @@ def readImg( imgLoc, printAll = False, toSize=None ):
 
 # End get image
 
+def saveImg( img, imgLoc, printAll = False ):
+    
+    # Convert to floating point with values between 0 and 1
+    if img.dtype == np.float32:
+        img = float32_to_uint8(img)
+        
+    # Read image from disk
+    img = cv2.imread( imgLoc, 0 ) 
+
+# End save image
+
 
 def tabprint( inprint, begin = '\t - ', end = '\n' ):
     print('%s%s' % (begin,inprint), end=end )

@@ -162,18 +162,12 @@ def create_image_from_parameters( rInfo, sParam, overwrite=False, printAll = Fal
     mImg = normImg( mImg, imgArg )
     iImg = normImg( iImg, imgArg )
     
-    print("")
-    print("#####"*15)
-    
-    print(mImg.dtype, iImg.dtype)
-    
-    print("#####"*15)
-    print("")
-    
-
-    # Save images in case needed later
-    rInfo.img[imgName] = mImg
-    rInfo.init[imgName] = iImg
+    # Use image as float32 type for scoring
+    if mImg.dtype == np.uint8:
+        rInfo.img[imgName] = gm.uint8_to_float32( mImg )
+        
+    if mImg.dtype == np.uint8:
+        rInfo.init[imgName] = gm.uint8_to_float32( iImg )
         
     # Get Image locations
     mImgLoc = rInfo.findImgLoc( imgName, newImg = True )
