@@ -343,7 +343,7 @@ def score_target_compare( rInfo, param, args ):
     # Create score and add to rInfo
     score = dc.createScore( tImg, mImg, param['cmpArg'], printBase=rInfo.printBase )
     
-    if newScore != None: 
+    if score != None: 
         newScore = rInfo.addScore( name = param['name'], score=score )    
         if printAll: print("MS: New Score!: %s - %f - %f" % (param['name'],score, newScore))
             
