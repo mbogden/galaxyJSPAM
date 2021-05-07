@@ -4,7 +4,7 @@
 '''
     Author:	 Matthew Ogden
     Created:	01 Sep 2020
-Description:	Hopefully my primary code for calling all things Galaxy Simulation
+Description:	Hopefully my primary code for calling all things SPAM Simulation, Modeling, and Analysis.
 '''
 
 # Python module imports
@@ -46,7 +46,7 @@ def main(arg):
         test()
 
     if mpi_size > 1:     
-        if mpi_rank == 0:
+        if mpi_rank == 0 and arg.printBase:
             print( 'SIMR: main: In MPI environment!')
         sleep(1)
         if arg.printAll: gm.tabprint('I am %d of %d ' %( mpi_rank, mpi_size ) ) 

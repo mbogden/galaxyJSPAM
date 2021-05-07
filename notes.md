@@ -10,18 +10,33 @@ Might* be good for others to view.
         - python3 main_SIMR.py -targetDir path/to/target -newInfo -newRunInfo -newBase -newRunBase 
         - python3 main_SIMR.py -dataDir path/to/data -newScore -newImage -paramName zoo_0_direct_scores
         
-    - Get target pipeline working
-        - (DONE) Updating old data to new layout
-        - (DONE) Automate scores for direct machine comparisons
+    - Discover Why program is acting funny
+        - Add timing print statements inside code.
+            - Read Particles, unzip, etc.
+            - Create Image.
+            - Read Image, compare images. 
+    - Redo speed test with only creating new scores. 
+    - Test IO choke-point with reading particles.
+        - Might not be an issue if you only create images once. 
+        - Test how big pickle files are for just X,Y particles.
+        - If issue, consider copying files to scratch.
+    - Veryify new scores are being created.
         
-    - Get MPI working for a target
-        - Copied/Shared target class object?
-        - Tasker/Workers?
-        
-    - Get a single-layer neural network going
-        - Gather and pickle images into a temp file/folder
-        - Use GPU to make the creation faster
-        - Generalize it to all targets.
+- Get a single-layer neural network going
+    - Gather and pickle images into a temp file/folder.
+    - Use GPU to make the creation faster.
+    - Generalize it to all targets.
+    - Create custom equation and weights in neural network. 
+
+- Reimplemnet WNDCHRM in Galaxy Code.
+    - Implement in python 2.7?  
+    - Learn how to call C++ code from Python3? (Faster speed)
+
+- Implement Feature selection.
+    - You did this in Data Mining.  Do it now. 
+
+- Create Robust Analysis between Different Score parameters. 
+    - Interactive window and grid? 
 
 ## Big picture
 - Create automatic pipeline for evolution
@@ -31,6 +46,10 @@ Might* be good for others to view.
 - Simulator
     - Produce initial impact approximation w/o points
     - Stop if impact is too low.
+    - Create multiple sets of points
+        - Take 100k points and subsample them? 
+        - Grab random sample or every x'th point? 
+        - Test if images of 10k points create evuivalent scores.
 
 - Image Creator
     - adjusting target image not working for zoo_2?
