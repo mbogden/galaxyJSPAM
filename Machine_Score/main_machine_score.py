@@ -194,9 +194,16 @@ def MS_Run( \
                 tImg, mImg = target_compare_setup( rInfo, param, arg )
                 if type(tImg) == type(None) or type(mImg) == type(None):
                     continue
-                score = fc.create_feature_score( tImg, mImg, cmpArg )                
-                newScore = rInfo.addScore( name = param['name'], score=score )
-                if printAll: print("MS: New Score!: %s - %f - %f" % (param['name'],score, newScore))
+                    
+                score = fc.create_feature_score( tImg, mImg, cmpArg )       
+                
+                # Add score if valid score
+                if score != None:
+                    newScore = rInfo.addScore( name = param['name'], score=score )    
+                    if printAll: print("MS: mask_compare_setup: New Score!: %s - %f - %f" % (param['name'],score, newScore))
+        
+                else:
+                    print("WARNING: MS: New Score is None: %s - %s " % (rInfo.get('run_id'),param['name']))
 
             else:
                 if printBase:
@@ -335,11 +342,12 @@ def score_target_compare( rInfo, param, args ):
     
     # Create score and add to rInfo
     score = dc.createScore( tImg, mImg, param['cmpArg'], printBase=rInfo.printBase )
-    newScore = rInfo.addScore( name = param['name'], score=score )
     
-    if printAll and type( newScore ) != type( None ):
-            print("MS: New Score!: %s - %f - %f" % (param['name'],score, newScore))
-    elif newScore == None:
+    if newScore != None: 
+        newScore = rInfo.addScore( name = param['name'], score=score )    
+        if printAll: print("MS: New Score!: %s - %f - %f" % (param['name'],score, newScore))
+            
+    else:
         print("WARNING: MS: New Score is None: %s - %s " % (rInfo.get('run_id'),param['name']))
     
     return score
@@ -419,9 +427,13 @@ def mask_compare_setup( rInfo, param, args ):
     # Create score and add to rInfo
     
     score = mc.mask_binary_simple_compare( tImg, mImg, mask, param['cmpArg'] )
-    newScore = rInfo.addScore( name = param['name'], score=score )
     
-    if printAll: print("MS: mask_compare_setup: New Score!: %s - %f - %f" % (param['name'],score, newScore))
+    if score != None:
+        newScore = rInfo.addScore( name = param['name'], score=score )    
+        if printAll: print("MS: mask_compare_setup: New Score!: %s - %f - %f" % (param['name'],score, newScore))
+        
+    else:
+        print("WARNING: MS: New Score is None: %s - %s " % (rInfo.get('run_id'),param['name']))
     
     return score
 
@@ -504,7 +516,13 @@ def perturbation_compare_setup( rInfo, param, args ):
     # Create score and add to rInfo
     
     score = dc.createScore( mImg, iImg, param['cmpArg'], printBase=rInfo.printBase )
-    newScore = rInfo.addScore( name = pName, score=score )
+    
+    if score != None:
+        newScore = rInfo.addScore( name = param['name'], score=score )    
+        if printAll: print("MS: mask_compare_setup: New Score!: %s - %f - %f" % (param['name'],score, newScore))
+        
+    else:
+        print("WARNING: MS: New Score is None: %s - %s " % (rInfo.get('run_id'),param['name']))
     
     return score
 
