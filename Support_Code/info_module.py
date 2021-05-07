@@ -249,7 +249,7 @@ class run_info_class:
             if path.exists( oldLoc2 ):
                 rename( oldLoc2, ptsLoc )
 
-        if path.exists( ptsLoc ):
+        if gm.validPath( ptsLoc ):
             return ptsLoc
         else:
             return None

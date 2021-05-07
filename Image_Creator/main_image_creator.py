@@ -88,13 +88,21 @@ def main_ic_run( rInfo = None, arg = gm.inArgClass() ):
     
     elif printAll:
         print("IC: given parameters: %d"%len(scoreParams))
+    
+    # Extract types of images being created
+    imgParams = {}
+    
+    for pKey in scoreParams:
+        imgKey = scoreParams[pKey]['imgArg']['name']
+        if imgKey not in imgParams:
+            imgParams[imgKey] = scoreParams[pKey]
             
     # Loop through files
     n = len(scoreParams)
-    for i,pKey in enumerate(scoreParams):
+    for i, pKey in enumerate(imgParams):
         if printAll: print( "IC: ",pKey )
                     
-        sParam = scoreParams[pKey]
+        sParam = imgParams[pKey]
         create_image_from_parameters( rInfo, sParam, printAll = printAll, overwrite=overWrite, )
         
         if printBase:
