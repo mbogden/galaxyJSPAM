@@ -161,6 +161,15 @@ def create_image_from_parameters( rInfo, sParam, overwrite=False, printAll = Fal
     # Normalize brightness
     mImg = normImg( mImg, imgArg )
     iImg = normImg( iImg, imgArg )
+    
+    print("")
+    print("#####"*15)
+    
+    print(mImg.dtype, iImg.dtype)
+    
+    print("#####"*15)
+    print("")
+    
 
     # Save images in case needed later
     rInfo.img[imgName] = mImg
