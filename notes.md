@@ -2,19 +2,18 @@
 These are written by Matthew Ogden for Matthew Ogden while creating and organizing code.  
 Might* be good for others to view.
 
+
+    
+- Commands to remember
+    - python3 main_SIMR.py -targetDir path/to/target -newInfo -newRunInfo -newBase -newRunBase 
+    - python3 main_SIMR.py -dataDir path/to/data -newScore -newImage -paramName zoo_0_direct_scores
+
 # Matt's Working To-Do
 
-- Capstone Project
+- Stuff
+    - Graph times, Are they acting funny? 
     
-    - Commands to remember
-        - python3 main_SIMR.py -targetDir path/to/target -newInfo -newRunInfo -newBase -newRunBase 
-        - python3 main_SIMR.py -dataDir path/to/data -newScore -newImage -paramName zoo_0_direct_scores
         
-    - Discover Why program is acting funny
-        - Add timing print statements inside code.
-            - Read Particles, unzip, etc.
-            - Create Image.
-            - Read Image, compare images. 
     - Redo speed test with only creating new scores. 
     - Test IO choke-point with reading particles.
         - Might not be an issue if you only create images once. 
@@ -29,7 +28,6 @@ Might* be good for others to view.
     - Create custom equation and weights in neural network. 
 
 - Reimplemnet WNDCHRM in Galaxy Code.
-    - Implement in python 2.7?  
     - Learn how to call C++ code from Python3? (Faster speed)
 
 - Implement Feature selection.
@@ -42,17 +40,16 @@ Might* be good for others to view.
 - Create automatic pipeline for evolution
     - Get function to create status update!
     - Create reports for any missing items. 
-
-- Simulator
-    - Produce initial impact approximation w/o points
-    - Stop if impact is too low.
-    - Create multiple sets of points
-        - Take 100k points and subsample them? 
-        - Grab random sample or every x'th point? 
-        - Test if images of 10k points create evuivalent scores.
+    
+- Optimization opportunities
+    - Simulation 
+        - Analyze impact approximation w/o points. Stop if small
+        - Particle Files: Pickle X,Y,R and zip.  
+        - Compare model scores between 100k and 20k pts
+    - WNDCHRM 
+        - implement masks
 
 - Image Creator
-    - adjusting target image not working for zoo_2?
     - Do Total variation denoising on Model images
 
 - Image Comparison.
@@ -64,7 +61,6 @@ Might* be good for others to view.
 
 - Score Analysis
     - Get all systems running on Roughshod.
-
 
 ### Future
 - New Methods
