@@ -9,6 +9,7 @@ from os import path, listdir
 from sys import path as sysPath
 import numpy as np
 import cv2
+from mpi4py import MPI
 
 # For loading in Matt's general purpose python libraries
 sysPath.append( path.abspath( "Support_Code/" ) )
@@ -87,13 +88,21 @@ def main_ic_run( rInfo = None, arg = gm.inArgClass() ):
     
     elif printAll:
         print("IC: given parameters: %d"%len(scoreParams))
+    
+    # Extract types of images being created
+    imgParams = {}
+    
+    for pKey in scoreParams:
+        imgKey = scoreParams[pKey]['imgArg']['name']
+        if imgKey not in imgParams:
+            imgParams[imgKey] = scoreParams[pKey]
             
     # Loop through files
     n = len(scoreParams)
-    for i,pKey in enumerate(scoreParams):
+    for i, pKey in enumerate(imgParams):
         if printAll: print( "IC: ",pKey )
                     
-        sParam = scoreParams[pKey]
+        sParam = imgParams[pKey]
         create_image_from_parameters( rInfo, sParam, printAll = printAll, overwrite=overWrite, )
         
         if printBase:
@@ -160,10 +169,13 @@ def create_image_from_parameters( rInfo, sParam, overwrite=False, printAll = Fal
     # Normalize brightness
     mImg = normImg( mImg, imgArg )
     iImg = normImg( iImg, imgArg )
-
-    # Save images in case needed later
-    rInfo.img[imgName] = mImg
-    rInfo.init[imgName] = iImg
+    
+    # Use image as float32 type for scoring
+    if mImg.dtype == np.uint8:
+        rInfo.img[imgName] = gm.uint8_to_float32( mImg )
+        
+    if mImg.dtype == np.uint8:
+        rInfo.init[imgName] = gm.uint8_to_float32( iImg )
         
     # Get Image locations
     mImgLoc = rInfo.findImgLoc( imgName, newImg = True )
@@ -200,8 +212,15 @@ def getParticles( rInfo, simName, printAll=False ):
         if rInfo.printBase: print("WARNING: IC: zipped points not found: %s"%ptsZipLoc)
         return None
     
-    # Read particles using particle class
-    pts = particle_class( tmpDir = rInfo.tmpDir, zipLoc = ptsZipLoc, )  
+    # Read particles using rInfo
+    pts_i, pts_f = rInfo.getParticles( simName )
+    
+    if type(pts_i) == type(None) or type( pts_f ) == type(None): 
+        if rInfo.printBase: print("WARNING: IC: zipped points failed to read: %s"%ptsZipLoc)
+        return None
+    
+    # Analyze points with particle class
+    pts = particle_class( pts_i, pts_f )  
     
     # Save pts in case needed for later
     rInfo.pts[simName] = pts
@@ -313,57 +332,22 @@ class particle_class:
     
     status = False
     
-    def __init__( self, zipLoc = None, tmpDir=None, printAll=False ):
+    def __init__( self, pts_i, pts_f, printAll = False ):
                 
         self.printAll = printAll
         
-        # Unzip zip file
-        pts1Loc, pts2Loc = self.openPtsZip( zipLoc, tmpDir )
-        if pts1Loc == None or pts2Loc == None:
-            if printAll: print("IM: WARNING: Can't find pts files in zip: %s",zipLoc)
-            return
-        
         # Read from txt files
-        self.g1i, self.g2i, self.iCenters = self.readPartFile( pts1Loc )
-        self.g1f, self.g2f, self.fCenters = self.readPartFile( pts2Loc )
-        
-        # Offset unperterbed points to overlap with final location
-        #dC = self.fCenters - self.iCenters
-        #self.og2i = np.copy(self.g2i)
-        #self.og2i[:,0:2] += dC[1,0:2]
+        self.g1i, self.g2i, self.iCenters = self.extractPts( pts_i )
+        self.g1f, self.g2f, self.fCenters = self.extractPts( pts_f )
         
         if printAll:
             print(self.g1i.shape, self.g2i.shape, self.iCenters.shape)
             print(self.g1f.shape, self.g2f.shape, self.fCenters.shape)
             
     # End initializing particle files.
-    
-    def openPtsZip( self, zipLoc, tmpDir ):
 
-        if not path.exists(tmpDir):
-            from os import mkdir
-            if self.printAll: print('IC: Making dir: %s'%tmpDir)
-            mkdir(tmpDir)
-        
-        import zipfile
-        with zipfile.ZipFile(zipLoc, 'r') as zip_ref:
-            zip_ref.extractall(tmpDir)
-        
-        pts1Loc = None
-        pts2Loc = None
-        for f in listdir( tmpDir ):
-            if '.000' in f:
-                pts1Loc = tmpDir + f
-            if '.101' in f:
-                pts2Loc = tmpDir + f
-        
-        return pts1Loc,pts2Loc
-    # End unziping pts file
     
-    def readPartFile( self, pLoc, ):
-        
-        # Read file using numpy reading
-        pts = np.genfromtxt( pLoc )
+    def extractPts( self, pts, ):
         
         # number of particle per galaxy
         nPart = int( (pts.shape[0]-1)/2 )

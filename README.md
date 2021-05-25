@@ -19,9 +19,6 @@ cd galaxyJSPAM
 make
 ```
 
-If you are making modifications, checkout a different branch
-- For Software Engineering execute `git checkout working_SE` 
-
 ####Python install
 I am currently testing virtual environments with this package.  To initialize please run the following. This should create a new virtual environment name "simr_env", and install needed python packages. NOTE: Then name "simr_env" is arbitrary and you can name it however you please.  Be sure to remember the name of course. 
 
@@ -38,7 +35,7 @@ Once you have installed the required packages, you will need to activate the env
     
     
 ### Activate environment
-NOTE: If you just installed the above, you are likley already in the environment.
+NOTE: If you just followed the installation instructions above, you are likley already in the environment.
     
 ```
 source simr_env/vin/activate
@@ -46,25 +43,26 @@ source simr_env/vin/activate
     
 ### Python Notebook
     
-There are several notebooks in the Notebook folder (Ex. Template.ipynb) that show how to import and use several of functions located in this suite.
+There are several notebooks in the Notebook folder (Ex. Template.ipynb) that show how to import and use several functions located in this suite.
 
 
 ### Terminal Instructions
-The primary program is `python3 main_simr.py` and can be activated in a number of ways.
+The primary program is `python3 main_simr.py` and can be activated in a number of ways.  Possibly input arguments below.
 
 #### Input Arguments
 
 The main program features many additional arguments that are optional. Note all arguments start with a single dash "-".
 ___
-- `-printBase`   (Default: True)  Program will print basic information while operating.
-- `-printAll`    (Default: False) Program will print all optional information statements found in most functions.
-- `-nProc #`    (Default: -1)  Operations that can be parallel, will run using n # of processers.  Note: -1 uses all available cores minus one. 
+- `-printBase`   (Default: True)  Program will print basic information while executing.
+- `-printAll`    (Default: False) Program will print all optional information statements found throughout the code.
+- `-nProc #`     (Default: -1)    Directs program to utilize # number of cpu in parallel.  Note: -1 uses all available cores minus one. 
 ___
-- `-runDir path/to/run/directory/`   Path to a model directory from a target into the program.
+- `-runDir path/to/run/directory/`         Path to a model directory into the program.
 - `-targetDir path/to/target/directory/`   Path to a target directory into the program.
-- `-dataDir path/to/directory/`    Path to directory that contains many target directories.
+- `-dataDir path/to/directory/`            Path to directory that contains many target directories.
 ___
-- `-paramLoc path/to/score/param.json`    Path to an existing score parameter file.
+- `-paramLoc path/to/score/param.json`     Path to an existing score parameter file.
+- `-paramName name_of_param`               Name of a score parameters file already saved in target's score_parameters folder.
 - `-targetLoc path/to/score/target.png`    Path to an existing target image of colliding galaxies.
 ___
 - `-newSim`    (Default: False) Tells program to create a new simulation of a model. (TODO)
@@ -74,19 +72,22 @@ ___
 - `-newAll`    (Default: False) Tells program to create a new simulation, image, and score.
 - `-overWrite` (Default: False) Tells program to create a new simulation, image, and/or score even if that file already exists.
 ___
-- `newInfo`   (Default: False) Remove current information file.  Create a new one from a default copy.
-- `newBase`   (Default: False) Remove the default information file and generate a new one. 
+- `newInfo`      (Default: False) Remove current information file.  Create a new one from a copy of the base.
+- `newBase`      (Default: False) Remove the base information file and generate a new one. 
 - `newRunInfo`   (Default: False) Will remove the information file for all models found in a target.
-- `newRunBase`   (Default: False) Will remove the default information file and generate a new one for all models found in a target.
+- `newRunBase`   (Default: False) Will remove the base information file and generate a new one for all models found in a target.
 ___
 
 #### Common Commands
-Common command line executions you may perform are as follows. 
-- `python3 main_simr.py -targetDir path/to/target/ -newScore -paramLoc path/to/param.json` Tell program to point at a target directory and generate new machine scores.
-- `python3 main_simr.py -printAll -runDir path/to/run/ -newImg -overwrite -paramLoc path/to/new_param.json` Tell program to focus on a single model, print all progress, create a new image, and overwrite existing images of the same name.  Useful for testing new image creation.
-- `python3 main_simr.py -dataDir path/to/all/targets/ -newAll -paramLoc path/to/param.json -nProc 24`  Tell program to go through many targets creating new simulations, images, and score as needed.  Use 24 processors on current machine. 
+##### Initialize a target and generate basic direct image comparison scores 
+`python3 main_simr.py -dataDir path/to/all/targets/ -newIngo -newBase -newRunInfo -newRunBase -newScore -newImage -paramName zoo_0_direct_scores` 
+##### Tell program to point at a target directory and generate new machine scores from a parameter file you've created.
+`python3 main_simr.py -targetDir path/to/target/ -newScore -paramLoc path/to/param.json` 
+##### Tell program to focus on a single model, create a new image, overwrite existing images and print all progress.  Useful for testing new image creation.
+`python3 main_simr.py -printAll -runDir path/to/run/ -newImg -overwrite -paramLoc path/to/new_param.json` 
+##### Tell program to go through many targets creating new simulations, images, and score as needed.  Use 24 processors on current machine. 
+`python3 main_simr.py -dataDir path/to/all/targets/ -newAll -paramLoc path/to/param.json -nProc 24`  
     
-
     
 ## Project Overview<a id="overview">
     

@@ -10,6 +10,8 @@ import numpy as np
 import cv2
 from os import path
 from sys import path as sysPath
+from mpi4py import MPI
+
 supportPath = path.abspath( path.join( __file__ , "../../Support_Code/" ) )
 sysPath.append( supportPath )
 
@@ -24,10 +26,12 @@ def validPath( inPath, printWarning = False, pathType = None ):
 
     # Check if valid string
     if type( inPath ) != type( 'string' ):
+        if printWarning: print('GM: validPath: Input not a string')
         return None
 
     # Check if path exists
     if not path.exists( inPath ):
+        if printWarning: print('GM: validPath: Input path does not exist')
         return None
 
     outPath = path.realpath( inPath )
@@ -273,8 +277,7 @@ class ppClass:
     def __init__(self, nCore, printProg=False):
         
         if type(nCore) != type( 123 ):
-            nCore = int(nCore)
-            
+            nCore = int(nCore)            
 
         # 0 for all, negative all minus negative
         if nCore < 1:
@@ -359,6 +362,7 @@ def printVal( n1, n2=1 ):
     from time import sleep
     #print("Val: %d %d" % ( n1, n2) )
     sleep(n1)
+    
 
 
 def checkPP(arg):
@@ -409,9 +413,24 @@ def readImg( imgLoc, printAll = False, toSize=None ):
 
 # End get image
 
+def saveImg( img, imgLoc, printAll = False ):
+    
+    # Convert to floating point with values between 0 and 1
+    if img.dtype == np.float32:
+        img = float32_to_uint8(img)
+        
+    # Read image from disk
+    img = cv2.imread( imgLoc, 0 ) 
+
+# End save image
+
 
 def tabprint( inprint, begin = '\t - ', end = '\n' ):
     print('%s%s' % (begin,inprint), end=end )
+
+class mpi_class:
+    status = "HI from MPI"
+    
 
 
 # Run main after declaring functions
@@ -421,6 +440,12 @@ if __name__ == '__main__':
     from sys import argv
     arg = inArgClass( argv )
     arg.printArg()
+    
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    size = comm.Get_size()
+    print( 'MPI: ', rank, size )
 
     checkPP(arg)
-
+    
+    
