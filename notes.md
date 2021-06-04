@@ -5,8 +5,8 @@ Might* be good for others to view.
 
     
 - Commands to remember
-    - python3 main_SIMR.py -targetDir path/to/target -newInfo -newRunInfo -newBase -newRunBase 
-    - python3 main_SIMR.py -dataDir path/to/data -newScore -newImage -paramName zoo_0_direct_scores
+    - `python3 main_SIMR.py -targetDir path/to/target -newInfo -newRunInfo -newBase -newRunBase` 
+    - `python3 main_SIMR.py -dataDir path/to/data -newScore -newImage -paramName zoo_0_direct_scores`
 
 # Matt's Working To-Do
 

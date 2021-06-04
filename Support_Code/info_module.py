@@ -20,7 +20,6 @@ sysPath.append('../')
 
 
 
-
 from pprint import PrettyPrinter
 pp = PrettyPrinter(width=41, compact=True)
 pprint = pp.pprint
@@ -88,6 +87,7 @@ class run_info_class:
     ptsDir = None
     imgDir = None
     miscDir = None
+    wndDir = None
     
     tLink = None
 
@@ -166,6 +166,7 @@ class run_info_class:
         self.ptsDir = self.runDir + 'particle_files/'
         self.imgDir = self.runDir + 'model_images/'
         self.miscDir = self.runDir + 'misc_images/'
+        self.wndDir = self.runDir + 'wndchrm_files/'
         self.tmpDir = self.runDir + 'tmp/'
         self.infoLoc = self.runDir + 'info.json'
         self.baseLoc = self.runDir + 'base_info.json'
@@ -180,13 +181,14 @@ class run_info_class:
             print("\t -  ptsDir: (%s) %s" % ( path.exists( self.ptsDir ), self.ptsDir ) )
             print("\t -  imgDir: (%s) %s" % ( path.exists( self.imgDir ), self.imgDir ) )
             print("\t - miscDir: (%s) %s" % ( path.exists( self.miscDir ), self.miscDir ) )
+            print("\t - wndDir: (%s) %s" % ( path.exists( self.wndDir ), self.wndDir ) )
             print("\t - infoLoc: (%s) %s" % ( path.exists( self.infoLoc ), self.infoLoc ) )
             print("\t - baseLoc: (%s) %s" % ( path.exists( self.baseLoc ), self.baseLoc ) )
 
         # Check if things are working
         dirGood = True
 
-        if not path.exists( self.ptsDir ) or not path.exists( self.imgDir ) or not path.exists( self.miscDir ):
+        if not path.exists( self.ptsDir ) or not path.exists( self.imgDir ) or not path.exists( self.miscDir ) or not path.exists( self.wndDir ):
             dirGood = False
 
         # If you made it this far.  
@@ -210,6 +212,7 @@ class run_info_class:
         if not path.exists( self.ptsDir ): mkdir( self.ptsDir )
         if not path.exists( self.imgDir ): mkdir( self.imgDir )
         if not path.exists( self.miscDir ): mkdir( self.miscDir )
+        if not path.exists( self.wndDir ): mkdir( self.wndDir ) 
         if not path.exists( self.tmpDir ): mkdir( self.tmpDir ) 
 
 
@@ -305,7 +308,7 @@ class run_info_class:
         return pts1, pts2
 
     
-    def getModelImage( self, imgName = 'default', initImg = False ):
+    def getModelImage( self, imgName = 'zoo_0', imgType = 'model' ):
         
         # Create place to store images if needed.
         if self.get('img',None) == None:
@@ -315,19 +318,23 @@ class run_info_class:
             self.init = {}
         
         # Return model image if already loaded.
-        if not initImg:
+        if imgType == 'model':
             mImg = self.img.get(imgName,None)
             if type(mImg) != type(None):
                 return mImg
         
-        else:            
+        elif imgType == 'init':            
             img = self.init.get(imgName,None)
             if type(img) != type(None):
                 return img
         
         # Get image location
-        imgLoc = self.findImgLoc( imgName = imgName, initImg = initImg )
-        if self.printAll: print("IM: Loading imgLoc: %s" % imgName, initImg )
+        imgLoc = self.findImgLoc( imgName = imgName, imgType = imgType )
+        if self.printAll: 
+            print("IM: Loading: %s:")
+            gm.tabprint( 'imgType: %s' % imgType )
+            gm.tabprint( 'imgLoc: %s' % imgLoc )
+            
         if imgLoc == None:
             return None
         
@@ -335,9 +342,10 @@ class run_info_class:
         img = gm.readImg(imgLoc)
         
         # Store image if called upon later
-        if not initImg: 
+        if imgType == 'model': 
             self.img[imgName] = img
-        else:
+            
+        elif imgType == 'init':
             self.init[imgName] = img
 
         # Return image
@@ -346,22 +354,29 @@ class run_info_class:
     # End getting model, unperturbed image
 
 
-    def findImgLoc( self, imgName, initImg = False, newImg=False ):
+    def findImgLoc( self, imgName, imgType = 'model', newImg=False ):
 
         # Assume model image
-        if not initImg:
+        if imgType == 'model':
             imgLoc = self.imgDir + imgName + '_model.png'
 
-        else:
+        elif imgType == 'init':
             imgLoc = self.miscDir + imgName + '_init.png'
+            
+        elif imgType == 'wndchrm':
+            imgLoc = self.wndDir + imgName + '_model.tiff'
+            
+        else:
+            imgLoc = self.miscDir + imgName + '.png'
 
-        # If new image, return location it will become
+        # If new image, return the location it will become
         if newImg: 
             return imgLoc
         
         # Return if path exists
         if path.exists( imgLoc ):
             return imgLoc
+        
         else:
             return None
 
@@ -408,7 +423,7 @@ class run_info_class:
 
         print("IM: run_info_class.printScores()")
         tabprint( 'run_id: %s' % self.get('run_id') )
-        tabprint( 'zoo_merger: %f' % self.get('zoo_merger_score'))
+        tabprint( 'zoo_merger: %s' % str( self.get('zoo_merger_score')) )
         tabprint( 'machine_scores: %d' % len(self.rDict['machine_scores']) )
 
         if allScores:
@@ -634,7 +649,7 @@ class target_info_class:
 
     # End target init 
 
-    def getTargetImage( self, tName = None ):
+    def getTargetImage( self, tName = None, overwrite=False ):
         
         # Create place to store images if needed.
         if self.get('targetImgs',None) == None:
@@ -642,7 +657,7 @@ class target_info_class:
         
         # Return target image if already loaded.
         tImg = self.targetImgs.get(tName,None)
-        if type(tImg) != type(None):
+        if type(tImg) != type(None) and not overwrite:
             return tImg
         
         # Else find and open target image
@@ -1396,11 +1411,6 @@ class target_info_class:
         # Read image parameters common for target
         img_params = gm.readJson( self.imgParamLoc )
         
-        # If None, initialize target images and try again.
-        if img_params == None:
-            getTargetInputData( self )
-            img_params = gm.readJson( self.imgParamLoc )
-        
         # Return all if none specified.
         if imgName == None:     
             return deepcopy( img_params )
@@ -1408,13 +1418,14 @@ class target_info_class:
         # Return single image parameter if specified.
         else:
             return deepcopy( img_params.get(imgName,None) )
+        
     # End getting image parameters
     
     def addImageParams( self, in_params, overWrite = False ):
         
         # If file doesn't exist
         if gm.validPath( self.imgParamLoc ) == None:
-            gm.saveJson( in_params, self.imgParamLoc )
+            gm.saveJson( in_params, self.imgParamLoc, pretty=True )
             return
         
         # Else file does exsit
@@ -1427,7 +1438,7 @@ class target_info_class:
             if overWrite or sKey not in old_params:
                 old_params[sKey] = in_params[sKey]            
         
-        gm.saveJson( old_params, self.imgParamLoc )
+        gm.saveJson( old_params, self.imgParamLoc, pretty=True )
     
     def overWriteImageParams( self, in_params ):
         gm.saveJson( in_params, self.imgParamLoc )

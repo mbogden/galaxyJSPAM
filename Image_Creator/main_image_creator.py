@@ -133,8 +133,8 @@ def create_image_from_parameters( rInfo, sParam, overwrite=False, printAll = Fal
     simName = sParam['simArg'].get('name',None)
 
     # If image is already created, return
-    mImgLoc = rInfo.findImgLoc( imgName, )
-    iImgLoc = rInfo.findImgLoc( imgName, initImg=True )
+    mImgLoc = rInfo.findImgLoc( imgName, imgType='model')
+    iImgLoc = rInfo.findImgLoc( imgName, imgType='init' )
     
     # Check if images already created
     if mImgLoc != None and iImgLoc != None:        
@@ -179,18 +179,21 @@ def create_image_from_parameters( rInfo, sParam, overwrite=False, printAll = Fal
         
     # Get Image locations
     mImgLoc = rInfo.findImgLoc( imgName, newImg = True )
-    iImgLoc = rInfo.findImgLoc( imgName, newImg = True, initImg=True )
+    iImgLoc = rInfo.findImgLoc( imgName, newImg = True, imgType = 'init' )
+    wImgLoc = rInfo.findImgLoc( imgName, newImg = True, imgType = 'wndchrm' )
     
     if printAll: 
         im.tabprint("Saving model image at: %s"%mImgLoc)
         im.tabprint("Saving unperturbed at: %s"%iImgLoc)
+        im.tabprint("Saving wndchrm image : %s"%wImgLoc)
         
     # Save image
-    cv2.imwrite(mImgLoc,mImg)
-    cv2.imwrite(iImgLoc,iImg)
+    gm.saveImg(mImgLoc,mImg)
+    gm.saveImg(iImgLoc,iImg)
+    gm.saveImg(wImgLoc,mImg)
     
     # Clean up run directory of particle files
-    rInfo.delTmp()
+    #rInfo.delTmp()
 
 # End image from score parameter file
 
@@ -779,13 +782,13 @@ def adjustTargetImage( tInfo, new_param, startingImg = 'zoo_0', printAll = False
         gm.tabprint("Writing to loc: %s"%newLoc)
     
     # Write image to location    
-    cv2.imwrite( newLoc, newImg )
+    gm.saveImg( newLoc, newImg )
     
     if printAll:
         gm.tabprint("File should exist: %s"%gm.validPath(newLoc))
     
     # Have tInfo load image
-    tImg = tInfo.getTargetImage( new_param['imgArg']['name'] )
+    tImg = tInfo.getTargetImage( new_param['imgArg']['name'], overwrite=True )
     
     return tImg
 

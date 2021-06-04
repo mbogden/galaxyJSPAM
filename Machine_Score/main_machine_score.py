@@ -501,7 +501,7 @@ def perturbation_compare_setup( rInfo, param, args ):
     
     # Else, have rInfo retrieve img location
     else:
-        iImg = rInfo.getModelImage(mName,initImg=True)
+        iImg = rInfo.getModelImage(mName, imgType='init')
         rInfo.initImg[mName] = iImg
         
     if type(iImg) == type(None): 
