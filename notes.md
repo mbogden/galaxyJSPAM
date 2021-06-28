@@ -10,16 +10,12 @@ Might* be good for others to view.
 
 # Matt's Working To-Do
 
-- Stuff
-    - Graph times, Are they acting funny? 
-    
-        
-    - Redo speed test with only creating new scores. 
-    - Test IO choke-point with reading particles.
-        - Might not be an issue if you only create images once. 
-        - Test how big pickle files are for just X,Y particles.
-        - If issue, consider copying files to scratch.
-    - Veryify new scores are being created.
+- Reimplemnet WNDCHRM in Galaxy Code.
+    - Install WNDCHRM on needed machine. 
+    - organize where tiff images go and how code is called.
+    - collect and reorganize WNDCHRM data.
+    - normalize entire systems.
+    - implement mask (Only extract these x out of 1000's of features)
         
 - Get a single-layer neural network going
     - Gather and pickle images into a temp file/folder.
@@ -27,15 +23,21 @@ Might* be good for others to view.
     - Generalize it to all targets.
     - Create custom equation and weights in neural network. 
 
-- Reimplemnet WNDCHRM in Galaxy Code.
-    - Learn how to call C++ code from Python3? (Faster speed)
-
 - Implement Feature selection.
     - You did this in Data Mining.  Do it now. 
 
 - Create Robust Analysis between Different Score parameters. 
     - Interactive window and grid? 
 
+- Old Stuff
+    - Capstone execution times, why are they acting funny?         
+        - Redo speed test with only creating new scores. 
+    - Test IO choke-point with reading particles.
+        - Might not be an issue if you only create images once. 
+        - Test how big pickle files are for just X,Y particles.
+        - If issue, consider copying files to scratch.
+    - Veryify new scores are being created.
+    
 ## Big picture
 - Create automatic pipeline for evolution
     - Get function to create status update!

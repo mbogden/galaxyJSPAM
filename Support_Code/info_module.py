@@ -28,7 +28,7 @@ pprint = pp.pprint
 import general_module as gm
 
 def test():
-    print("IM: Hi!  You're in Matthew Ogden's information module for SPAM")
+    print("IM: Hi!  You're in Matthew's information module for SPAM")
 # End test print
 
 def main(arg):
@@ -311,11 +311,8 @@ class run_info_class:
     def getModelImage( self, imgName = 'zoo_0', imgType = 'model' ):
         
         # Create place to store images if needed.
-        if self.get('img',None) == None:
-            self.img = {}
-            
-        if self.get('init',None) == None:
-            self.init = {}
+        if self.get('img',None) == None: self.img = {}            
+        if self.get('init',None) == None: self.init = {}
         
         # Return model image if already loaded.
         if imgType == 'model':
@@ -335,18 +332,14 @@ class run_info_class:
             gm.tabprint( 'imgType: %s' % imgType )
             gm.tabprint( 'imgLoc: %s' % imgLoc )
             
-        if imgLoc == None:
-            return None
+        if imgLoc == None: return None
         
         # Read image
         img = gm.readImg(imgLoc)
         
         # Store image if called upon later
-        if imgType == 'model': 
-            self.img[imgName] = img
-            
-        elif imgType == 'init':
-            self.init[imgName] = img
+        if imgType == 'model':  self.img[imgName] = img            
+        elif imgType == 'init': self.init[imgName] = img
 
         # Return image
         return img
@@ -364,7 +357,7 @@ class run_info_class:
             imgLoc = self.miscDir + imgName + '_init.png'
             
         elif imgType == 'wndchrm':
-            imgLoc = self.wndDir + imgName + '_model.tiff'
+            imgLoc = self.wndDir + imgName + '.tiff'
             
         else:
             imgLoc = self.miscDir + imgName + '.png'
@@ -393,8 +386,7 @@ class run_info_class:
         for imgName in imgList:
             retList.append(imgDir+imgName)
 
-        return retList	
-
+        return retList
 
     def printInfo( self,):
         from pprint import PrettyPrinter
@@ -649,20 +641,26 @@ class target_info_class:
 
     # End target init 
 
-    def getTargetImage( self, tName = None, overwrite=False ):
+    def getTargetImage( self, tName = None, overwrite=False, printAll = False ):
+        
+        if printAll: print("IM: target_info_class: getTargetImage:")
         
         # Create place to store images if needed.
         if self.get('targetImgs',None) == None:
+            if printAll: gm.tabprint("Creating dict to store loaded target images")
             self.targetImgs = {}
         
         # Return target image if already loaded.
         tImg = self.targetImgs.get(tName,None)
         if type(tImg) != type(None) and not overwrite:
+            if printAll:  gm.tabprint("Returning preloaded target image.")
             return tImg
         
         # Else find and open target image
+        if printAll:  gm.tabprint("Searching for target image: %s" % tName)
         tLoc = self.findTargetImage(tName)
-        
+        if printAll:  gm.tabprint("Found: %s" % tLoc)
+            
         if not gm.validPath(tLoc,):
             return None
         

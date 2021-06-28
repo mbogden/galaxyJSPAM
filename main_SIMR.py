@@ -10,6 +10,7 @@ Description:	Hopefully my primary code for calling all things SPAM Simulation, M
 # Python module imports
 from os import path, listdir
 from sys import path as sysPath, exit
+sysPath.append( path.abspath( 'Machine_Score/' ) )
 
 import pandas as pd
 import numpy as np
@@ -24,11 +25,11 @@ mpi_size = mpi_comm.Get_size()
 import Support_Code.general_module as gm
 import Support_Code.info_module as im
 import Simulator.main_simulator as ss
-import Score_Analysis.main_score_analysis as sa
 import Image_Creator.main_image_creator as ic
-
-sysPath.append( path.abspath( 'Machine_Score/' ) )
+import Feature_Extraction.main_feature_extraction as fe
 from Machine_Score import main_machine_score as ms
+import Score_Analysis.main_score_analysis as sa
+
 
 def test():
     print("SIMR: Hi!  You're in Matthew's main program for all things galaxy collisions")
@@ -56,6 +57,8 @@ def main(arg):
         arg.printArg()
         gm.test()
         im.test()
+        fe.test()
+        ms.test()
         ss.test()
 
     # end main print
@@ -463,27 +466,28 @@ def simr_run( arg = None, rInfo = None, rDir = None ):
         return   
     
     # Check if new files should be created/altered
-    newSim = arg.get('newSim')
-    newImage = arg.get('newImage')
-    newScore = arg.get('newScore')
     newAll = arg.get('newAll')
 
-    if newSim or newAll:
+    # Asking for new simulation data?
+    if arg.get('newSim') or newAll:
         if printBase: print("WARNING: SIMR: run: newSim not functioning at this time")
 
-    if newImage or newAll:
+    # Asking for new image creation?
+    if arg.get('newImage') or newAll:
         ic.main_ic_run( rInfo = rInfo, arg=arg )
+        
+    # Asking for new feature extraction from images? 
+    if arg.get('newFeats') or newAll:
+        fe.main_fe_run( rInfo = rInfo, arg=arg )
 
-    if newScore or newAll:
+    # Asking for new score based on sim, image, and/or feature extractions?
+    if arg.get('newScore') or newAll:
 
         ms.MS_Run( printBase = printBase, printAll = printAll, \
                 rInfo = rInfo, params = arg.get('scoreParams'), \
                 arg = arg )
-
-    if arg.get('tInfo',None) != None:
-        arg.tInfo.addRunDict(rInfo)
     
-    # Clean up run directory if temporary files were created
+    # Clean up temporary files from run directory.
     rInfo.delTmp()
 
 # end processing run

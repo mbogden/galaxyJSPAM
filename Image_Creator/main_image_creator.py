@@ -79,11 +79,11 @@ def main_ic_run( rInfo = None, arg = gm.inArgClass() ):
         print('IC: rInfo.status: ', rInfo.status )
 
     if rInfo.status == False:
-        print('IC: WARNGING:\n\t - rInfo status not good. Exiting...' )
+        if printBase: print('IC: WARNGING:\n\t - rInfo status not good. Exiting...' )
         return
     
     if scoreParams == None:
-        print("IC: WARNING: Please provide score parameters")
+        if printBase: print("IC: WARNING: Please provide score parameters")
         return
     
     elif printAll:
@@ -130,24 +130,32 @@ def create_image_from_parameters( rInfo, sParam, overwrite=False, printAll = Fal
     
     # Grab idenitfying names
     imgName = sParam['imgArg'].get('name',None)
+    imgType = sParam['imgArg'].get('type','model')
     simName = sParam['simArg'].get('name',None)
 
-    # If image is already created, return
-    mImgLoc = rInfo.findImgLoc( imgName, imgType='model')
-    iImgLoc = rInfo.findImgLoc( imgName, imgType='init' )
+    if imgType == 'model':
+        # If image is already created, return
+        mImgLoc = rInfo.findImgLoc( imgName, imgType='model')
+        iImgLoc = rInfo.findImgLoc( imgName, imgType='init' )
+
+        # Check if images already created
+        if mImgLoc != None and iImgLoc != None:        
+            if printAll: print("IC: Image '%s' already made for %s"%(imgName,rInfo.get('run_id')))
+
+            # Unless overwriting images, load images and return
+            if not overwrite: 
+                mImg = gm.readImg( mImgLoc )
+                iImg = gm.readImg( iImgLoc )
+                return
+            
+    elif imgType == 'wndchrm':
+        wImgLoc = rInfo.findImgLoc( imgName, imgType='wndchrm')
     
-    # Check if images already created
-    if mImgLoc != None and iImgLoc != None:        
-        if printAll: print("IC: Image '%s' already made for %s"%(imgName,rInfo.get('run_id')))
-        
-        # Unless overwriting images, load images and return
-        if not overwrite: 
-            mImg = gm.readImg( mImgLoc )
-            iImg = gm.readImg( iImgLoc )
-            rInfo.img[imgName] = mImg
-            rInfo.init[imgName] = iImg
+        # Check if images already created
+        if wImgLoc != None and not overwrite:        
+            if printAll: print("IC: Image '%s' already made for %s"%(imgName,rInfo.get('run_id')))
             return
-    
+            
     # Get particles
     pts = getParticles( rInfo, simName, printAll=printAll )    
     if type( pts ) == type( None ):
@@ -170,30 +178,39 @@ def create_image_from_parameters( rInfo, sParam, overwrite=False, printAll = Fal
     mImg = normImg( mImg, imgArg )
     iImg = normImg( iImg, imgArg )
     
+
     # Use image as float32 type for scoring
     if mImg.dtype == np.uint8:
-        rInfo.img[imgName] = gm.uint8_to_float32( mImg )
-        
+        mImg = gm.uint8_to_float32( mImg )
+        rInfo.img[imgName] = mImg
+
     if mImg.dtype == np.uint8:
-        rInfo.init[imgName] = gm.uint8_to_float32( iImg )
-        
+        iImg = gm.uint8_to_float32( iImg )
+        rInfo.init[imgName] = iImg
+
     # Get Image locations
     mImgLoc = rInfo.findImgLoc( imgName, newImg = True )
     iImgLoc = rInfo.findImgLoc( imgName, newImg = True, imgType = 'init' )
-    wImgLoc = rInfo.findImgLoc( imgName, newImg = True, imgType = 'wndchrm' )
-    
+
     if printAll: 
         im.tabprint("Saving model image at: %s"%mImgLoc)
         im.tabprint("Saving unperturbed at: %s"%iImgLoc)
-        im.tabprint("Saving wndchrm image : %s"%wImgLoc)
+            
+        # Save image
+        gm.saveImg(mImgLoc,mImg)
+        gm.saveImg(iImgLoc,iImg)
         
-    # Save image
-    gm.saveImg(mImgLoc,mImg)
-    gm.saveImg(iImgLoc,iImg)
-    gm.saveImg(wImgLoc,mImg)
-    
-    # Clean up run directory of particle files
-    #rInfo.delTmp()
+    # If type wndchrm, also place in wndchrm folder as tiff. 
+    if imgType ==  'wndchrm': 
+        print("WORKING**********************************************")
+        print( 'MAX: ',np.amax( mImg.shape ) )
+        if np.amax( mImg.shape ) > 100:
+            if rInfo.printBase: im.tabprint("WARNING: WNDCHRM images over 100 pixels not allowed.")
+            return
+        
+        wImgLoc = rInfo.findImgLoc( imgName, newImg = True, imgType = 'wndchrm' )
+        if printAll:    im.tabprint("Saving wndchrm image : %s"%wImgLoc)
+        gm.saveImg( wImgLoc, mImg )
 
 # End image from score parameter file
 
