@@ -106,7 +106,8 @@ def main_ic_run( rInfo = None, arg = gm.inArgClass() ):
         create_image_from_parameters( rInfo, sParam, printAll = printAll, overwrite=overWrite, )
         
         if printBase:
-            print( 'IM_LOOP: %4d / %4d' % (i+1,n), end='\r' )
+            print( 'IC_LOOP: %4d / %4d' % (i+1,n), end='\r' )
+    if printBase: print( 'IC_LOOP: %4d / %4d: COMPLETE' % (n,n) )
             
 # End main image creator run
         
@@ -150,9 +151,10 @@ def create_image_from_parameters( rInfo, sParam, overwrite=False, printAll = Fal
             
     elif imgType == 'wndchrm':
         wImgLoc = rInfo.findImgLoc( imgName, imgType='wndchrm')
+        mImgLoc = rInfo.findImgLoc( imgName, )
     
         # Check if images already created
-        if wImgLoc != None and not overwrite:        
+        if wImgLoc != None and mImgLoc != None and not overwrite:        
             if printAll: print("IC: Image '%s' already made for %s"%(imgName,rInfo.get('run_id')))
             return
             
@@ -196,14 +198,12 @@ def create_image_from_parameters( rInfo, sParam, overwrite=False, printAll = Fal
         im.tabprint("Saving model image at: %s"%mImgLoc)
         im.tabprint("Saving unperturbed at: %s"%iImgLoc)
             
-        # Save image
-        gm.saveImg(mImgLoc,mImg)
-        gm.saveImg(iImgLoc,iImg)
+    # Save image
+    gm.saveImg(mImgLoc,mImg)
+    gm.saveImg(iImgLoc,iImg)
         
     # If type wndchrm, also place in wndchrm folder as tiff. 
     if imgType ==  'wndchrm': 
-        print("WORKING**********************************************")
-        print( 'MAX: ',np.amax( mImg.shape ) )
         if np.amax( mImg.shape ) > 100:
             if rInfo.printBase: im.tabprint("WARNING: WNDCHRM images over 100 pixels not allowed.")
             return
