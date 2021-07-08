@@ -78,15 +78,22 @@ class run_info_class:
     baseDict = None
 
     status = False  # State of this class.  For initiating.
-
+    
+    # Main directories
     runDir = None
-    infoLoc = None
-    baseLoc = None
-
+    
     ptsDir = None
     imgDir = None
     miscDir = None
     wndDir = None
+    tmpDir = None
+
+    # Useful files in directory
+    infoLoc = None
+    baseLoc = None
+
+    wndFitLoc = None
+    wndAllLoc = None
     
     tLink = None
 
@@ -169,6 +176,9 @@ class run_info_class:
         self.tmpDir = self.runDir + 'tmp/'
         self.infoLoc = self.runDir + 'info.json'
         self.baseLoc = self.runDir + 'base_info.json'
+        
+        self.wndFitLoc = self.wndDir + 'wndchrm_all.fit'
+        self.wndAllLoc = self.wndDir + 'wndchrm_all.csv'
     
         # If newInfo or newBase
         if rArg.get('newInfo',False):
@@ -954,34 +964,40 @@ class target_info_class:
 
         # Define paths for all useful things in target structure
         
+        # Main paths in target dir
         self.infoDir = self.targetDir + 'information/'
         self.gen0 = self.targetDir + 'gen000/'
         self.zooMergerDir = self.targetDir + 'zoo_merger_models/'
         self.plotDir = self.targetDir + 'plots/'
+        
+        # Directires inside info dir
+        self.imgDir = self.infoDir + 'target_images/'
+        self.maskDir = self.infoDir + 'target_masks/'        
+        self.scoreParamDir = self.infoDir + 'score_parameters/'        
+        self.wndDir = self.infoDir + 'wndchrm_files/'
 
+        # Locations of files inside info dir
         self.allInfoLoc = self.infoDir + 'target_info.json'
         self.baseInfoLoc = self.infoDir + 'base_target_info.json'
-        
-        self.imgDir = self.infoDir + 'target_images/'
-        self.imgParamLocOld = self.infoDir + 'param_target_images.json'
-        self.imgParamLoc = self.imgDir + 'param_target_images.json'        
-        
-        self.maskDir = self.infoDir + 'target_masks/'
-        
-        self.scoreParamDir = self.infoDir + 'score_parameters/'
-        
         self.scoreLoc = self.infoDir + 'scores.csv'
-        self.baseScoreLoc = self.infoDir + 'base_scores.csv'
-
+        self.baseScoreLoc = self.infoDir + 'base_scores.csv'    
         self.zooMergerLoc = self.infoDir + 'galaxy_zoo_models.txt'
+        self.imgParamLocOld = self.infoDir + 'param_target_images.json'
         
-        # Create target image and mask directories
+        # Files inside misc directories
+        self.imgParamLoc = self.imgDir + 'param_target_images.json'
+        self.wndRunRawLoc = self.wndDir + 'all_runs_raw.csv'
+        self.wndTargetRawLoc = self.wndDir + 'targets_raw.csv'
+        self.wndTargetFitLoc = self.wndDir + 'targets_raw.fit'
+                 
+        # Create target subdirectories if not found
         if not path.exists( self.infoDir ): mkdir( self.infoDir )
         if not path.exists( self.imgDir ): mkdir( self.imgDir )
         if not path.exists( self.maskDir ): mkdir( self.maskDir )
+        if not path.exists( self.wndDir ): mkdir( self.wndDir )
         if not path.exists( self.scoreParamDir ): mkdir( self.scoreParamDir )
         
-        # Create or move misc directories if not created.
+        # Move old directories to new location if needed.
         if gm.validPath( self.imgParamLocOld ) != None:
             print("Hi")
             print("OLD: %s"%gm.validPath(self.imgParamLocOld))
@@ -996,6 +1012,7 @@ class target_info_class:
             rename(self.gen0,self.zooMergerDir)
             print("New Path? : %s" % gm.validPath(self.zooMergerDir) )
         
+        # Check if creating a new info file, run new Target Setup if so
         if tArg.get('newInfo',False): 
             status = self.newTargetSetup( tArg )
             if status == False: return False
@@ -1016,9 +1033,9 @@ class target_info_class:
             
         
         # Check if info directory has needed objects
-        if not path.exists( self.allInfoLoc ) \
-        or not path.exists( self.baseInfoLoc ) \
-        or not path.exists( self.scoreLoc ) \
+        if not path.exists( self.allInfoLoc   ) \
+        or not path.exists( self.baseInfoLoc  ) \
+        or not path.exists( self.scoreLoc     ) \
         or not path.exists( self.baseScoreLoc ):
             if self.printBase:
                 print("IM: Target_init: Needed information files not found.")
@@ -1484,6 +1501,10 @@ class target_info_class:
         roiLoc = self.maskDir + '%s.json'%file_name
         mask_roi = gm.readJson(  roiLoc )
         return mask_roi
+    
+    def saveWndchrmImage( self, img, img_name ):
+        imgLoc = self.wndDir + '%s.tiff' % img_name
+        gm.saveImg( imgLoc, img )
         
         
 # End target info class
