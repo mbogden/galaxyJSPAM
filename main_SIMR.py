@@ -188,7 +188,7 @@ def simr_target( arg=gm.inArgClass(), tInfo = None ):
             # Gather scores if called for
             if arg.get('update',False):
                 tInfo.gatherRunInfos()
-                tInfo.updateScores()                
+                tInfo.updateScores()
                 tInfo.saveInfoFile()
             
             # Check if others are expecting this tInfo
@@ -214,13 +214,9 @@ def simr_target( arg=gm.inArgClass(), tInfo = None ):
 
     if arg.get('printParam', False) and mpi_rank == 0:
         tInfo.printParams()
-
-    newImage = arg.get( 'newImage', False )
-    newScore = arg.get( 'newScore' ) 
-    newAll = arg.get( 'newAll', False )
     
     # Create new files/scores if called upon
-    if newImage or newScore or newAll:
+    if arg.get( 'newImage', False ) or arg.get( 'newFeats', False ) or arg.get( 'newScore' ):
         new_target_scores( tInfo, arg )
     
 
@@ -306,6 +302,7 @@ def new_target_scores( tInfo, tArg ):
     runArgs.setArg('tInfo', tInfo)
     runArgs.setArg('scoreParams', params)
     runArgs.setArg('newImage', tArg.get('newImage',False))
+    runArgs.setArg('newFeats', tArg.get('newFeats',False))
     runArgs.setArg('newScore', tArg.get('newScore',False))
     runArgs.setArg('overWrite', tArg.get('overWrite',False))
 
@@ -362,6 +359,8 @@ def new_target_scores( tInfo, tArg ):
         tInfo.gatherRunInfos()
         tInfo.updateScores()
         tInfo.saveInfoFile()
+        
+        
         
     # If in MPI environment, distribute argument list evenly to others
     elif mpi_size > 1:

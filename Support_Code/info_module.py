@@ -19,7 +19,6 @@ from sys import path as sysPath
 sysPath.append('../')
 
 
-
 from pprint import PrettyPrinter
 pp = PrettyPrinter(width=41, compact=True)
 pprint = pp.pprint
@@ -308,21 +307,21 @@ class run_info_class:
         return pts1, pts2
 
     
-    def getModelImage( self, imgName = 'zoo_0', imgType = 'model' ):
+    def getModelImage( self, imgName = 'zoo_0', imgType = 'model', toType=np.float32, overWrite=False ):
         
         # Create place to store images if needed.
         if self.get('img',None) == None: self.img = {}            
         if self.get('init',None) == None: self.init = {}
         
         # Return model image if already loaded.
-        if imgType == 'model':
+        if imgType == 'model' and not overWrite:
             mImg = self.img.get(imgName,None)
-            if type(mImg) != type(None):
+            if type(mImg) != type(None) and mImg.dtype == toType:
                 return mImg
         
-        elif imgType == 'init':            
+        elif imgType == 'init' and not overWrite:            
             img = self.init.get(imgName,None)
-            if type(img) != type(None):
+            if type(img) != type(None) and iImg.dtype == toType:
                 return img
         
         # Get image location
@@ -335,7 +334,7 @@ class run_info_class:
         if imgLoc == None: return None
         
         # Read image
-        img = gm.readImg(imgLoc)
+        img = gm.readImg(imgLoc, toType=toType)
         
         # Store image if called upon later
         if imgType == 'model':  self.img[imgName] = img            
@@ -807,8 +806,8 @@ class target_info_class:
     def gatherRunInfos( self, tArg=gm.inArgClass(), rArg=gm.inArgClass(), ):
 
         if self.printAll: 
-            print( "IM: Target.gatherRunInfos." )
-            rArg.printArg()
+            print( "IM: Target.gatherRunInfos" )
+            #rArg.printArg()
 
         runDirList = self.iter_runs()
         nRuns = len(runDirList)
@@ -832,10 +831,14 @@ class target_info_class:
 
         # Go through directories and read run info files
         for i,rDir in enumerate(runDirList):
+            if self.printAll: 
+                gm.tabprint("IM: gather_run_info LOOP: %4d / %4d" % (i, nRuns), end='\r')
             rDict = self.getRunDict( rDir )
             if rDict != None and rDict.get('run_id',None) != None:
                 self.tDict['zoo_merger_models'][rDict['run_id']] = rDict
 
+        if self.printAll: gm.tabprint("IM: gather_run_info LOOP: %4d / %4d COMPLETE" % (nRuns, nRuns))
+            
         self.saveInfoFile()
 
     # end gather Run Infos

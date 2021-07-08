@@ -387,8 +387,9 @@ def checkPP(arg):
     pHolder.loadQueue( printVal, argList )
 
     pHolder.runCores()
+    
 
-def readImg( imgLoc, printAll = False, toSize=None ):
+def readImg( imgLoc, printAll = False, toSize=None, toType=np.float32 ):
 
     # Check if path is valid
     if not path.exists( imgLoc ):
@@ -401,7 +402,7 @@ def readImg( imgLoc, printAll = False, toSize=None ):
     img = cv2.imread( imgLoc, 0 ) 
     
     # Convert to floating point with values between 0 and 1
-    if img.dtype == np.uint8:
+    if img.dtype != np.float32 and toType == np.float32:
         img = uint8_to_float32(img)
 
     # Resize if requested

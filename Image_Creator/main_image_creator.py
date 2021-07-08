@@ -810,6 +810,38 @@ def adjustTargetImage( tInfo, new_param, startingImg = 'zoo_0', printAll = False
     return tImg
 
 
+def plot_run_images( rInfo, group_param, nCol = 3 ):
+    from math import ceil
+    
+    i = 0
+    j = 0
+    n = len( group_param )
+    nRow = ceil( n / nCol )
+    if nRow < 2:
+        nRow = 2
+    
+    fig, ax = plt.subplots( nRow, nCol ,figsize=(nCol*4,nRow*4) )
+    
+    for pKey in group_param:
+        
+        imgName = group_param[pKey]['imgArg']['name']
+        
+        ax[i,j].set_title(imgName)
+        img = rInfo.getModelImage( imgName, overWrite = True, toType = np.uint8)
+        if type(img) == type(None):
+            print("image warning: None")
+        elif img.dtype != np.uint8:
+            print("img warning:",img.dtype)
+        else:
+            ax[i,j].imshow( img, cmap='gray' )
+        
+        j += 1
+        if j >= nCol:
+            j = 0
+            i += 1    
+    
+
+
 # Run main after declaring functions
 if __name__ == '__main__':
     from sys import argv
