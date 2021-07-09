@@ -330,7 +330,6 @@ def new_target_scores( tInfo, tArg ):
                     if printBase: print("WARNING: Run invalid: %s" % rKey)
                 argList.append( dict( arg = runArgs, rDir=rDir, ) )
 
-
     
     # If not in MPI environment, function normally.
     if mpi_size == 1:
@@ -355,11 +354,15 @@ def new_target_scores( tInfo, tArg ):
             ppClass.runCores()
 
         # Save results
+        
+        # If creating new image feature values, collect run values and create target values
+        if tArg.get('newFeats',False):
+            fe.wndchrm_target_all( tArg, tInfo )
+        
         tInfo.addScoreParameters( params, overWrite = tArg.get('overWrite',False) )
         tInfo.gatherRunInfos()
         tInfo.updateScores()
         tInfo.saveInfoFile()
-        
         
         
     # If in MPI environment, distribute argument list evenly to others
@@ -409,6 +412,11 @@ def new_target_scores( tInfo, tArg ):
         
         # Have rank 0 collect files and update scores
         if mpi_rank == 0:
+            
+            # If creating new image feature values, collect run values and create target values
+            if tArg.get('newFeats',False):
+                fe.wndchrm_target_all( tArg, tInfo )
+                
             tInfo.gatherRunInfos()
             tInfo.updateScores()
 

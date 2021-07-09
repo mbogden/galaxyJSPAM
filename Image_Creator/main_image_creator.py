@@ -722,7 +722,7 @@ def addCircles(img, imgParam, cSize = 7):
     return cimg
 
 # Function for modifying base target image
-def adjustTargetImage( tInfo, new_param, startingImg = 'zoo_0', printAll = False, overWrite=False ):
+def adjustTargetImage( tInfo, new_param, startingImg = 'zoo_0', printAll = False, overWrite=False, wndchrm_image=False ):
     
     if printAll:
         print("\nIC: Adusting Starting Target Image\n")
@@ -800,6 +800,9 @@ def adjustTargetImage( tInfo, new_param, startingImg = 'zoo_0', printAll = False
     
     # Write image to location    
     gm.saveImg( newLoc, newImg )
+    
+    if wndchrm_image:
+        wndImgLoc = tInfo.saveWndchrmImage( newImg, newName )
     
     if printAll:
         gm.tabprint("File should exist: %s"%gm.validPath(newLoc))
