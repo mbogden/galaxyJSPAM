@@ -1311,6 +1311,15 @@ class target_info_class:
             
         # Save score param for image creation later
         tInfo.saveScoreParam( base_chime, chime_name )
+        
+        # Create starting WNDCHRM feature normalization file
+        norm_chime_0 = {}
+        norm_chime_0['name'] = 'norm_chime_0'
+        norm_chime_0['top_models'] = 500
+        norm_chime_0['image_group'] = 'chime_0'
+        norm_chime_0['normalization_method'] = 'sklearn_StandardScaler'
+
+        self.saveWndchrmNorm( norm_chime_0, norm_chime_0['name'] )
 
         # Find pair file 
         pairPath1 = gm.validPath( inputDir + 'sdss%s.pair' % tName )
@@ -1585,6 +1594,15 @@ class target_info_class:
         dfLoc = self.wndDir + '%s.pkl' % name
         df = pd.read_pickle( dfLoc )
         return df
+    
+    def saveWndchrmNorm( self, norm_dict, norm_name ):
+        jsonLoc = self.wndDir + '%s.json' % norm_name
+        gm.saveJson( norm_dict, jsonLoc, pretty=True )
+    
+    def readWndchrmNorm( self, file_name ):
+        jsonLoc = self.wndDir + '%s.json' % file_name
+        norm_dict = gm.readJson(  jsonLoc )
+        return norm_dict
         
     
     
