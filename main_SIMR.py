@@ -171,7 +171,7 @@ def simr_target( arg=gm.inArgClass(), tInfo = None ):
     printBase = arg.printBase
     printAll = arg.printAll
     
-    if arg.printAll:
+    if arg.printAll: 
         arg.printBase = True
 
     if printAll and mpi_rank == 0:
@@ -195,9 +195,9 @@ def simr_target( arg=gm.inArgClass(), tInfo = None ):
             # If creating a new base, create new images
             if arg.get('newBase',False):
                 chime_0 = tInfo.readScoreParam( 'chime_0' )
-                chime_image = ic.adjustTargetImage( tInfo, chime_0['chime_0'] \
-                                                   , printAll = arg.printAll )
-                tInfo.saveWndchrmImage( chime_image, chime_0['chime_0']['imgArg'] )
+                chime_image = ic.adjustTargetImage( tInfo, chime_0['chime_0'], \
+                                                   printAll = arg.printAll )
+                tInfo.saveWndchrmImage( chime_image, chime_0['chime_0']['imgArg']['name'] )
                 
             
             # Gather scores if called for
@@ -231,9 +231,8 @@ def simr_target( arg=gm.inArgClass(), tInfo = None ):
         tInfo.printParams()
     
     # Create new files/scores if called upon
-    if arg.get( 'newImage', False ) or arg.get( 'newFeats', False ) or arg.get( 'newScore' ):
+    if arg.get( 'newImage', False ) or arg.get( 'newFeats', False ) or arg.get( 'newScore', False ) or arg.get( 'normFeats', False ):
         new_target_scores( tInfo, arg )
-    
 
 
 def new_target_scores( tInfo, tArg ):
@@ -321,7 +320,10 @@ def new_target_scores( tInfo, tArg ):
     runArgs.setArg('newScore', tArg.get('newScore',False))
     runArgs.setArg('overWrite', tArg.get('overWrite',False))
 
-    argList = None
+    # Rank 0 has argList and will distribute
+    argList = None    
+    scatter_lists = []
+    
     if mpi_rank == 0:
         
         # Find out which runs need new scores
@@ -345,95 +347,61 @@ def new_target_scores( tInfo, tArg ):
                     if printBase: print("WARNING: Run invalid: %s" % rKey)
                 argList.append( dict( arg = runArgs, rDir=rDir, ) )
 
-    
-    # If not in MPI environment, function normally.
-    if mpi_size == 1:
-        
-        # If empty, new scores not needed
-        if len(argList) == 0 and not tArg.get('overWrite',False):
-            if printBase:
-                gm.tabprint("Scores already exist")
-            return
-        
-        elif printBase: gm.tabprint("Runs needing scores: %d"%len(argList))
-            
-        if tArg.nProc == 1:
-            
-            for args in argList:
-                simr_run( **args )
-            
-        else:
-            # Prepare and run parallel class
-            ppClass = gm.ppClass( tArg.nProc, printProg=True )
-            ppClass.loadQueue( simr_run, argList )
-            ppClass.runCores()
-
-        # Save results
-        
-        # If creating new image feature values, collect run values and create target values
-        if tArg.get('newFeats',False):
-            fe.wndchrm_target_all( tArg, tInfo )
-        
-        tInfo.addScoreParameters( params, overWrite = tArg.get('overWrite',False) )
-        tInfo.gatherRunInfos()
-        tInfo.updateScores()
-        tInfo.saveInfoFile()
-        
-        
-    # If in MPI environment, distribute argument list evenly to others
-    elif mpi_size > 1:
-        
         # Print how many scores expecting to be completed.
-        if mpi_rank == 0 and printBase:
+        if printBase:
             if len(argList) == 0:
                 gm.tabprint("Scores already exist!")        
             else: 
                 gm.tabprint("Runs needing scores: %d"%len(argList))
-        
-        # Rank 0 has argList and will distribute
-        scatter_lists = []
-        if mpi_rank == 0:
-            
-            if len( argList ) > 0:
-                scatter_lists = [ argList[i::mpi_size] for i in range(mpi_size) ]
-            
-            else: 
-                for i in range(mpi_size):
-                    scatter_lists.append([])
-            
-            if printAll:
-                print("SIMR: new_target_scores: MPI Scatter argList")
-                gm.tabprint("Rank 0 argList: %d"%len(argList))
-                gm.tabprint("Rank 0 scatter_lists: %d"%len(scatter_lists))
-                for i,lst in enumerate(scatter_lists):
-                    gm.tabprint("Rank 0 list %d: %d"%(i,len(lst)))
-                
-        # Scatter argument lists to everyone
-        argList = mpi_comm.scatter(scatter_lists,root=0)
+
+        # Divide up the big list into many lists for distributing
+        if len( argList ) > 0:
+            scatter_lists = [ argList[i::mpi_size] for i in range(mpi_size) ]
+
+        # If nothing to do, create a list of empty lists so others know
+        else: 
+            for i in range(mpi_size):
+                scatter_lists.append([])
+
         if printAll:
-            gm.tabprint("Rank %d received: %d"%(mpi_rank,len(argList)))
-        
-        # Everyone go through their list and execute runs    
-        for i,args in enumerate(argList):
-            simr_run( **args )
-            
-            if mpi_rank == 0:
-                gm.tabprint("Rank 0: Progress: %d / %d " % (i+1,len(argList)), end='\r')
-        
-        if mpi_rank == 0: print('')
-            
-        # Everyone wait for everyone else to finish
-        mpi_comm.Barrier()
-        
-        # Have rank 0 collect files and update scores
+            print("SIMR: new_target_scores: MPI Scatter argList")
+            gm.tabprint("Rank 0 argList: %d"%len(argList))
+            gm.tabprint("Rank 0 scatter_lists: %d"%len(scatter_lists))
+            for i,lst in enumerate(scatter_lists):
+                gm.tabprint("Rank 0 list %d: %d"%(i,len(lst)))
+
+    # Scatter argument lists to everyone
+    argList = mpi_comm.scatter(scatter_lists,root=0)
+    if printAll:
+        gm.tabprint("Rank %d received: %d"%(mpi_rank,len(argList)))
+
+    # Everyone go through their list and execute runs    
+    for i,args in enumerate(argList):
+        simr_run( **args )
+
         if mpi_rank == 0:
-            
-            # If creating new image feature values, collect run values and create target values
-            if tArg.get('newFeats',False):
-                fe.wndchrm_target_all( tArg, tInfo )
-                
-            tInfo.gatherRunInfos()
-            tInfo.updateScores()
+            gm.tabprint("Rank 0: Progress: %d / %d " % (i+1,len(argList)), end='\r')
+
+    if mpi_rank == 0: print('')
+
+    # Everyone wait for everyone else to finish
+    mpi_comm.Barrier()
+
+    # Have rank 0 collect files and update scores
+    if mpi_rank == 0:
+
+        # Check if target needs to create feature values
+        if tArg.get('newFeats',False):
+            fe.wndchrm_target_all( tArg, tInfo )
+            fe.reorganize_wndchrm_target_data( tArg, tInfo )
+        
+        # Normalize feature values after created for runs
+        if tArg.get('normFeats',False):
+            #fe.target_collect_wndchrm_all_raw( tArg, tInfo = tInfo )
+            fe.target_wndchrm_create_norm_scaler( tArg, tInfo, )
+
+        tInfo.gatherRunInfos()
+        tInfo.updateScores()
 
 # End processing target dir for new scores
 

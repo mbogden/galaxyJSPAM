@@ -89,7 +89,6 @@ ___
 - `-newSim`    (Default: False) Tells program to create a new simulation of a model. (TODO)
 - `-newImage`  (Default: False) Tells program to create a new model image.
 - `-newFeats`  (Default: False) Tells program to create WNDCHRM features out of model image.
-- `-normFeats path/to/norm.json`  (Default: False) Tells program to normalize WNDCHRM features based on normalization parameters.
 - `-newScore`  (Default: False) Tells program to create a new machine score.
 - `-newPlot`   (Default: False) Tells program to create series of plots for a target.
 - `-newAll`    (Default: False) Tells program to create a new simulation, image, and score.
@@ -100,11 +99,18 @@ ___
 - `newRunInfo`   (Default: False) Will remove the information file for all models found in a target.
 - `newRunBase`   (Default: False) Will remove the base information file and generate a new one for all models found in a target.
 ___
+- `normFeats`  (Default: False) Takes WNDCHRM features created in runs and normalizes them.  Must be paired with -normName or -normLoc.
+- `normName file_name` Loots for a feature normalization file in target's WNDCHRM directory.
+- `normLoc path/to/file.json`   Looks for feature normalization file in specified path.
+___
 
 #### Common Commands
     
 ##### Initialize a target and generate basic direct image comparison scores 
 `python3 main_simr.py -dataDir path/to/all/targets/ -newInfo -newBase -newRunInfo -newRunBase -newScore -newImage -paramName zoo_0_direct_scores` 
+    
+##### Generate basic WNDCHRM images, features values, and normalize them.
+`python3 main_simr.py -dataDir path/to/all/targets/ -newImage -paramName paramName chime_0 newFeats -normFeats -normName norm_chime_0` 
     
 ##### Tell program to point at a target directory and generate new machine scores from a parameter file you've created.
 `python3 main_simr.py -targetDir path/to/target/ -newScore -paramLoc path/to/param.json` 
@@ -113,7 +119,7 @@ ___
 `python3 main_simr.py -printAll -runDir path/to/run/ -newImage -overWrite -paramLoc path/to/new_param.json` 
     
 ##### Tell program to go through many targets creating new simulations, images, and score as needed.  Use 24 processors on current machine. 
-`python3 main_simr.py -dataDir path/to/all/targets/ -newAll -paramLoc path/to/param.json -nProc 24`  
+`mpirun -n 24 python3 main_simr.py -dataDir path/to/all/targets/ -newAll -paramLoc path/to/param.json`  
     
     
 ## Project Overview<a id="overview">

@@ -986,9 +986,10 @@ class target_info_class:
         
         # Files inside misc directories
         self.imgParamLoc = self.imgDir + 'param_target_images.json'
-        self.wndRunRawLoc = self.wndDir + 'all_runs_raw.pkl'
-        self.wndTargetRawLoc = self.wndDir + 'targets_raw.csv'
-        self.wndTargetFitLoc = self.wndDir + 'targets_raw.fit'
+        self.wndRunRawDFLoc = self.wndDir + 'all_runs_raw.pkl'
+        self.wndTargetRawFitLoc = self.wndDir + 'targets_raw.fit'
+        self.wndTargetRawCSVLoc = self.wndDir + 'targets_raw.csv'
+        self.wndTargetRawDFLoc = self.wndDir + 'targets_raw.pkl'
                  
         # Create target subdirectories if not found
         if not path.exists( self.infoDir ): mkdir( self.infoDir )
@@ -1255,10 +1256,8 @@ class target_info_class:
         # Create basic scoring parameters
         self.createDirectScoreParameters( base_zoo['zoo_0'] )
         
+        ############# WNDCHRM Score Parameter File #################
         # Create a starting score parameter file for WNDCHRM image creation. 
-
-
-        # Create a blank group score parameter and copy starting parameters
         chime_name = 'chime_0'
         base_chime = {}
         base_chime[chime_name] = deepcopy( base_zoo[zoo_name] )
@@ -1268,7 +1267,7 @@ class target_info_class:
         base_chime[chime_name]['comment'] = 'Developing initial WNDCHRM implementation'
 
         # Resize WNDCHRM image to 100 pixels
-        old_size = blank_param['zoo_blank']['imgArg']['image_size']
+        old_size = base_zoo[zoo_name]['imgArg']['image_size']
         chime_size = 100
 
         max_side = np.amax( [ int(old_size['width']), int(old_size['height']) ] )
@@ -1295,10 +1294,21 @@ class target_info_class:
         base_chime[chime_name]['imgArg']['galaxy_centers']['sx'] = int( np.rint( redox_ratio * base_chime[chime_name]['imgArg']['galaxy_centers']['sx'] ) )
         base_chime[chime_name]['imgArg']['galaxy_centers']['sy'] = int( np.rint( redox_ratio * base_chime[chime_name]['imgArg']['galaxy_centers']['sy'] ) )
 
+        # Add blurring effect
+        base_chime[chime_name]['imgArg']['blur'] = {}
+        base_chime[chime_name]['imgArg']['blur']['type'] = 'gaussian_blur'
+        base_chime[chime_name]['imgArg']['blur']['size'] = 5
+        base_chime[chime_name]['imgArg']['blur']['weight'] = .5
+
         # Add feature arguments
         base_chime[chime_name]['featArg'] = {}
         base_chime[chime_name]['featArg']['type'] = 'wndchrm_all'
         base_chime[chime_name]['featArg']['normalization'] = None
+
+        # If you want to modify the final image brightness normalization
+        base_chime[chime_name]['imgArg']['normalization'] = {}
+        base_chime[chime_name]['imgArg']['normalization']['type'] = 'type1'
+        base_chime[chime_name]['imgArg']['normalization']['norm_constant'] = 2.5
 
         # WORKING
         # Change to feature comparison
@@ -1308,14 +1318,14 @@ class target_info_class:
         if printAll: 
             gm.tabprint("Saving Base WNDCHRM parameter")
             gm.pprint(base_chime)
-            
+
+
         # Save score param for image creation later
         tInfo.saveScoreParam( base_chime, chime_name )
         
         # Create starting WNDCHRM feature normalization file
         norm_chime_0 = {}
         norm_chime_0['name'] = 'norm_chime_0'
-        norm_chime_0['top_models'] = 500
         norm_chime_0['image_group'] = 'chime_0'
         norm_chime_0['normalization_method'] = 'sklearn_StandardScaler'
 
