@@ -136,6 +136,13 @@ def simr_many_target( arg ):
             if mpi_rank == 0:
                 tArg.targetDir = dataDir + folder
                 tInfo = im.target_info_class( tArg=tArg )
+            
+                # If creating a new base, create new images
+                if arg.get('newBase',False):
+                    chime_0 = tInfo.readScoreParam( 'chime_0' )
+                    chime_image = ic.adjustTargetImage( tInfo, chime_0['chime_0'] \
+                                                       , printAll = arg.printAll )
+                    tInfo.saveWndchrmImage( chime_image, chime_0['chime_0']['imgArg'] )
                 
                 if tInfo.status:                    
                     if printAll: gm.tabprint("Rank %d sending tInfo: %s" % (mpi_rank, tInfo.get('target_id')))
@@ -184,6 +191,14 @@ def simr_target( arg=gm.inArgClass(), tInfo = None ):
         if mpi_rank == 0:
             
             tInfo = im.target_info_class( targetDir=tDir, tArg = arg )
+            
+            # If creating a new base, create new images
+            if arg.get('newBase',False):
+                chime_0 = tInfo.readScoreParam( 'chime_0' )
+                chime_image = ic.adjustTargetImage( tInfo, chime_0['chime_0'] \
+                                                   , printAll = arg.printAll )
+                tInfo.saveWndchrmImage( chime_image, chime_0['chime_0']['imgArg'] )
+                
             
             # Gather scores if called for
             if arg.get('update',False):

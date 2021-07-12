@@ -87,7 +87,9 @@ ___
 - `-targetLoc path/to/score/target.png`    Path to an existing target image of colliding galaxies.
 ___
 - `-newSim`    (Default: False) Tells program to create a new simulation of a model. (TODO)
-- `-newImage`  (Default: False) Tells program to create a new model image. (Working)
+- `-newImage`  (Default: False) Tells program to create a new model image.
+- `-newFeats`  (Default: False) Tells program to create WNDCHRM features out of model image.
+- `-normFeats path/to/norm.json`  (Default: False) Tells program to normalize WNDCHRM features based on normalization parameters.
 - `-newScore`  (Default: False) Tells program to create a new machine score.
 - `-newPlot`   (Default: False) Tells program to create series of plots for a target.
 - `-newAll`    (Default: False) Tells program to create a new simulation, image, and score.

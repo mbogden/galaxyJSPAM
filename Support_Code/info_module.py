@@ -986,7 +986,7 @@ class target_info_class:
         
         # Files inside misc directories
         self.imgParamLoc = self.imgDir + 'param_target_images.json'
-        self.wndRunRawLoc = self.wndDir + 'all_runs_raw.csv'
+        self.wndRunRawLoc = self.wndDir + 'all_runs_raw.pkl'
         self.wndTargetRawLoc = self.wndDir + 'targets_raw.csv'
         self.wndTargetFitLoc = self.wndDir + 'targets_raw.fit'
                  
@@ -1137,6 +1137,8 @@ class target_info_class:
          
         # Assume directory name of target is target name
         tName = self.targetDir.split('/')[-2]
+        printAll = self.printAll
+        tInfo = self
         
         if self.printAll: 
             print('IM: createBaseInfo')
@@ -1211,14 +1213,14 @@ class target_info_class:
             return False
 
         # Copy blank parameter
-        new_params = {}
-        new_name = 'zoo_0'
-        new_params[new_name] = deepcopy(blank_param['zoo_blank'])
+        base_zoo = {}
+        zoo_name = 'zoo_0'
+        base_zoo[zoo_name] = deepcopy(blank_param['zoo_blank'])
 
         # Make name and comments initial comments.
-        new_params[new_name]['name'] = new_name
-        new_params[new_name]['comment'] = 'Starting score parameters file for %s'%tName
-        new_params[new_name]['imgArg']['comment'] = "Starting image parameters for %s"%tName
+        base_zoo[zoo_name]['name'] = zoo_name
+        base_zoo[zoo_name]['comment'] = 'Starting score parameters file for %s'%tName
+        base_zoo[zoo_name]['imgArg']['comment'] = "Starting image parameters for %s"%tName
 
         # Grab information
         for l in mFile:
@@ -1226,39 +1228,96 @@ class target_info_class:
             
             if 'height' in l:
                 h = l.split('=')[1]
-                new_params[new_name]['imgArg']['image_size']['width'] = int(h)
+                base_zoo[zoo_name]['imgArg']['image_size']['width'] = int(h)
                 
             if 'width' in l:
                 w = l.split('=')[1]
-                new_params[new_name]['imgArg']['image_size']['width'] = int(w)
+                base_zoo[zoo_name]['imgArg']['image_size']['width'] = int(w)
             if 'px' in l:
                 px = l.split('=')[1]
-                new_params[new_name]['imgArg']['galaxy_centers']['px'] = int(px)
+                base_zoo[zoo_name]['imgArg']['galaxy_centers']['px'] = int(px)
             if 'py' in l:
                 py = l.split('=')[1]
-                new_params[new_name]['imgArg']['galaxy_centers']['py'] = int(py)
+                base_zoo[zoo_name]['imgArg']['galaxy_centers']['py'] = int(py)
             if 'sx' in l:
                 sx = l.split('=')[1]
-                new_params[new_name]['imgArg']['galaxy_centers']['sx'] = int(sx)
+                base_zoo[zoo_name]['imgArg']['galaxy_centers']['sx'] = int(sx)
             if 'sy' in l:
                 sy = l.split('=')[1]
-                new_params[new_name]['imgArg']['galaxy_centers']['sy'] = int(sy)
+                base_zoo[zoo_name]['imgArg']['galaxy_centers']['sy'] = int(sy)
 
-        if self.printAll: gm.pprint(new_params)
+        if self.printAll: gm.pprint(base_zoo)
 
         # Save new target image parameter
         newParamLoc = self.imgParamLoc
-        gm.saveJson( new_params, newParamLoc, pretty=True )
+        gm.saveJson( base_zoo, newParamLoc, pretty=True )
                 
         # Create basic scoring parameters
-        self.createDirectScoreParameters( new_params['zoo_0'] )
+        self.createDirectScoreParameters( base_zoo['zoo_0'] )
+        
+        # Create a starting score parameter file for WNDCHRM image creation. 
+
+
+        # Create a blank group score parameter and copy starting parameters
+        chime_name = 'chime_0'
+        base_chime = {}
+        base_chime[chime_name] = deepcopy( base_zoo[zoo_name] )
+
+        # ALWAYS modify the names
+        base_chime[chime_name]['name'] = chime_name
+        base_chime[chime_name]['comment'] = 'Developing initial WNDCHRM implementation'
+
+        # Resize WNDCHRM image to 100 pixels
+        old_size = blank_param['zoo_blank']['imgArg']['image_size']
+        chime_size = 100
+
+        max_side = np.amax( [ int(old_size['width']), int(old_size['height']) ] )
+        redox_ratio = float( chime_size / max_side )
+
+        if printAll: 
+            print("IM: target_info_class.createBaseInfo: Creating WNDCHRM score parameter")
+            gm.tabprint("Old Size: %d" % max_side)
+            gm.tabprint("New Size: %d" % chime_size)
+            gm.tabprint("Reduction Ratio: %d" % redox_ratio)
+
+        # Create new image parameters
+        base_chime[chime_name]['imgArg']['name'] = chime_name
+        base_chime[chime_name]['imgArg']['type'] = 'wndchrm'
+        base_chime[chime_name]['imgArg']['comment'] = 'Starting image for WNDCHRM feature extraction'
+
+        # Adjust Image Size
+        base_chime[chime_name]['imgArg']['image_size']['width' ] = int( np.rint( redox_ratio * base_chime[chime_name]['imgArg']['image_size']['width' ]) )
+        base_chime[chime_name]['imgArg']['image_size']['height'] = int( np.rint( redox_ratio * base_chime[chime_name]['imgArg']['image_size']['height']) )
+
+        # Adjust galaxy centers
+        base_chime[chime_name]['imgArg']['galaxy_centers']['px'] = int( np.rint( redox_ratio * base_chime[chime_name]['imgArg']['galaxy_centers']['px'] ) )
+        base_chime[chime_name]['imgArg']['galaxy_centers']['py'] = int( np.rint( redox_ratio * base_chime[chime_name]['imgArg']['galaxy_centers']['py'] ) )
+        base_chime[chime_name]['imgArg']['galaxy_centers']['sx'] = int( np.rint( redox_ratio * base_chime[chime_name]['imgArg']['galaxy_centers']['sx'] ) )
+        base_chime[chime_name]['imgArg']['galaxy_centers']['sy'] = int( np.rint( redox_ratio * base_chime[chime_name]['imgArg']['galaxy_centers']['sy'] ) )
+
+        # Add feature arguments
+        base_chime[chime_name]['featArg'] = {}
+        base_chime[chime_name]['featArg']['type'] = 'wndchrm_all'
+        base_chime[chime_name]['featArg']['normalization'] = None
+
+        # WORKING
+        # Change to feature comparison
+        base_chime[chime_name]['cmpArg']['targetName'] = chime_name
+        base_chime[chime_name]['cmpArg']['type'] = 'direct_feature_comparison'
+
+        if printAll: 
+            gm.tabprint("Saving Base WNDCHRM parameter")
+            gm.pprint(base_chime)
+            
+        # Save score param for image creation later
+        tInfo.saveScoreParam( base_chime, chime_name )
 
         # Find pair file 
-        pairPath1 = gm.validPath( inputDir + 'sdss%s.pair'%tName )
-        pairPath2 = gm.validPath( inputDir + '%s.pair'%tName )
+        pairPath1 = gm.validPath( inputDir + 'sdss%s.pair' % tName )
+        pairPath2 = gm.validPath( inputDir + '%s.pair' % tName )
         if self.printAll: 
-            gm.tabprint('pairPath1: ',pairPath1)
-            gm.tabprint('pairPath2: ',pairPath2)
+            gm.tabprint( 'pairPath1: %s' % pairPath1 )
+            gm.tabprint( 'pairPath2: %s' % pairPath2 )
             
         if pairPath1 != None:            
             pairFile = open(pairPath1, 'r' )
@@ -1267,9 +1326,10 @@ class target_info_class:
             pairFile = open(pairPath2, 'r' )
             
         else:
-            if self.printBase: print("WARNING: IM: Pair data not found: %s"%pairPath)
+            if self.printBase: print( "WARNING: IM: Pair data not found: %s" % pairPath )
             return False
 
+        # Create a basic mask that covers the target galaxy based on pair file. 
         start_roi_mask = gm.readJson(simrDir+'param/mask_roi_blank.json')
 
         start_roi_mask['name'] = 'mask_roi_zoo_0'
@@ -1506,6 +1566,28 @@ class target_info_class:
         imgLoc = self.wndDir + '%s.tiff' % img_name
         gm.saveImg( imgLoc, img )
         
+    def saveWndchrmScaler( self, scaler, name ):
+        from pickle import dump
+        scalerLoc = self.wndDir + '%s_scaler.pkl' % name
+        dump( scaler, open( scalerLoc, 'wb') )
+        
+    def readWndchrmScaler( self, name ):
+        from pickle import load
+        scalerLoc = self.wndDir + '%s_scaler.pkl' % name
+        scaler = load( open( scalerLoc, 'rb') )
+        return scaler
+        
+    def saveWndchrmDF( self, df, name ):
+        dfLoc = self.wndDir + '%s.pkl' % name
+        df.to_pickle( dfLoc )
+        
+    def readWndchrmDF( self, name ):
+        dfLoc = self.wndDir + '%s.pkl' % name
+        df = pd.read_pickle( dfLoc )
+        return df
+        
+    
+    
         
 # End target info class
     
