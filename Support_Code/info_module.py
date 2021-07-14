@@ -597,6 +597,8 @@ class target_info_class:
     targetHeaders = ( 'target_id', 'target_images', 'simulation_parameters', 'image_parameters', 'zoo_merger_models', 'score_parameters', 'progress', 'model_sets' )
     
     baseHeaders = ( 'target_id', )
+     
+    wndchrmInfoHeaders = [ 'run_id', 'target_id', 'image_name', 'zoo_merger_score' ]
 
 
     def __init__( self, targetDir = None, tArg = gm.inArgClass(), \
@@ -973,7 +975,7 @@ class target_info_class:
         # Directires inside info dir
         self.imgDir = self.infoDir + 'target_images/'
         self.maskDir = self.infoDir + 'target_masks/'        
-        self.scoreParamDir = self.infoDir + 'score_parameters/'        
+        self.scoreParamDir = self.infoDir + 'score_parameters/'
         self.wndDir = self.infoDir + 'wndchrm_files/'
 
         # Locations of files inside info dir
@@ -984,17 +986,20 @@ class target_info_class:
         self.zooMergerLoc = self.infoDir + 'galaxy_zoo_models.txt'
         self.imgParamLocOld = self.infoDir + 'param_target_images.json'
         
-        # Files inside misc directories
-        self.imgParamLoc = self.imgDir + 'param_target_images.json'
+        # Various files within the wndchrm directory
         self.wndRunRawDFLoc = self.wndDir + 'all_runs_raw.pkl'
         self.wndTargetRawFitLoc = self.wndDir + 'targets_raw.fit'
         self.wndTargetRawCSVLoc = self.wndDir + 'targets_raw.csv'
         self.wndTargetRawDFLoc = self.wndDir + 'targets_raw.pkl'
+        
+        # Files inside misc directories
+        self.imgParamLoc = self.imgDir + 'param_target_images.json'
                  
         # Create target subdirectories if not found
         if not path.exists( self.infoDir ): mkdir( self.infoDir )
         if not path.exists( self.imgDir ): mkdir( self.imgDir )
         if not path.exists( self.maskDir ): mkdir( self.maskDir )
+        if not path.exists( self.plotDir ): mkdir( self.plotDir )
         if not path.exists( self.wndDir ): mkdir( self.wndDir )
         if not path.exists( self.scoreParamDir ): mkdir( self.scoreParamDir )
         

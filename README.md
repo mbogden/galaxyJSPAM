@@ -36,13 +36,14 @@ Much of the Image Feature Extraction used in this Project utilizes the open-sour
 The following is my, Matthew Ogden's, notes on installing WNDCHRM for the first time on a personal machine. 
     
 ```
-    sudo apt-get install build-essential    
-    sudo apt-get install -y libtiff-dev
-    sudo apt-get install libfftw3-dev
+    sudo apt-get install build-essential 
+    sudo apt-get install -y libtiff-dev 
+    sudo apt-get install libfftw3-dev 
     
-    git clone https://github.com/wnd-charm/wnd-charm.git
-    cd wnd-charm
-    sudo ./build.sh      
+    git clone https://github.com/wnd-charm/wnd-charm.git 
+    cd wnd-charm 
+    sudo ./build.sh
+    
 ```
 
 
@@ -94,31 +95,32 @@ ___
 - `-newAll`    (Default: False) Tells program to create a new simulation, image, and score.
 - `-overWrite` (Default: False) Tells program to create a new simulation, image, and/or score even if that file already exists.
 ___
-- `newInfo`      (Default: False) Remove current information file.  Create a new one from a copy of the base.
-- `newBase`      (Default: False) Remove the base information file and generate a new one. 
-- `newRunInfo`   (Default: False) Will remove the information file for all models found in a target.
-- `newRunBase`   (Default: False) Will remove the base information file and generate a new one for all models found in a target.
+- `newInfo`    (Default: False) Remove current information file.  Create a new one from a copy of the base.
+- `newBase`    (Default: False) Remove the base information file and generate a new one. 
+- `newRunInfo` (Default: False) Will remove the information file for all models found in a target.
+- `newRunBase` (Default: False) Will remove the base information file and generate a new one for all models found in a target.
 ___
 - `normFeats`  (Default: False) Takes WNDCHRM features created in runs and normalizes them.  Must be paired with -normName or -normLoc.
 - `normName file_name` Loots for a feature normalization file in target's WNDCHRM directory.
 - `normLoc path/to/file.json`   Looks for feature normalization file in specified path.
+- `wndchrmAnalysis`   Performs wndchrm analysis
 ___
 
-#### Common Commands
+### Common Commands
     
-##### Initialize a target and generate basic direct image comparison scores 
+#### Initialize a target and generate basic direct image comparison scores 
 `python3 main_simr.py -dataDir path/to/all/targets/ -newInfo -newBase -newRunInfo -newRunBase -newScore -newImage -paramName zoo_0_direct_scores` 
     
-##### Generate basic WNDCHRM images, features values, and normalize them.
+#### Generate basic WNDCHRM images, features values, and normalize them.
 `python3 main_simr.py -dataDir path/to/all/targets/ -newImage -paramName paramName chime_0 newFeats -normFeats -normName norm_chime_0` 
     
-##### Tell program to point at a target directory and generate new machine scores from a parameter file you've created.
+#### Tell program to point at a target directory and generate new machine scores from a parameter file you've created.
 `python3 main_simr.py -targetDir path/to/target/ -newScore -paramLoc path/to/param.json` 
     
-##### Tell program to focus on a single model, create a new image, overwrite existing images and print all progress.  Useful for testing new image creation.
+#### Tell program to focus on a single model, create a new image, overwrite existing images and print all progress.  Useful for testing new image creation.
 `python3 main_simr.py -printAll -runDir path/to/run/ -newImage -overWrite -paramLoc path/to/new_param.json` 
     
-##### Tell program to go through many targets creating new simulations, images, and score as needed.  Use 24 processors on current machine. 
+#### Tell program to go through many targets creating new simulations, images, and score as needed.  Use 24 processors on current machine. 
 `mpirun -n 24 python3 main_simr.py -dataDir path/to/all/targets/ -newAll -paramLoc path/to/param.json`  
     
     

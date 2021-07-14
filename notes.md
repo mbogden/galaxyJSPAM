@@ -12,10 +12,14 @@ Might* be good for others to view.
 
 - Reimplemnet WNDCHRM in Galaxy Code.
     - Install WNDCHRM on needed machine. 
-    - organize where tiff images go and how code is called.
-    - collect and reorganize WNDCHRM data.
     - normalize entire systems.
     - implement mask (Only extract these x out of 1000's of features)
+    
+- Implement feature selection on WNDCHRM.
+    - You did this in Data Mining.  Do it now. 
+
+- Creating Images appears to have a memory leak.  
+    - Find and prevent?
         
 - Get a single-layer neural network going
     - Gather and pickle images into a temp file/folder.
@@ -23,11 +27,10 @@ Might* be good for others to view.
     - Generalize it to all targets.
     - Create custom equation and weights in neural network. 
 
-- Implement Feature selection.
-    - You did this in Data Mining.  Do it now. 
-
 - Create Robust Analysis between Different Score parameters. 
     - Interactive window and grid? 
+
+- Modernize Simuation Code
 
 - Old Stuff
     - Capstone execution times, why are they acting funny?         
@@ -52,10 +55,9 @@ Might* be good for others to view.
         - implement masks
 
 - Image Creator
-    - Do Total variation denoising on Model images
+    - Total variation denoising on Model images?
 
 - Image Comparison.
-    - Reimplement WNDCHRM
     - Implement Neural Networks
         - Create Single Layer Neural Network for all.
     - Weighted Mask
