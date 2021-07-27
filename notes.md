@@ -47,10 +47,18 @@ Might* be good for others to view.
     - Create reports for any missing items. 
     
 - Optimization opportunities
+    - Parallel processing
+        - If one model errors out, the rest of the models the processor is responsible for don't get accomplished.
+        - When attempting to repeat the parallel environment, that came processor is in charge of everything that remains to be done, and remaining processors do nothing. 
+        - Randomize list being broadcast?
+        - Implement Tasker/Working solution? 
     - Simulation 
         - Analyze impact approximation w/o points. Stop if small
         - Particle Files: Pickle X,Y,R and zip.  
         - Compare model scores between 100k and 20k pts
+    - Image Maker
+        - During mpirun, when 1 run fails, processor does not complete rest.
+        - Solution: Implement Tasker/Worker model for parallel processing? 
     - WNDCHRM 
         - implement masks
 

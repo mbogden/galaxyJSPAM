@@ -109,19 +109,19 @@ ___
 ### Common Commands
     
 #### Initialize a target and generate basic direct image comparison scores 
-`python3 main_simr.py -dataDir path/to/all/targets/ -newInfo -newBase -newRunInfo -newRunBase -newScore -newImage -paramName zoo_0_direct_scores` 
+`python3 main_SIMR.py -dataDir path/to/all/targets/ -newInfo -newBase -newRunInfo -newRunBase -newScore -newImage -paramName zoo_0_direct_scores` 
     
 #### Generate basic WNDCHRM images, features values, and normalize them.
-`python3 main_simr.py -dataDir path/to/all/targets/ -newImage -paramName paramName chime_0 newFeats -normFeats -normName norm_chime_0` 
+`python3 main_SIMR.py -targetDir path/to/target/ -newImage -paramName chime_0 -newFeats -normFeats -normName norm_chime_0` 
     
 #### Tell program to point at a target directory and generate new machine scores from a parameter file you've created.
-`python3 main_simr.py -targetDir path/to/target/ -newScore -paramLoc path/to/param.json` 
+`python3 main_SIMR.py -targetDir path/to/target/ -newScore -paramLoc path/to/param.json` 
     
 #### Tell program to focus on a single model, create a new image, overwrite existing images and print all progress.  Useful for testing new image creation.
-`python3 main_simr.py -printAll -runDir path/to/run/ -newImage -overWrite -paramLoc path/to/new_param.json` 
+`python3 main_SIMR.py -printAll -runDir path/to/run/ -newImage -overWrite -paramLoc path/to/new_param.json` 
     
 #### Tell program to go through many targets creating new simulations, images, and score as needed.  Use 24 processors on current machine. 
-`mpirun -n 24 python3 main_simr.py -dataDir path/to/all/targets/ -newAll -paramLoc path/to/param.json`  
+`mpirun -n 24 python3 main_SIMR.py -dataDir path/to/all/targets/ -newAll -paramLoc path/to/param.json`  
     
     
 ## Project Overview<a id="overview">

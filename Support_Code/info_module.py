@@ -601,28 +601,35 @@ class target_info_class:
     wndchrmInfoHeaders = [ 'run_id', 'target_id', 'image_name', 'zoo_merger_score' ]
 
 
-    def __init__( self, targetDir = None, tArg = gm.inArgClass(), \
+    def __init__( self, targetDir = None, tArg = None, \
             printBase = None, printAll = None, ):
 
+        # Creat arg class if none passed
+        if tArg == None:
+            tArg = gm.inArgClass()
+        
         # Tell class what to print
         if printBase != None:
             self.printBase = printBase
         else:
             self.printBase = tArg.printBase
-        
-        if tArg.targetDir == None: tArg.targetDir = targetDir
             
         if printAll != None:   
             self.printAll = printAll
         else:            
-            self.printAll = tArg.printAll            
+            self.printAll = tArg.printAll   
+        
+        if self.printAll == True: 
+            print("IM: target_info_class.__init__:")
+            print('\t - targetDir: ', targetDir)
+            print('\t - arg.targetDir: ', tArg.targetDir)
+            
+        if tArg.targetDir == None: tArg.targetDir = targetDir
+                     
             
         # To avoid future confusion
         if self.printAll:  self.printBase = True
 
-        if self.printAll: 
-            print("IM: target_info_class.__init__:")
-            print('\t - targetDir: ', tArg.targetDir)
             
         # Check if directory has correct structure
         newInfo = tArg.get('newInfo',False)

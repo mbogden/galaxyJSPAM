@@ -397,7 +397,7 @@ def new_target_scores( tInfo, tArg ):
         
         # Normalize feature values after created for runs
         if tArg.get('normFeats',False):
-            #fe.target_collect_wndchrm_all_raw( tArg, tInfo = tInfo )
+            fe.target_collect_wndchrm_all_raw( tArg, tInfo = tInfo )
             fe.target_wndchrm_create_norm_scaler( tArg, tInfo, )
 
         tInfo.gatherRunInfos()
