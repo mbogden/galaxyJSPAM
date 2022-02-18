@@ -29,7 +29,6 @@ def set_new_func( inFunc ):
 
 def main(arg):
 
-
     if arg.printAll:
 
         arg.printArg()

@@ -1,0 +1,1 @@
+{"name": "norm_wndchrm_all_test", "top_models": 500, "type": "wndchrm_all", "image_group": "chime_group_1", "normalization_method": "sklearn_StandardScaler"}

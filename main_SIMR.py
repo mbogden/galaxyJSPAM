@@ -12,11 +12,11 @@ from os import path, listdir
 from sys import path as sysPath, exit
 sysPath.append( path.abspath( 'Machine_Score/' ) )
 
-import pandas as pd
-import numpy as np
-import cv2
-from time import sleep
-from mpi4py import MPI
+import pandas as pd 
+import numpy as np 
+import cv2 
+from time import sleep 
+from mpi4py import MPI 
 mpi_comm = MPI.COMM_WORLD    
 mpi_rank = mpi_comm.Get_rank()
 mpi_size = mpi_comm.Get_size()
@@ -27,6 +27,7 @@ import Support_Code.info_module as im
 import Simulator.main_simulator as ss
 import Image_Creator.main_image_creator as ic
 import Feature_Extraction.main_feature_extraction as fe
+import Neural_Network.main_neural_networks as nn
 from Machine_Score import main_machine_score as ms
 import Score_Analysis.main_score_analysis as sa
 
@@ -58,6 +59,7 @@ def main(arg):
         gm.test()
         im.test()
         fe.test()
+        nn.test()
         ms.test()
         ss.test()
 
@@ -231,8 +233,9 @@ def simr_target( arg=gm.inArgClass(), tInfo = None ):
         tInfo.printParams()
     
     # Create new files/scores if called upon
-    if arg.get( 'newImage', False ) or arg.get( 'newFeats', False ) or arg.get( 'newScore', False ) or arg.get( 'normFeats', False ):
+    if arg.get( 'newImage', False ) or arg.get( 'newFeats', False ) or arg.get( 'newScore', False ) or arg.get( 'normFeats', False ) or arg.get('newNN', False):
         new_target_scores( tInfo, arg )
+        
 
 
 def new_target_scores( tInfo, tArg ):
@@ -317,6 +320,7 @@ def new_target_scores( tInfo, tArg ):
     runArgs.setArg('scoreParams', params)
     runArgs.setArg('newImage', tArg.get('newImage',False))
     runArgs.setArg('newFeats', tArg.get('newFeats',False))
+    runArgs.setArg('newNN', tArg.get('newNN',False))
     runArgs.setArg('newScore', tArg.get('newScore',False))
     runArgs.setArg('overWrite', tArg.get('overWrite',False))
 
@@ -399,6 +403,10 @@ def new_target_scores( tInfo, tArg ):
         if tArg.get('normFeats',False):
             fe.target_collect_wndchrm_all_raw( tArg, tInfo = tInfo )
             fe.target_wndchrm_create_norm_scaler( tArg, tInfo, )
+            
+        # Create new neural network model if called for
+        if tArg.get('newNN',False):
+            nn.target_new_neural_network( tArg, tInfo )
 
         tInfo.gatherRunInfos()
         tInfo.updateScores()

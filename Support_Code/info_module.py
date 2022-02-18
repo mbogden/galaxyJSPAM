@@ -539,7 +539,7 @@ class run_info_class:
         self.rDict['zoo_merger_score'] = float(hScore)
 
         # created initial info.json file from info.txt
-        self.baseDict = deepcopy(self.rDict)
+        self.baseDict = deepcopy( self.rDict )
 
         # Save results
         self.saveInfoFile( saveBase = True )
@@ -822,7 +822,7 @@ class target_info_class:
 
 
     # Gather run infos from directories
-    def gatherRunInfos( self, tArg=gm.inArgClass(), rArg=gm.inArgClass(), ):
+    def gatherRunInfos( self, rArg=gm.inArgClass(), ):
 
         if self.printAll: 
             print( "IM: Target.gatherRunInfos" )

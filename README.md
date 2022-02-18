@@ -35,36 +35,35 @@ Much of the Image Feature Extraction used in this Project utilizes the open-sour
     
 The following is my, Matthew Ogden's, notes on installing WNDCHRM for the first time on a personal machine. 
     
-```
+``` 
     sudo apt-get install build-essential 
     sudo apt-get install -y libtiff-dev 
     sudo apt-get install libfftw3-dev 
     
     git clone https://github.com/wnd-charm/wnd-charm.git 
     cd wnd-charm 
-    sudo ./build.sh
+    sudo ./build.sh 
     
-```
+``` 
 
 
-## Instructions<a id="Instructions">
+## Instructions<a id="Instructions"> 
     
-    
-### Activate environment
+### Activate environment 
     
     Since the python packages were installed into a virtual environment, you must launch the virtual environment whenever you run code.
-    
+     
 ```
-source simr_env/bin/activate
+source simr_env/bin/activate 
 ```
     
-### Python Notebook
+### Python Notebook 
     
-There are several notebooks in the Notebook folder (Ex. Template.ipynb) that show how to import and use several functions located in this suite.
+There are several notebooks in the Notebook folder (Ex. Template.ipynb) that show how to import and use several functions located in this suite. 
 
-### Terminal Instructions
+### Terminal Instructions 
 
-The primary program can be launched in two different methods!
+The primary program can be launched in two different methods! 
     - `python3 main_simr.py` 
     - `mpirun -n 4 python3 main_simr.py` 
 

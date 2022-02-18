@@ -17,6 +17,13 @@ import info_module as im
 def test():
     print("SS: Hi!  You're in Matthew's main code for all things simulation.")
 
+# For testing and developement from outside. 
+new_func = None
+def set_new_func( new_func_ptr ):
+    global new_func
+    new_func = new_func_ptr
+# End set new function
+    
 def main(arg):
 
     if arg.printBase:
@@ -33,13 +40,7 @@ def main(arg):
             print("\t- Nothing else to see here")
 
     elif arg.runDir != None:
-        procRun( arg.runDir, printAll=arg.printAll )
-
-    elif arg.targetDir != None:
-        procTarget( arg.targetDir, printAll=arg.printAll )
-
-    elif arg.dataDir != None:
-        procAllData( arg.dataDir, printAll=arg.printAll )
+        sim_run( arg.runDir, printAll=arg.printAll )
 
     else:
         print("SS: Nothing selected!")
@@ -76,70 +77,6 @@ def procRun( rDir, rInfo=None, printBase=True, printAll=False ):
 
 # end processing run dir
 
-
-# Process target directory
-def procTarget( tDir, printBase = True, printAll=False ):
-
-    if printBase:
-        print("SS.procTarget:")
-        print("\t - tDir: " , tDir)
-
-    #tInfo = im.target_info_class( targetDir=tDir, printAll=True )
-    tInfo = im.target_info_class( targetDir=tDir, printAll=False )
-
-    if printBase:
-        print("SS.procTarget:")
-        print("\t - tInfo.status: %s" % tInfo.status )
-
-    # Check if target is valid
-    if tInfo.status == False:
-        print("SS: WARNING: procTarget:")
-        print("\t - Target not good.")
-        return
-
-    if printAll:
-        tInfo.printInfo()
-
-    tInfo.gatherRunInfos()
-    
-    for r in tInfo.runDirs:
-        print("t")
-
-# End processing sdss dir
-
-
-def procAllData( dataDir, printBase=True, printAll=False ):
-
-    from os import listdir
-
-    if printBase: 
-        print("SS.procAllData")
-        print("\t - dataDir: %s" % arg.dataDir )
-
-    # Check if directory exists
-    if not path.exists( dataDir ):  
-        print("SS.procAllData: WARNING: Directory not found")
-        print('\t - ' , dataDir )
-        return
-
-    # Append trailing '/' if needed
-    if dataDir[-1] != '/': dataDir += '/'  
-
-    dataList = listdir( dataDir )   # List of items found in folder
-    tDirList = []  # List of folders that are target directories
-
-    # Find target directories
-    for folder in dataList:
-        tDir = dataDir + folder
-        tempInfo = im.target_info_class( targetDir=tDir, printAll=False )
-
-        # if a valid target directory
-        if tempInfo.status:  tDirList.append( tempInfo )
-
-    if printBase:
-        print( '\t - Target Directories: %d' % len( tDirList ) )
-
-# End of procAllData
 
 # Run main after declaring functions
 if __name__ == '__main__':
@@ -278,7 +215,7 @@ def new_readArg(argList):
         if arg[0] != '-':
             continue
 
-        # Turns out path.abspath doesn't understand ~
+        # Turns out path.abspath doesn't understand '~'
         elif arg == '-runDir':
             runDir = argList[i + 1]
             if runDir[0] == '~':

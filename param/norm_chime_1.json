@@ -1,0 +1,1 @@
+{"name": "norm_chime_1", "top_models": 500, "image_group": "chime_group_1", "normalization_method": "sklearn_StandardScaler"}
