@@ -204,7 +204,7 @@ def simr_target( arg=gm.inArgClass(), tInfo = None ):
             
             # Gather scores if called for
             if arg.get('update',False):
-                tInfo.gatherRunInfos()
+                tInfo.gatherRunInfoFiles()
                 tInfo.updateScores()
                 tInfo.saveInfoFile()
             
@@ -339,7 +339,7 @@ def new_target_scores( tInfo, tArg ):
     if mpi_rank == 0:
         
         # Find out which runs need new scores
-        tInfo.gatherRunInfos()
+        tInfo.gatherRunInfoFiles()
         
         # Check if grabbing subset of runs.  If not, presume all
         if tArg.get('startRun',None) != None \
@@ -430,7 +430,7 @@ def new_target_scores( tInfo, tArg ):
         if tArg.get('newNN',False):
             nn.target_new_neural_network( tArg, tInfo )
 
-        tInfo.gatherRunInfos()
+        tInfo.gatherRunInfoFiles()
         tInfo.updateScores()
 
 # End processing target dir for new scores

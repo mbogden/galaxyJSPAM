@@ -822,17 +822,17 @@ class target_info_class:
 
 
     # Gather run infos from directories
-    def gatherRunInfos( self, rArg=gm.inArgClass(), ):
+    def gatherRunInfoFiles( self, rArg=gm.inArgClass(), ):
 
         if self.printAll: 
-            print( "IM: Target.gatherRunInfos" )
+            print( "IM: Target.gatherRunInfoFiles" )
             #rArg.printArg()
 
         runDirList = self.iter_runs()
         nRuns = len(runDirList)
         
         if rArg.get('newInfo',False):
-            if self.printBase: print("IM: Target: gatherRunInfos: Adjusting run infos")
+            if self.printBase: print("IM: Target: gatherRunInfoFiles: Adjusting run infos")
             
             if mpi_size == 1:
                 for rDir in runDirList:
@@ -840,7 +840,7 @@ class target_info_class:
                     if self.printAll and rInfo.status == False: gm.tabprint( '%s - %s' % (rInfo.status, rDir ) )
                         
             else:
-                print("WARNING: IM: Target.gatherRunInfos:  initializing run directories not available in MPI environment.")
+                print("WARNING: IM: Target.gatherRunInfoFiles:  initializing run directories not available in MPI environment.")
                 gm.tabprint(self.get('target_id'))
 
         # Prepare model Set
@@ -883,6 +883,7 @@ class target_info_class:
         
         if runDir == None:
             print("TESTING: ")
+            print(self.tDict)
             print( "First: ", list(self.tDict['zoo_merger_models'])[0] )
             return None
 
@@ -1169,7 +1170,7 @@ class target_info_class:
         if tArg.get('newRunBase',True):
             rArg.newBase = True
 
-        self.gatherRunInfos( tArg=tArg, rArg=rArg )
+        self.gatherRunInfoFiles( rArg=rArg )
         
         # Collect info 
         if newBase: self.createBaseScore(  )
