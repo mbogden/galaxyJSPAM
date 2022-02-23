@@ -93,6 +93,7 @@ ___
 - `-newPlot`   (Default: False) Tells program to create series of plots for a target.
 - `-newAll`    (Default: False) Tells program to create a new simulation, image, and score.
 - `-overWrite` (Default: False) Tells program to create a new simulation, image, and/or score even if that file already exists.
+- `-zipSim`    (Default: True)  Tells program to zip particles files created by simulator.  Warning, they can be large.
 ___
 - `newInfo`    (Default: False) Remove current information file.  Create a new one from a copy of the base.
 - `newBase`    (Default: False) Remove the base information file and generate a new one. 

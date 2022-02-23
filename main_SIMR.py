@@ -24,7 +24,7 @@ mpi_size = mpi_comm.Get_size()
 # For loading in Matt's general purpose python libraries
 import Support_Code.general_module as gm
 import Support_Code.info_module as im
-import Simulator.main_simulator as ss
+import Simulator.main_simulator as sm
 import Image_Creator.main_image_creator as ic
 import Feature_Extraction.main_feature_extraction as fe
 import Neural_Network.main_neural_networks as nn
@@ -57,11 +57,11 @@ def main(arg):
     if arg.printAll and mpi_rank == 0:
         arg.printArg()
         gm.test()
+        sm.test()
         im.test()
         fe.test()
         nn.test()
         ms.test()
-        ss.test()
 
     # end main print
 
@@ -233,7 +233,7 @@ def simr_target( arg=gm.inArgClass(), tInfo = None ):
         tInfo.printParams()
     
     # Create new files/scores if called upon
-    if arg.get( 'newImage', False ) or arg.get( 'newFeats', False ) or arg.get( 'newScore', False ) or arg.get( 'normFeats', False ) or arg.get('newNN', False):
+    if arg.get( 'newSim', False ) or arg.get( 'newImage', False ) or arg.get( 'newFeats', False ) or arg.get( 'newScore', False ) or arg.get( 'normFeats', False ):
         new_target_scores( tInfo, arg )
         
 
@@ -309,20 +309,28 @@ def new_target_scores( tInfo, tArg ):
         mpi_comm.Barrier()
     
     runArgs = gm.inArgClass()
-    
-    if printAll: 
-        runArgs.setArg('printAll', True)
-        runArgs.setArg('printBase', True)
+       
+    if tArg.get('printAllRun',False):
+        runArgs.setArg('printAll',True)
+        
+    elif tArg.get('printBaseRun',False):
+        runArgs.setArg('printBase',True)
+        
     else:
-        runArgs.setArg('printBase', False)
+        runArgs.setArg('printBase',False)
     
     runArgs.setArg('tInfo', tInfo)
     runArgs.setArg('scoreParams', params)
+    runArgs.setArg('newSim', tArg.get('newSim',False))
     runArgs.setArg('newImage', tArg.get('newImage',False))
     runArgs.setArg('newFeats', tArg.get('newFeats',False))
     runArgs.setArg('newNN', tArg.get('newNN',False))
     runArgs.setArg('newScore', tArg.get('newScore',False))
     runArgs.setArg('overWrite', tArg.get('overWrite',False))
+    
+    if printAll:
+        print('SIMR.new_target_scores: Printing new run argments')
+        runArgs.printArg()
 
     # Rank 0 has argList and will distribute
     argList = None    
@@ -332,9 +340,23 @@ def new_target_scores( tInfo, tArg ):
         
         # Find out which runs need new scores
         tInfo.gatherRunInfos()
-        runDicts = tInfo.getAllRunDicts()
+        
+        # Check if grabbing subset of runs.  If not, presume all
+        if tArg.get('startRun',None) != None \
+            and tArg.get('nRun',None) != None \
+            and tArg.get('endRun',None) != None:
+         
+            runDicts = tInfo.iter_run_dicts()
+        
+        else:            
+            runDicts = tInfo.iter_run_dicts( \
+                                           startRun = tArg.get('startRun',0), \
+                                           endRun = tArg.get('endRun',-1), \
+                                           stepRun = tArg.get('stepRun',1),)
+        
+            
         argList = []
-        for i,rKey in enumerate(tInfo.get('zoo_merger_models')):
+        for i,rKey in enumerate(runDicts):
             
             rScore = tInfo.get('zoo_merger_models')[rKey]['machine_scores']
 
@@ -428,7 +450,7 @@ def simr_run( arg = None, rInfo = None, rDir = None ):
     printBase = arg.printBase    
     
     if printBase:
-        print("SIMR.pipelineRun: Inputs")
+        print("SIMR.simr_run: Inputs")
         print("\t - rDir:", rDir)
         print("\t - rInfo:", type(rInfo) )
 
@@ -468,7 +490,7 @@ def simr_run( arg = None, rInfo = None, rDir = None ):
 
     # Asking for new simulation data?
     if arg.get('newSim') or newAll:
-        if printBase: print("WARNING: SIMR: run: newSim not functioning at this time")
+        sm.main_sm_run( rInfo = rInfo, cmdArg=arg )
 
     # Asking for new image creation?
     if arg.get('newImage') or newAll:

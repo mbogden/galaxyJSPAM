@@ -882,6 +882,8 @@ class target_info_class:
         runDir = self.getRunDir(rID=rID)
         
         if runDir == None:
+            print("TESTING: ")
+            print( "First: ", list(self.tDict['zoo_merger_models'])[0] )
             return None
 
         if rArg == None:
@@ -903,8 +905,48 @@ class target_info_class:
         if rID != None:
             self.tDict['zoo_merger_models'][rID] = rInfo.rDict
     
-    def getAllRunDicts( self, ):
-        return self.tDict['zoo_merger_models']
+    def iter_run_dicts( self,  startRun=0, endRun = -1, stepRun = 1 ):
+        
+        # If wanting all
+        if startRun == 0 and endRun == -1 and stepRun == 1:
+            return self.tDict['zoo_merger_models']
+        
+        if self.printAll:
+            print("IM.target_info.class.iter_run_dicts: ")
+            tabprint("startRun: %s" % startRun)
+            tabprint("endRun: %s" % endRun)
+            tabprint("stepRun: %s" % stepRun)
+            
+        keys = list(self.tDict['zoo_merger_models'].keys())
+            
+        # Check for invalid inputs
+        
+        if int(endRun) > len(keys):
+            if self.printBase: 
+                print("WARNING: IM.target_info.class.iter_run_dicts: ")
+                tabprint("-endRun greater than number of runs")
+                tabprint("-endRun: ", endRun)
+                tabprint('-run count: ', len(keys))
+            return None
+        
+        # Check if endRun not given
+        if endRun == -1:
+            endRun = len(keys)
+        
+        # Create index list of runs to extract based on inputs        
+        iList = np.arange( int(startRun), int(endRun), int(stepRun) )
+        
+        # Extract desired run dicts
+        runDictList = {}
+        for i in iList:
+            runDictList[keys[i]] = self.tDict['zoo_merger_models'][keys[i]]
+           
+        if self.printAll:
+            tabprint("Extracting runs: ")
+            tabprint( list(runDictList.keys()) )
+        
+        return runDictList
+
 
     def saveInfoFile( self ):
 
