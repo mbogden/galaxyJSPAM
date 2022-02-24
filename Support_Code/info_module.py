@@ -879,13 +879,13 @@ class target_info_class:
 
     def getRunInfo( self, rID=None, rArg=None ):
         
+        # If no argument given, just grab the first
+        if rID == None:
+            rID = list( self.tDict['zoo_merger_models'])[0]
+        
         runDir = self.getRunDir(rID=rID)
         
-        if runDir == None:
-            print("TESTING: ")
-            print(self.tDict)
-            print( "First: ", list(self.tDict['zoo_merger_models'])[0] )
-            return None
+
 
         if rArg == None:
             rInfo = run_info_class( runDir = runDir, )

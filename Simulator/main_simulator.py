@@ -89,12 +89,7 @@ def main_sm_run( rInfo, cmdArg = gm.inArgClass() ):
         im.tabprint("Run ID: %s" % rInfo.get("run_id"))
         im.tabprint( "rInfo status: %s" % rInfo.status )
 
-    if printAll:
-        rInfo.printInfo()
-        pass
-
     # Get score parameter data for creating new files
-    
     scoreParams = cmdArg.get('scoreParams',None)
     
     if scoreParams == None:
@@ -104,9 +99,8 @@ def main_sm_run( rInfo, cmdArg = gm.inArgClass() ):
     elif printAll:
         im.tabprint("Score parameters len: %d"%len(scoreParams))
     
-    # Extract simulations needing to be created
+    # Extract unique simulation scenerios
     simParams = {}
-    
     for pKey in scoreParams:
         simKey = scoreParams[pKey]['simArg']['name']
         if simKey not in simParams:
@@ -130,10 +124,12 @@ def main_sm_run( rInfo, cmdArg = gm.inArgClass() ):
         ptsLoc = rInfo.findPtsLoc( simParams[simKey]['name'] )        
         if ptsLoc == None:
             todoList.append(simKey)
+        else:
+            im.tabprint("Particles Found: %s" % simParams[simKey]['name'])
     # End simKey in simParams
     
     if printBase:
-        im.tabprint("Simulations to do: %d" % len(todoList))
+        im.tabprint("Simulations to run: %d" % len(todoList))
     
     # if no simluations, leave early
     if len(todoList) == 0:
@@ -145,13 +141,9 @@ def main_sm_run( rInfo, cmdArg = gm.inArgClass() ):
         im.tabprint("SPAM executable command not found")
         im.tabprint("location expected: %s" % spam_exe_loc )
         return
-    
-    print("****"*10 + '\nWORKING\n' + "****"*10)
         
     for simKey in todoList:
         new_simulation( rInfo, simParams[simKey], cmdArg )
-       
-    print("****"*10 + '\nEND WORKING\n' + "****"*10)
     
 # end processing run dir
 

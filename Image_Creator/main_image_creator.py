@@ -58,8 +58,8 @@ def main_ic_run( rInfo = None, arg = gm.inArgClass() ):
     
     # extract variables
     rDir = arg.runDir
-    printBase=arg.printBase
-    printAll=arg.printAll
+    printBase=rInfo.printBase
+    printAll=rInfo.printAll
     overWrite = arg.get('overWrite',False)
     
     if rInfo == None:

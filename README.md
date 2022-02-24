@@ -75,8 +75,9 @@ The main program allows for several arguments. Note all arguments start with a s
 
 ___
 - `-printBase`   (Default: True)  Program will print basic information while executing.
-- `-printAll`    (Default: False) Program will print all optional information statements found throughout the code.
-- `-nProc #`     (Default: -1)    Directs program to utilize # number of cpu in parallel.  Note: -1 uses all available cores minus one. 
+- `-printAll`    (Default: False) Program will print all optional information statements found throughout the code.  
+- `-printBaseRun`(Default: False) Print base model info while iterating through target models.
+- `-printAllRun` (Default: False) Print all optional model info while iterating through target models.
 ___
 - `-runDir path/to/run/directory/`         Path to a model directory into the program.
 - `-targetDir path/to/target/directory/`   Path to a target directory into the program.
@@ -99,6 +100,10 @@ ___
 - `newBase`    (Default: False) Remove the base information file and generate a new one. 
 - `newRunInfo` (Default: False) Will remove the information file for all models found in a target.
 - `newRunBase` (Default: False) Will remove the base information file and generate a new one for all models found in a target.
+___
+- `startRun`  (Default: 0)  While iterating through target models, start with N'th model
+- `endRun`    (Default: -1) While iterating through target models, end with N'th model. (-1 go until end)
+- `skipRun`   (Default: 1)  While iterating through target models, skip to everyh N'th model
 ___
 - `normFeats`  (Default: False) Takes WNDCHRM features created in runs and normalizes them.  Must be paired with -normName or -normLoc.
 - `normName file_name` Loots for a feature normalization file in target's WNDCHRM directory.

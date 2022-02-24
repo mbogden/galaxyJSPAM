@@ -143,11 +143,9 @@ class inArgClass:
 
         self.printBase = True
         self.printAll = False
-        self.nProc = -1
 
         self.simple = False
         self.runDir = None
-        self.sdssDir = None
         self.targetDir = None
         self.dataDir = None
 
@@ -156,16 +154,6 @@ class inArgClass:
 
         elif argFile != None:
             self.readArgFile( argFile )
-
-        # Override certain values if others are on
-        if getattr( self, 'newAll', False ):
-
-            self.newInfo = True
-            self.newParam = True
-
-            self.newSim = True
-            self.newImg = True
-            self.newScore = True
 
         if self.printAll:
             self.printBase = True
