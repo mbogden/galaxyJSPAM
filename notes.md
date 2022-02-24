@@ -2,24 +2,35 @@
 These are written by Matthew Ogden for Matthew Ogden while creating and organizing code.  
 Might* be good for others to view.
 
-
     
 - Commands to remember
-    - python3 main_SIMR.py -targetDir path/to/target -newInfo -newRunInfo -newBase -newRunBase 
-    - python3 main_SIMR.py -dataDir path/to/data -newScore -newImage -paramName zoo_0_direct_scores
+    - `python3 main_SIMR.py -targetDir path/to/target -newInfo -newRunInfo -newBase -newRunBase` 
+    - `python3 main_SIMR.py -dataDir path/to/data -newScore -newImage -paramName zoo_0_direct_scores`
 
 # Matt's Working To-Do
 
-- Stuff
-    - Graph times, Are they acting funny? 
-    
+- Create White Paper
+    - What can it do now? 
+        - modules
+        - parameters
         
-    - Redo speed test with only creating new scores. 
-    - Test IO choke-point with reading particles.
-        - Might not be an issue if you only create images once. 
-        - Test how big pickle files are for just X,Y particles.
-        - If issue, consider copying files to scratch.
-    - Veryify new scores are being created.
+    - what next steps do I want to take?
+        - model optimization
+        - comparing and contrasting methods
+        - verify results. 
+
+- Capsule Networks
+
+- Reimplemnet WNDCHRM in Galaxy Code.
+    - Install WNDCHRM on needed machine. 
+    - normalize entire systems.
+    - implement mask (Only extract these x out of 1000's of features)
+    
+- Implement feature selection on WNDCHRM.
+    - You did this in Data Mining.  Do it now. 
+
+- Creating Images appears to have a memory leak.  
+    - Find and prevent?
         
 - Get a single-layer neural network going
     - Gather and pickle images into a temp file/folder.
@@ -27,33 +38,45 @@ Might* be good for others to view.
     - Generalize it to all targets.
     - Create custom equation and weights in neural network. 
 
-- Reimplemnet WNDCHRM in Galaxy Code.
-    - Learn how to call C++ code from Python3? (Faster speed)
-
-- Implement Feature selection.
-    - You did this in Data Mining.  Do it now. 
-
 - Create Robust Analysis between Different Score parameters. 
     - Interactive window and grid? 
 
+- Modernize Simuation Code
+
+- Old Stuff
+    - Capstone execution times, why are they acting funny?         
+        - Redo speed test with only creating new scores. 
+    - Test IO choke-point with reading particles.
+        - Might not be an issue if you only create images once. 
+        - Test how big pickle files are for just X,Y particles.
+        - If issue, consider copying files to scratch.
+    - Veryify new scores are being created.
+    
 ## Big picture
 - Create automatic pipeline for evolution
     - Get function to create status update!
     - Create reports for any missing items. 
     
 - Optimization opportunities
+    - Parallel processing
+        - If one model errors out, the rest of the models the processor is responsible for don't get accomplished.
+        - When attempting to repeat the parallel environment, that came processor is in charge of everything that remains to be done, and remaining processors do nothing. 
+        - Randomize list being broadcast? 
+        - Implement Tasker/Working solution? 
     - Simulation 
-        - Analyze impact approximation w/o points. Stop if small
+        - Analyze impact approximation w/o points. Stop if small 
         - Particle Files: Pickle X,Y,R and zip.  
-        - Compare model scores between 100k and 20k pts
+        - Compare model scores between 100k and 20k pts 
+    - Image Maker
+        - During mpirun, when 1 run fails, processor does not complete rest.
+        - Solution: Implement Tasker/Worker model for parallel processing? 
     - WNDCHRM 
         - implement masks
 
 - Image Creator
-    - Do Total variation denoising on Model images
+    - Total variation denoising on Model images?
 
 - Image Comparison.
-    - Reimplement WNDCHRM
     - Implement Neural Networks
         - Create Single Layer Neural Network for all.
     - Weighted Mask
@@ -65,12 +88,12 @@ Might* be good for others to view.
 ### Future
 - New Methods
     - Mask
-      - Solid mask for inner disk.
-      - Sectioned weights of image. Radial function?
-      - Simulated annealing for pixel difference, ( or any machime method) 
-    - OpenCV feature extraction
-      - Histogram of Oriented gradients
-      - Scale-Invariant feature transform
+      - Solid mask for inner disk. 
+      - Sectioned weights of image. Radial function? 
+      - Simulated annealing for pixel difference, ( or any machine method) 
+    - OpenCV feature extraction 
+      - Histogram of Oriented gradients 
+      - Scale-Invariant feature transform 
     - Machine Learning / Tensor Flow
       - Create regression score
       - Build general weighted mask based on existing 62 pairs.
@@ -122,3 +145,17 @@ Might* be good for others to view.
 
 - SVD on images and see which show most variance>? 
 
+# Matt's Personal Setup
+- WSL
+- Open JupyterLab in GalStuff
+- 
+# Meeting Notes
+
+## Feb. 2, 2022
+### Accomplished
+- Color-coded priority by publication
+- Read and Commented Graham's dissertation
+- Old NN code. 
+
+### Cover
+- What Publication stuff should I work on? 

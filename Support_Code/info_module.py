@@ -19,8 +19,6 @@ from sys import path as sysPath
 sysPath.append('../')
 
 
-
-
 from pprint import PrettyPrinter
 pp = PrettyPrinter(width=41, compact=True)
 pprint = pp.pprint
@@ -29,7 +27,7 @@ pprint = pp.pprint
 import general_module as gm
 
 def test():
-    print("IM: Hi!  You're in Matthew Ogden's information module for SPAM")
+    print("IM: Hi!  You're in Matthew's information module for SPAM")
 # End test print
 
 def main(arg):
@@ -80,14 +78,22 @@ class run_info_class:
     baseDict = None
 
     status = False  # State of this class.  For initiating.
-
+    
+    # Main directories
     runDir = None
-    infoLoc = None
-    baseLoc = None
-
+    
     ptsDir = None
     imgDir = None
     miscDir = None
+    wndDir = None
+    tmpDir = None
+
+    # Useful files in directory
+    infoLoc = None
+    baseLoc = None
+
+    wndFitLoc = None
+    wndAllLoc = None
     
     tLink = None
 
@@ -166,9 +172,13 @@ class run_info_class:
         self.ptsDir = self.runDir + 'particle_files/'
         self.imgDir = self.runDir + 'model_images/'
         self.miscDir = self.runDir + 'misc_images/'
+        self.wndDir = self.runDir + 'wndchrm_files/'
         self.tmpDir = self.runDir + 'tmp/'
         self.infoLoc = self.runDir + 'info.json'
         self.baseLoc = self.runDir + 'base_info.json'
+        
+        self.wndFitLoc = self.wndDir + 'wndchrm_all.fit'
+        self.wndAllLoc = self.wndDir + 'wndchrm_all.csv'
     
         # If newInfo or newBase
         if rArg.get('newInfo',False):
@@ -180,13 +190,14 @@ class run_info_class:
             print("\t -  ptsDir: (%s) %s" % ( path.exists( self.ptsDir ), self.ptsDir ) )
             print("\t -  imgDir: (%s) %s" % ( path.exists( self.imgDir ), self.imgDir ) )
             print("\t - miscDir: (%s) %s" % ( path.exists( self.miscDir ), self.miscDir ) )
+            print("\t - wndDir: (%s) %s" % ( path.exists( self.wndDir ), self.wndDir ) )
             print("\t - infoLoc: (%s) %s" % ( path.exists( self.infoLoc ), self.infoLoc ) )
             print("\t - baseLoc: (%s) %s" % ( path.exists( self.baseLoc ), self.baseLoc ) )
 
         # Check if things are working
         dirGood = True
 
-        if not path.exists( self.ptsDir ) or not path.exists( self.imgDir ) or not path.exists( self.miscDir ):
+        if not path.exists( self.ptsDir ) or not path.exists( self.imgDir ) or not path.exists( self.miscDir ) or not path.exists( self.wndDir ):
             dirGood = False
 
         # If you made it this far.  
@@ -210,6 +221,7 @@ class run_info_class:
         if not path.exists( self.ptsDir ): mkdir( self.ptsDir )
         if not path.exists( self.imgDir ): mkdir( self.imgDir )
         if not path.exists( self.miscDir ): mkdir( self.miscDir )
+        if not path.exists( self.wndDir ): mkdir( self.wndDir ) 
         if not path.exists( self.tmpDir ): mkdir( self.tmpDir ) 
 
 
@@ -305,40 +317,38 @@ class run_info_class:
         return pts1, pts2
 
     
-    def getModelImage( self, imgName = 'default', initImg = False ):
+    def getModelImage( self, imgName = 'zoo_0', imgType = 'model', toType=np.float32, overWrite=False ):
         
         # Create place to store images if needed.
-        if self.get('img',None) == None:
-            self.img = {}
-            
-        if self.get('init',None) == None:
-            self.init = {}
+        if self.get('img',None) == None: self.img = {}            
+        if self.get('init',None) == None: self.init = {}
         
         # Return model image if already loaded.
-        if not initImg:
+        if imgType == 'model' and not overWrite:
             mImg = self.img.get(imgName,None)
-            if type(mImg) != type(None):
+            if type(mImg) != type(None) and mImg.dtype == toType:
                 return mImg
         
-        else:            
+        elif imgType == 'init' and not overWrite:            
             img = self.init.get(imgName,None)
-            if type(img) != type(None):
+            if type(img) != type(None) and iImg.dtype == toType:
                 return img
         
         # Get image location
-        imgLoc = self.findImgLoc( imgName = imgName, initImg = initImg )
-        if self.printAll: print("IM: Loading imgLoc: %s" % imgName, initImg )
-        if imgLoc == None:
-            return None
+        imgLoc = self.findImgLoc( imgName = imgName, imgType = imgType )
+        if self.printAll: 
+            print("IM: Loading: %s:")
+            gm.tabprint( 'imgType: %s' % imgType )
+            gm.tabprint( 'imgLoc: %s' % imgLoc )
+            
+        if imgLoc == None: return None
         
         # Read image
-        img = gm.readImg(imgLoc)
+        img = gm.readImg(imgLoc, toType=toType)
         
         # Store image if called upon later
-        if not initImg: 
-            self.img[imgName] = img
-        else:
-            self.init[imgName] = img
+        if imgType == 'model':  self.img[imgName] = img            
+        elif imgType == 'init': self.init[imgName] = img
 
         # Return image
         return img
@@ -346,22 +356,29 @@ class run_info_class:
     # End getting model, unperturbed image
 
 
-    def findImgLoc( self, imgName, initImg = False, newImg=False ):
+    def findImgLoc( self, imgName, imgType = 'model', newImg=False ):
 
         # Assume model image
-        if not initImg:
+        if imgType == 'model':
             imgLoc = self.imgDir + imgName + '_model.png'
 
-        else:
+        elif imgType == 'init':
             imgLoc = self.miscDir + imgName + '_init.png'
+            
+        elif imgType == 'wndchrm':
+            imgLoc = self.wndDir + imgName + '.tiff'
+            
+        else:
+            imgLoc = self.miscDir + imgName + '.png'
 
-        # If new image, return location it will become
+        # If new image, return the location it will become
         if newImg: 
             return imgLoc
         
         # Return if path exists
         if path.exists( imgLoc ):
             return imgLoc
+        
         else:
             return None
 
@@ -378,8 +395,7 @@ class run_info_class:
         for imgName in imgList:
             retList.append(imgDir+imgName)
 
-        return retList	
-
+        return retList
 
     def printInfo( self,):
         from pprint import PrettyPrinter
@@ -408,7 +424,7 @@ class run_info_class:
 
         print("IM: run_info_class.printScores()")
         tabprint( 'run_id: %s' % self.get('run_id') )
-        tabprint( 'zoo_merger: %f' % self.get('zoo_merger_score'))
+        tabprint( 'zoo_merger: %s' % str( self.get('zoo_merger_score')) )
         tabprint( 'machine_scores: %d' % len(self.rDict['machine_scores']) )
 
         if allScores:
@@ -523,7 +539,7 @@ class run_info_class:
         self.rDict['zoo_merger_score'] = float(hScore)
 
         # created initial info.json file from info.txt
-        self.baseDict = deepcopy(self.rDict)
+        self.baseDict = deepcopy( self.rDict )
 
         # Save results
         self.saveInfoFile( saveBase = True )
@@ -581,30 +597,39 @@ class target_info_class:
     targetHeaders = ( 'target_id', 'target_images', 'simulation_parameters', 'image_parameters', 'zoo_merger_models', 'score_parameters', 'progress', 'model_sets' )
     
     baseHeaders = ( 'target_id', )
+     
+    wndchrmInfoHeaders = [ 'run_id', 'target_id', 'image_name', 'zoo_merger_score' ]
 
 
-    def __init__( self, targetDir = None, tArg = gm.inArgClass(), \
+    def __init__( self, targetDir = None, tArg = None, \
             printBase = None, printAll = None, ):
 
+        # Creat arg class if none passed
+        if tArg == None:
+            tArg = gm.inArgClass()
+        
         # Tell class what to print
         if printBase != None:
             self.printBase = printBase
         else:
             self.printBase = tArg.printBase
-        
-        if tArg.targetDir == None: tArg.targetDir = targetDir
             
         if printAll != None:   
             self.printAll = printAll
         else:            
-            self.printAll = tArg.printAll            
+            self.printAll = tArg.printAll   
+        
+        if self.printAll == True: 
+            print("IM: target_info_class.__init__:")
+            print('\t - targetDir: ', targetDir)
+            print('\t - arg.targetDir: ', tArg.targetDir)
+            
+        if tArg.targetDir == None: tArg.targetDir = targetDir
+                     
             
         # To avoid future confusion
         if self.printAll:  self.printBase = True
 
-        if self.printAll: 
-            print("IM: target_info_class.__init__:")
-            print('\t - targetDir: ', tArg.targetDir)
             
         # Check if directory has correct structure
         newInfo = tArg.get('newInfo',False)
@@ -634,20 +659,26 @@ class target_info_class:
 
     # End target init 
 
-    def getTargetImage( self, tName = None ):
+    def getTargetImage( self, tName = None, overwrite=False, printAll = False ):
+        
+        if printAll: print("IM: target_info_class: getTargetImage:")
         
         # Create place to store images if needed.
         if self.get('targetImgs',None) == None:
+            if printAll: gm.tabprint("Creating dict to store loaded target images")
             self.targetImgs = {}
         
         # Return target image if already loaded.
         tImg = self.targetImgs.get(tName,None)
-        if type(tImg) != type(None):
+        if type(tImg) != type(None) and not overwrite:
+            if printAll:  gm.tabprint("Returning preloaded target image.")
             return tImg
         
         # Else find and open target image
+        if printAll:  gm.tabprint("Searching for target image: %s" % tName)
         tLoc = self.findTargetImage(tName)
-        
+        if printAll:  gm.tabprint("Found: %s" % tLoc)
+            
         if not gm.validPath(tLoc,):
             return None
         
@@ -791,17 +822,17 @@ class target_info_class:
 
 
     # Gather run infos from directories
-    def gatherRunInfos( self, tArg=gm.inArgClass(), rArg=gm.inArgClass(), ):
+    def gatherRunInfoFiles( self, rArg=gm.inArgClass(), ):
 
         if self.printAll: 
-            print( "IM: Target.gatherRunInfos." )
-            rArg.printArg()
+            print( "IM: Target.gatherRunInfoFiles" )
+            #rArg.printArg()
 
         runDirList = self.iter_runs()
         nRuns = len(runDirList)
         
         if rArg.get('newInfo',False):
-            if self.printBase: print("IM: Target: gatherRunInfos: Adjusting run infos")
+            if self.printBase: print("IM: Target: gatherRunInfoFiles: Adjusting run infos")
             
             if mpi_size == 1:
                 for rDir in runDirList:
@@ -809,7 +840,7 @@ class target_info_class:
                     if self.printAll and rInfo.status == False: gm.tabprint( '%s - %s' % (rInfo.status, rDir ) )
                         
             else:
-                print("WARNING: IM: Target.gatherRunInfos:  initializing run directories not available in MPI environment.")
+                print("WARNING: IM: Target.gatherRunInfoFiles:  initializing run directories not available in MPI environment.")
                 gm.tabprint(self.get('target_id'))
 
         # Prepare model Set
@@ -819,10 +850,14 @@ class target_info_class:
 
         # Go through directories and read run info files
         for i,rDir in enumerate(runDirList):
+            if self.printAll: 
+                gm.tabprint("IM: gather_run_info LOOP: %4d / %4d" % (i, nRuns), end='\r')
             rDict = self.getRunDict( rDir )
             if rDict != None and rDict.get('run_id',None) != None:
                 self.tDict['zoo_merger_models'][rDict['run_id']] = rDict
 
+        if self.printAll: gm.tabprint("IM: gather_run_info LOOP: %4d / %4d COMPLETE" % (nRuns, nRuns))
+            
         self.saveInfoFile()
 
     # end gather Run Infos
@@ -844,10 +879,13 @@ class target_info_class:
 
     def getRunInfo( self, rID=None, rArg=None ):
         
+        # If no argument given, just grab the first
+        if rID == None:
+            rID = list( self.tDict['zoo_merger_models'])[0]
+        
         runDir = self.getRunDir(rID=rID)
         
-        if runDir == None:
-            return None
+
 
         if rArg == None:
             rInfo = run_info_class( runDir = runDir, )
@@ -868,8 +906,48 @@ class target_info_class:
         if rID != None:
             self.tDict['zoo_merger_models'][rID] = rInfo.rDict
     
-    def getAllRunDicts( self, ):
-        return self.tDict['zoo_merger_models']
+    def iter_run_dicts( self,  startRun=0, endRun = -1, stepRun = 1 ):
+        
+        # If wanting all
+        if startRun == 0 and endRun == -1 and stepRun == 1:
+            return self.tDict['zoo_merger_models']
+        
+        if self.printAll:
+            print("IM.target_info.class.iter_run_dicts: ")
+            tabprint("startRun: %s" % startRun)
+            tabprint("endRun: %s" % endRun)
+            tabprint("stepRun: %s" % stepRun)
+            
+        keys = list(self.tDict['zoo_merger_models'].keys())
+            
+        # Check for invalid inputs
+        
+        if int(endRun) > len(keys):
+            if self.printBase: 
+                print("WARNING: IM.target_info.class.iter_run_dicts: ")
+                tabprint("-endRun greater than number of runs")
+                tabprint("-endRun: ", endRun)
+                tabprint('-run count: ', len(keys))
+            return None
+        
+        # Check if endRun not given
+        if endRun == -1:
+            endRun = len(keys)
+        
+        # Create index list of runs to extract based on inputs        
+        iList = np.arange( int(startRun), int(endRun), int(stepRun) )
+        
+        # Extract desired run dicts
+        runDictList = {}
+        for i in iList:
+            runDictList[keys[i]] = self.tDict['zoo_merger_models'][keys[i]]
+           
+        if self.printAll:
+            tabprint("Extracting runs: ")
+            tabprint( list(runDictList.keys()) )
+        
+        return runDictList
+
 
     def saveInfoFile( self ):
 
@@ -938,34 +1016,44 @@ class target_info_class:
 
         # Define paths for all useful things in target structure
         
+        # Main paths in target dir
         self.infoDir = self.targetDir + 'information/'
         self.gen0 = self.targetDir + 'gen000/'
         self.zooMergerDir = self.targetDir + 'zoo_merger_models/'
         self.plotDir = self.targetDir + 'plots/'
+        
+        # Directires inside info dir
+        self.imgDir = self.infoDir + 'target_images/'
+        self.maskDir = self.infoDir + 'target_masks/'        
+        self.scoreParamDir = self.infoDir + 'score_parameters/'
+        self.wndDir = self.infoDir + 'wndchrm_files/'
 
+        # Locations of files inside info dir
         self.allInfoLoc = self.infoDir + 'target_info.json'
         self.baseInfoLoc = self.infoDir + 'base_target_info.json'
-        
-        self.imgDir = self.infoDir + 'target_images/'
-        self.imgParamLocOld = self.infoDir + 'param_target_images.json'
-        self.imgParamLoc = self.imgDir + 'param_target_images.json'        
-        
-        self.maskDir = self.infoDir + 'target_masks/'
-        
-        self.scoreParamDir = self.infoDir + 'score_parameters/'
-        
         self.scoreLoc = self.infoDir + 'scores.csv'
-        self.baseScoreLoc = self.infoDir + 'base_scores.csv'
-
+        self.baseScoreLoc = self.infoDir + 'base_scores.csv'    
         self.zooMergerLoc = self.infoDir + 'galaxy_zoo_models.txt'
+        self.imgParamLocOld = self.infoDir + 'param_target_images.json'
         
-        # Create target image and mask directories
+        # Various files within the wndchrm directory
+        self.wndRunRawDFLoc = self.wndDir + 'all_runs_raw.pkl'
+        self.wndTargetRawFitLoc = self.wndDir + 'targets_raw.fit'
+        self.wndTargetRawCSVLoc = self.wndDir + 'targets_raw.csv'
+        self.wndTargetRawDFLoc = self.wndDir + 'targets_raw.pkl'
+        
+        # Files inside misc directories
+        self.imgParamLoc = self.imgDir + 'param_target_images.json'
+                 
+        # Create target subdirectories if not found
         if not path.exists( self.infoDir ): mkdir( self.infoDir )
         if not path.exists( self.imgDir ): mkdir( self.imgDir )
         if not path.exists( self.maskDir ): mkdir( self.maskDir )
+        if not path.exists( self.plotDir ): mkdir( self.plotDir )
+        if not path.exists( self.wndDir ): mkdir( self.wndDir )
         if not path.exists( self.scoreParamDir ): mkdir( self.scoreParamDir )
         
-        # Create or move misc directories if not created.
+        # Move old directories to new location if needed.
         if gm.validPath( self.imgParamLocOld ) != None:
             print("Hi")
             print("OLD: %s"%gm.validPath(self.imgParamLocOld))
@@ -980,6 +1068,7 @@ class target_info_class:
             rename(self.gen0,self.zooMergerDir)
             print("New Path? : %s" % gm.validPath(self.zooMergerDir) )
         
+        # Check if creating a new info file, run new Target Setup if so
         if tArg.get('newInfo',False): 
             status = self.newTargetSetup( tArg )
             if status == False: return False
@@ -1000,9 +1089,9 @@ class target_info_class:
             
         
         # Check if info directory has needed objects
-        if not path.exists( self.allInfoLoc ) \
-        or not path.exists( self.baseInfoLoc ) \
-        or not path.exists( self.scoreLoc ) \
+        if not path.exists( self.allInfoLoc   ) \
+        or not path.exists( self.baseInfoLoc  ) \
+        or not path.exists( self.scoreLoc     ) \
         or not path.exists( self.baseScoreLoc ):
             if self.printBase:
                 print("IM: Target_init: Needed information files not found.")
@@ -1081,7 +1170,7 @@ class target_info_class:
         if tArg.get('newRunBase',True):
             rArg.newBase = True
 
-        self.gatherRunInfos( tArg=tArg, rArg=rArg )
+        self.gatherRunInfoFiles( rArg=rArg )
         
         # Collect info 
         if newBase: self.createBaseScore(  )
@@ -1104,6 +1193,8 @@ class target_info_class:
          
         # Assume directory name of target is target name
         tName = self.targetDir.split('/')[-2]
+        printAll = self.printAll
+        tInfo = self
         
         if self.printAll: 
             print('IM: createBaseInfo')
@@ -1178,14 +1269,14 @@ class target_info_class:
             return False
 
         # Copy blank parameter
-        new_params = {}
-        new_name = 'zoo_0'
-        new_params[new_name] = deepcopy(blank_param['zoo_blank'])
+        base_zoo = {}
+        zoo_name = 'zoo_0'
+        base_zoo[zoo_name] = deepcopy(blank_param['zoo_blank'])
 
         # Make name and comments initial comments.
-        new_params[new_name]['name'] = new_name
-        new_params[new_name]['comment'] = 'Starting score parameters file for %s'%tName
-        new_params[new_name]['imgArg']['comment'] = "Starting image parameters for %s"%tName
+        base_zoo[zoo_name]['name'] = zoo_name
+        base_zoo[zoo_name]['comment'] = 'Starting score parameters file for %s'%tName
+        base_zoo[zoo_name]['imgArg']['comment'] = "Starting image parameters for %s"%tName
 
         # Grab information
         for l in mFile:
@@ -1193,39 +1284,114 @@ class target_info_class:
             
             if 'height' in l:
                 h = l.split('=')[1]
-                new_params[new_name]['imgArg']['image_size']['width'] = int(h)
+                base_zoo[zoo_name]['imgArg']['image_size']['width'] = int(h)
                 
             if 'width' in l:
                 w = l.split('=')[1]
-                new_params[new_name]['imgArg']['image_size']['width'] = int(w)
+                base_zoo[zoo_name]['imgArg']['image_size']['width'] = int(w)
             if 'px' in l:
                 px = l.split('=')[1]
-                new_params[new_name]['imgArg']['galaxy_centers']['px'] = int(px)
+                base_zoo[zoo_name]['imgArg']['galaxy_centers']['px'] = int(px)
             if 'py' in l:
                 py = l.split('=')[1]
-                new_params[new_name]['imgArg']['galaxy_centers']['py'] = int(py)
+                base_zoo[zoo_name]['imgArg']['galaxy_centers']['py'] = int(py)
             if 'sx' in l:
                 sx = l.split('=')[1]
-                new_params[new_name]['imgArg']['galaxy_centers']['sx'] = int(sx)
+                base_zoo[zoo_name]['imgArg']['galaxy_centers']['sx'] = int(sx)
             if 'sy' in l:
                 sy = l.split('=')[1]
-                new_params[new_name]['imgArg']['galaxy_centers']['sy'] = int(sy)
+                base_zoo[zoo_name]['imgArg']['galaxy_centers']['sy'] = int(sy)
 
-        if self.printAll: gm.pprint(new_params)
+        if self.printAll: gm.pprint(base_zoo)
 
         # Save new target image parameter
         newParamLoc = self.imgParamLoc
-        gm.saveJson( new_params, newParamLoc, pretty=True )
+        gm.saveJson( base_zoo, newParamLoc, pretty=True )
                 
         # Create basic scoring parameters
-        self.createDirectScoreParameters( new_params['zoo_0'] )
+        self.createDirectScoreParameters( base_zoo['zoo_0'] )
+        
+        ############# WNDCHRM Score Parameter File #################
+        # Create a starting score parameter file for WNDCHRM image creation. 
+        chime_name = 'chime_0'
+        base_chime = {}
+        base_chime[chime_name] = deepcopy( base_zoo[zoo_name] )
+
+        # ALWAYS modify the names
+        base_chime[chime_name]['name'] = chime_name
+        base_chime[chime_name]['comment'] = 'Developing initial WNDCHRM implementation'
+
+        # Resize WNDCHRM image to 100 pixels
+        old_size = base_zoo[zoo_name]['imgArg']['image_size']
+        chime_size = 100
+
+        max_side = np.amax( [ int(old_size['width']), int(old_size['height']) ] )
+        redox_ratio = float( chime_size / max_side )
+
+        if printAll: 
+            print("IM: target_info_class.createBaseInfo: Creating WNDCHRM score parameter")
+            gm.tabprint("Old Size: %d" % max_side)
+            gm.tabprint("New Size: %d" % chime_size)
+            gm.tabprint("Reduction Ratio: %d" % redox_ratio)
+
+        # Create new image parameters
+        base_chime[chime_name]['imgArg']['name'] = chime_name
+        base_chime[chime_name]['imgArg']['type'] = 'wndchrm'
+        base_chime[chime_name]['imgArg']['comment'] = 'Starting image for WNDCHRM feature extraction'
+
+        # Adjust Image Size
+        base_chime[chime_name]['imgArg']['image_size']['width' ] = int( np.rint( redox_ratio * base_chime[chime_name]['imgArg']['image_size']['width' ]) )
+        base_chime[chime_name]['imgArg']['image_size']['height'] = int( np.rint( redox_ratio * base_chime[chime_name]['imgArg']['image_size']['height']) )
+
+        # Adjust galaxy centers
+        base_chime[chime_name]['imgArg']['galaxy_centers']['px'] = int( np.rint( redox_ratio * base_chime[chime_name]['imgArg']['galaxy_centers']['px'] ) )
+        base_chime[chime_name]['imgArg']['galaxy_centers']['py'] = int( np.rint( redox_ratio * base_chime[chime_name]['imgArg']['galaxy_centers']['py'] ) )
+        base_chime[chime_name]['imgArg']['galaxy_centers']['sx'] = int( np.rint( redox_ratio * base_chime[chime_name]['imgArg']['galaxy_centers']['sx'] ) )
+        base_chime[chime_name]['imgArg']['galaxy_centers']['sy'] = int( np.rint( redox_ratio * base_chime[chime_name]['imgArg']['galaxy_centers']['sy'] ) )
+
+        # Add blurring effect
+        base_chime[chime_name]['imgArg']['blur'] = {}
+        base_chime[chime_name]['imgArg']['blur']['type'] = 'gaussian_blur'
+        base_chime[chime_name]['imgArg']['blur']['size'] = 5
+        base_chime[chime_name]['imgArg']['blur']['weight'] = .5
+
+        # Add feature arguments
+        base_chime[chime_name]['featArg'] = {}
+        base_chime[chime_name]['featArg']['type'] = 'wndchrm_all'
+        base_chime[chime_name]['featArg']['normalization'] = None
+
+        # If you want to modify the final image brightness normalization
+        base_chime[chime_name]['imgArg']['normalization'] = {}
+        base_chime[chime_name]['imgArg']['normalization']['type'] = 'type1'
+        base_chime[chime_name]['imgArg']['normalization']['norm_constant'] = 2.5
+
+        # WORKING
+        # Change to feature comparison
+        base_chime[chime_name]['cmpArg']['targetName'] = chime_name
+        base_chime[chime_name]['cmpArg']['type'] = 'direct_feature_comparison'
+
+        if printAll: 
+            gm.tabprint("Saving Base WNDCHRM parameter")
+            gm.pprint(base_chime)
+
+
+        # Save score param for image creation later
+        tInfo.saveScoreParam( base_chime, chime_name )
+        
+        # Create starting WNDCHRM feature normalization file
+        norm_chime_0 = {}
+        norm_chime_0['name'] = 'norm_chime_0'
+        norm_chime_0['image_group'] = 'chime_0'
+        norm_chime_0['normalization_method'] = 'sklearn_StandardScaler'
+
+        self.saveWndchrmNorm( norm_chime_0, norm_chime_0['name'] )
 
         # Find pair file 
-        pairPath1 = gm.validPath( inputDir + 'sdss%s.pair'%tName )
-        pairPath2 = gm.validPath( inputDir + '%s.pair'%tName )
+        pairPath1 = gm.validPath( inputDir + 'sdss%s.pair' % tName )
+        pairPath2 = gm.validPath( inputDir + '%s.pair' % tName )
         if self.printAll: 
-            gm.tabprint('pairPath1: ',pairPath1)
-            gm.tabprint('pairPath2: ',pairPath2)
+            gm.tabprint( 'pairPath1: %s' % pairPath1 )
+            gm.tabprint( 'pairPath2: %s' % pairPath2 )
             
         if pairPath1 != None:            
             pairFile = open(pairPath1, 'r' )
@@ -1234,9 +1400,10 @@ class target_info_class:
             pairFile = open(pairPath2, 'r' )
             
         else:
-            if self.printBase: print("WARNING: IM: Pair data not found: %s"%pairPath)
+            if self.printBase: print( "WARNING: IM: Pair data not found: %s" % pairPath )
             return False
 
+        # Create a basic mask that covers the target galaxy based on pair file. 
         start_roi_mask = gm.readJson(simrDir+'param/mask_roi_blank.json')
 
         start_roi_mask['name'] = 'mask_roi_zoo_0'
@@ -1396,11 +1563,6 @@ class target_info_class:
         # Read image parameters common for target
         img_params = gm.readJson( self.imgParamLoc )
         
-        # If None, initialize target images and try again.
-        if img_params == None:
-            getTargetInputData( self )
-            img_params = gm.readJson( self.imgParamLoc )
-        
         # Return all if none specified.
         if imgName == None:     
             return deepcopy( img_params )
@@ -1408,13 +1570,14 @@ class target_info_class:
         # Return single image parameter if specified.
         else:
             return deepcopy( img_params.get(imgName,None) )
+        
     # End getting image parameters
     
     def addImageParams( self, in_params, overWrite = False ):
         
         # If file doesn't exist
         if gm.validPath( self.imgParamLoc ) == None:
-            gm.saveJson( in_params, self.imgParamLoc )
+            gm.saveJson( in_params, self.imgParamLoc, pretty=True )
             return
         
         # Else file does exsit
@@ -1427,7 +1590,7 @@ class target_info_class:
             if overWrite or sKey not in old_params:
                 old_params[sKey] = in_params[sKey]            
         
-        gm.saveJson( old_params, self.imgParamLoc )
+        gm.saveJson( old_params, self.imgParamLoc, pretty=True )
     
     def overWriteImageParams( self, in_params ):
         gm.saveJson( in_params, self.imgParamLoc )
@@ -1472,7 +1635,42 @@ class target_info_class:
         roiLoc = self.maskDir + '%s.json'%file_name
         mask_roi = gm.readJson(  roiLoc )
         return mask_roi
+    
+    def saveWndchrmImage( self, img, img_name ):
+        imgLoc = self.wndDir + '%s.tiff' % img_name
+        gm.saveImg( imgLoc, img )
         
+    def saveWndchrmScaler( self, scaler, name ):
+        from pickle import dump
+        scalerLoc = self.wndDir + '%s_scaler.pkl' % name
+        dump( scaler, open( scalerLoc, 'wb') )
+        
+    def readWndchrmScaler( self, name ):
+        from pickle import load
+        scalerLoc = self.wndDir + '%s_scaler.pkl' % name
+        scaler = load( open( scalerLoc, 'rb') )
+        return scaler
+        
+    def saveWndchrmDF( self, df, name ):
+        dfLoc = self.wndDir + '%s.pkl' % name
+        df.to_pickle( dfLoc )
+        
+    def readWndchrmDF( self, name ):
+        dfLoc = self.wndDir + '%s.pkl' % name
+        df = pd.read_pickle( dfLoc )
+        return df
+    
+    def saveWndchrmNorm( self, norm_dict, norm_name ):
+        jsonLoc = self.wndDir + '%s.json' % norm_name
+        gm.saveJson( norm_dict, jsonLoc, pretty=True )
+    
+    def readWndchrmNorm( self, file_name ):
+        jsonLoc = self.wndDir + '%s.json' % file_name
+        norm_dict = gm.readJson(  jsonLoc )
+        return norm_dict
+        
+    
+    
         
 # End target info class
     

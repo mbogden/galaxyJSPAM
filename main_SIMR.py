@@ -10,12 +10,15 @@ Description:	Hopefully my primary code for calling all things SPAM Simulation, M
 # Python module imports
 from os import path, listdir
 from sys import path as sysPath, exit
+from copy import deepcopy
 
-import pandas as pd
-import numpy as np
-import cv2
-from time import sleep
-from mpi4py import MPI
+sysPath.append( path.abspath( 'Machine_Score/' ) )
+
+import pandas as pd 
+import numpy as np 
+import cv2 
+from time import sleep 
+from mpi4py import MPI 
 mpi_comm = MPI.COMM_WORLD    
 mpi_rank = mpi_comm.Get_rank()
 mpi_size = mpi_comm.Get_size()
@@ -23,12 +26,13 @@ mpi_size = mpi_comm.Get_size()
 # For loading in Matt's general purpose python libraries
 import Support_Code.general_module as gm
 import Support_Code.info_module as im
-import Simulator.main_simulator as ss
-import Score_Analysis.main_score_analysis as sa
+import Simulator.main_simulator as sm
 import Image_Creator.main_image_creator as ic
-
-sysPath.append( path.abspath( 'Machine_Score/' ) )
+import Feature_Extraction.main_feature_extraction as fe
+import Neural_Network.main_neural_networks as nn
 from Machine_Score import main_machine_score as ms
+import Score_Analysis.main_score_analysis as sa
+
 
 def test():
     print("SIMR: Hi!  You're in Matthew's main program for all things galaxy collisions")
@@ -55,8 +59,11 @@ def main(arg):
     if arg.printAll and mpi_rank == 0:
         arg.printArg()
         gm.test()
+        sm.test()
         im.test()
-        ss.test()
+        fe.test()
+        nn.test()
+        ms.test()
 
     # end main print
 
@@ -86,8 +93,6 @@ def main(arg):
 
 def simr_many_target( arg ):
     
-    from os import listdir
-    from copy import deepcopy
 
     dataDir   = arg.dataDir
     printBase = arg.printBase
@@ -133,6 +138,13 @@ def simr_many_target( arg ):
             if mpi_rank == 0:
                 tArg.targetDir = dataDir + folder
                 tInfo = im.target_info_class( tArg=tArg )
+            
+                # If creating a new base, create new images
+                if arg.get('newBase',False):
+                    chime_0 = tInfo.readScoreParam( 'chime_0' )
+                    chime_image = ic.adjustTargetImage( tInfo, chime_0['chime_0'] \
+                                                       , printAll = arg.printAll )
+                    tInfo.saveWndchrmImage( chime_image, chime_0['chime_0']['imgArg'] )
                 
                 if tInfo.status:                    
                     if printAll: gm.tabprint("Rank %d sending tInfo: %s" % (mpi_rank, tInfo.get('target_id')))
@@ -155,23 +167,23 @@ def simr_many_target( arg ):
 
 
 # Process target directory
-def simr_target( arg=gm.inArgClass(), tInfo = None ):
+def simr_target( cmdArg=gm.inArgClass(), tInfo = None ):
 
-    tDir = arg.targetDir
-    printBase = arg.printBase
-    printAll = arg.printAll
+    tDir = cmdArg.targetDir
+    printBase = cmdArg.printBase
+    printAll = cmdArg.printAll
     
-    if arg.printAll:
-        arg.printBase = True
+    if cmdArg.printAll: 
+        cmdArg.printBase = True
 
     if printAll and mpi_rank == 0:
-        print("SIMR: simr_target: input")
+        print("SIMR.simr_target: input")
         print("\t - tDir: %s" % tDir )
         print("\t - tInfo: %s" % type(tInfo) )
 
     # Check if given a target
-    if tInfo == None and tDir == None and arg.get('tInfo') == None:
-        print("WARNING: SIMR: simr_target")
+    if tInfo == None and tDir == None and cmdArg.get('tInfo') == None:
+        print("WARNING: SIMR.simr_target:")
         print("\t - Please provide either target directory or target_info_class")
         return
 
@@ -180,12 +192,20 @@ def simr_target( arg=gm.inArgClass(), tInfo = None ):
         
         if mpi_rank == 0:
             
-            tInfo = im.target_info_class( targetDir=tDir, tArg = arg )
+            tInfo = im.target_info_class( targetDir=tDir, tArg = cmdArg )
+            
+            # If creating a new base, create new images
+            if cmdArg.get('newBase',False):
+                chime_0 = tInfo.readScoreParam( 'chime_0' )
+                chime_image = ic.adjustTargetImage( tInfo, chime_0['chime_0'], \
+                                                   printAll = cmdArg.printAll )
+                tInfo.saveWndchrmImage( chime_image, chime_0['chime_0']['imgArg']['name'] )
+                
             
             # Gather scores if called for
-            if arg.get('update',False):
-                tInfo.gatherRunInfos()
-                tInfo.updateScores()                
+            if cmdArg.get('update',False):
+                tInfo.gatherRunInfoFiles()
+                tInfo.updateScores()
                 tInfo.saveInfoFile()
             
             # Check if others are expecting this tInfo
@@ -197,8 +217,8 @@ def simr_target( arg=gm.inArgClass(), tInfo = None ):
             tInfo = mpi_comm.bcast( tInfo, root=0 )
         
     # get target if in arguments. 
-    elif tInfo == None and arg.tInfo != None:
-        tInfo = arg.tInfo
+    elif tInfo == None and cmdArg.tInfo != None:
+        tInfo = cmdArg.tInfo
 
     if printBase and mpi_rank == 0:
         if tInfo.status: print("SIMR: target: %s - %s - %d Models" % ( tInfo.status, tInfo.get('target_id'), len( tInfo.tDict['zoo_merger_models'] ) ) )
@@ -206,20 +226,27 @@ def simr_target( arg=gm.inArgClass(), tInfo = None ):
 
     # Check if valid directory
     if tInfo.status == False:
-        print("SIMR: WARNING: simr_target:  Target Info status bad")
+        print("WARNING: SIMR.simr_target:  Target Info status bad")
         return
 
-    if arg.get('printParam', False) and mpi_rank == 0:
+    if cmdArg.get('printParam', False) and mpi_rank == 0:
         tInfo.printParams()
-
-    newImage = arg.get( 'newImage', False )
-    newScore = arg.get( 'newScore' ) 
-    newAll = arg.get( 'newAll', False )
     
     # Create new files/scores if called upon
-    if newImage or newScore or newAll:
-        new_target_scores( tInfo, arg )
-    
+    if cmdArg.get( 'newAll', False ) \
+    or cmdArg.get( 'newSim', False ) \
+    or cmdArg.get( 'newImage', False ) \
+    or cmdArg.get( 'newFeats', False ) \
+    or cmdArg.get( 'newScore', False ) \
+    or cmdArg.get( 'normFeats', False ):
+        if printBase: 
+            print("SIMR.simr_target:  Creating new scores")
+        new_target_scores( tInfo, cmdArg )
+    else:
+        if printBase: 
+            print("SIMR.simr_target:  No scores to create. BYE!")
+        
+        
 
 
 def new_target_scores( tInfo, tArg ):
@@ -292,28 +319,53 @@ def new_target_scores( tInfo, tArg ):
         gm.tabprint( 'Rank %d in new_target_scores: %s: '% (mpi_rank, tInfo.get('target_id') ) )    
         mpi_comm.Barrier()
     
-    runArgs = gm.inArgClass()
+    tArg.setArg('tInfo', tInfo)
+    tArg.setArg('scoreParams', params)
+    tArg.printArg()
     
-    if printAll: 
-        runArgs.setArg('printAll', True)
-        runArgs.setArg('printBase', True)
+    # Copy cmd Arg to send to runs
+    runArgs = deepcopy( tArg )
+    
+    # Change printing variables
+    if tArg.get('printAllRun',False):
+        runArgs.setArg('printBase',True)
+        runArgs.setArg('printAll',True)        
+    elif tArg.get('printBaseRun',False):
+        runArgs.setArg('printBase',True)
+        runArgs.setArg('printAll',False)        
     else:
-        runArgs.setArg('printBase', False)
+        runArgs.setArg('printBase',False)
+        runArgs.setArg('printAll',False)
     
-    runArgs.setArg('tInfo', tInfo)
-    runArgs.setArg('scoreParams', params)
-    runArgs.setArg('newImage', tArg.get('newImage',False))
-    runArgs.setArg('newScore', tArg.get('newScore',False))
-    runArgs.setArg('overWrite', tArg.get('overWrite',False))
+    if printAll:
+        print('SIMR.new_target_scores: Printing new run argments\n')
+        runArgs.printArg()
+        print('')
 
-    argList = None
+    # Rank 0 has argList and will distribute
+    argList = None    
+    scatter_lists = []
+    
     if mpi_rank == 0:
         
         # Find out which runs need new scores
-        tInfo.gatherRunInfos()
-        runDicts = tInfo.getAllRunDicts()
+        tInfo.gatherRunInfoFiles()
+        
+        # Check if grabbing subset of runs.  If not, presume all
+        if tArg.get('startRun',None) != None \
+            and tArg.get('nRun',None) != None \
+            and tArg.get('endRun',None) != None:
+         
+            runDicts = tInfo.iter_run_dicts()
+        
+        else:            
+            runDicts = tInfo.iter_run_dicts( \
+                                           startRun = tArg.get('startRun',0), \
+                                           endRun = tArg.get('endRun',-1), \
+                                           stepRun = tArg.get('stepRun',1),)
+        
         argList = []
-        for i,rKey in enumerate(tInfo.get('zoo_merger_models')):
+        for i,rKey in enumerate(runDicts):
             
             rScore = tInfo.get('zoo_merger_models')[rKey]['machine_scores']
 
@@ -328,93 +380,73 @@ def new_target_scores( tInfo, tArg ):
                 rDir = tInfo.getRunDir(rID=rKey)
                 if rDir == None:
                     if printBase: print("WARNING: Run invalid: %s" % rKey)
-                argList.append( dict( arg = runArgs, rDir=rDir, ) )
+                argList.append( dict( cmdArg = runArgs, rDir=rDir, ) )
 
-
-    
-    # If not in MPI environment, function normally.
-    if mpi_size == 1:
-        
-        # If empty, new scores not needed
-        if len(argList) == 0 and not tArg.get('overWrite',False):
-            if printBase:
-                gm.tabprint("Scores already exist")
-            return
-        
-        elif printBase: gm.tabprint("Runs needing scores: %d"%len(argList))
-            
-        if tArg.nProc == 1:
-            
-            for args in argList:
-                simr_run( **args )
-            
-        else:
-            # Prepare and run parallel class
-            ppClass = gm.ppClass( tArg.nProc, printProg=True )
-            ppClass.loadQueue( simr_run, argList )
-            ppClass.runCores()
-
-        # Save results
-        tInfo.addScoreParameters( params, overWrite = tArg.get('overWrite',False) )
-        tInfo.gatherRunInfos()
-        tInfo.updateScores()
-        tInfo.saveInfoFile()
-        
-    # If in MPI environment, distribute argument list evenly to others
-    elif mpi_size > 1:
-        
         # Print how many scores expecting to be completed.
-        if mpi_rank == 0 and printBase:
+        if printBase:
             if len(argList) == 0:
                 gm.tabprint("Scores already exist!")        
             else: 
                 gm.tabprint("Runs needing scores: %d"%len(argList))
-        
-        # Rank 0 has argList and will distribute
-        scatter_lists = []
-        if mpi_rank == 0:
-            
-            if len( argList ) > 0:
-                scatter_lists = [ argList[i::mpi_size] for i in range(mpi_size) ]
-            
-            else: 
-                for i in range(mpi_size):
-                    scatter_lists.append([])
-            
-            if printAll:
-                print("SIMR: new_target_scores: MPI Scatter argList")
-                gm.tabprint("Rank 0 argList: %d"%len(argList))
-                gm.tabprint("Rank 0 scatter_lists: %d"%len(scatter_lists))
-                for i,lst in enumerate(scatter_lists):
-                    gm.tabprint("Rank 0 list %d: %d"%(i,len(lst)))
-                
-        # Scatter argument lists to everyone
-        argList = mpi_comm.scatter(scatter_lists,root=0)
+
+        # Divide up the big list into many lists for distributing
+        if len( argList ) > 0:
+            scatter_lists = [ argList[i::mpi_size] for i in range(mpi_size) ]
+
+        # If nothing to do, create a list of empty lists so others know
+        else: 
+            for i in range(mpi_size):
+                scatter_lists.append([])
+
         if printAll:
-            gm.tabprint("Rank %d received: %d"%(mpi_rank,len(argList)))
-        
-        # Everyone go through their list and execute runs    
-        for i,args in enumerate(argList):
-            simr_run( **args )
-            
-            if mpi_rank == 0:
-                gm.tabprint("Rank 0: Progress: %d / %d " % (i+1,len(argList)), end='\r')
-        
-        if mpi_rank == 0: print('')
-            
-        # Everyone wait for everyone else to finish
-        mpi_comm.Barrier()
-        
-        # Have rank 0 collect files and update scores
+            print("SIMR: new_target_scores: MPI Scatter argList")
+            gm.tabprint("Rank 0 argList: %d"%len(argList))
+            gm.tabprint("Rank 0 scatter_lists: %d"%len(scatter_lists))
+            for i,lst in enumerate(scatter_lists):
+                gm.tabprint("Rank 0 list %d: %d"%(i,len(lst)))
+
+    # Scatter argument lists to everyone
+    argList = mpi_comm.scatter(scatter_lists,root=0)
+    if printAll:
+        gm.tabprint("Rank %d received: %d"%(mpi_rank,len(argList)))
+
+    # Everyone go through their list and execute runs    
+    for i,args in enumerate(argList):
+        simr_run( **args )
+
         if mpi_rank == 0:
-            tInfo.gatherRunInfos()
-            tInfo.updateScores()
+            gm.tabprint("Rank 0: Progress: %d / %d " % (i+1,len(argList)), end='\r')
+
+    if mpi_rank == 0: print('')
+
+    # Everyone wait for everyone else to finish
+    mpi_comm.Barrier()
+
+    # Have rank 0 collect files and update scores
+    if mpi_rank == 0:
+
+        # Check if target needs to create feature values
+        if tArg.get('newFeats',False):
+            fe.wndchrm_target_all( tArg, tInfo )
+            fe.reorganize_wndchrm_target_data( tArg, tInfo )
+        
+        # Normalize feature values after created for runs
+        if tArg.get('normFeats',False):
+            fe.target_collect_wndchrm_all_raw( tArg, tInfo = tInfo )
+            fe.target_wndchrm_create_norm_scaler( tArg, tInfo, )
+            
+        # Create new neural network model if called for
+        if tArg.get('newNN',False):
+            nn.target_new_neural_network( tArg, tInfo )
+
+        tInfo.gatherRunInfoFiles()
+        tInfo.updateScores()
 
 # End processing target dir for new scores
 
 
 
-def simr_run( arg = None, rInfo = None, rDir = None ):
+def simr_run( cmdArg = None, rInfo = None, rDir = None ):
 
     # Initialize variables
     if arg == None:
@@ -427,7 +459,7 @@ def simr_run( arg = None, rInfo = None, rDir = None ):
     printBase = arg.printBase    
     
     if printBase:
-        print("SIMR.pipelineRun: Inputs")
+        print("SIMR.simr_run: Inputs")
         print("\t - rDir:", rDir)
         print("\t - rInfo:", type(rInfo) )
 
@@ -463,27 +495,26 @@ def simr_run( arg = None, rInfo = None, rDir = None ):
         return   
     
     # Check if new files should be created/altered
-    newSim = arg.get('newSim')
-    newImage = arg.get('newImage')
-    newScore = arg.get('newScore')
-    newAll = arg.get('newAll')
+    newAll = arg.get('newAll',False)
+    # Asking for new simulation data?
+    if arg.get('newSim') or newAll:
+        sm.main_sm_run( rInfo = rInfo, cmdArg=arg )
 
-    if newSim or newAll:
-        if printBase: print("WARNING: SIMR: run: newSim not functioning at this time")
-
-    if newImage or newAll:
+    # Asking for new image creation?
+    if arg.get('newImage') or newAll:
         ic.main_ic_run( rInfo = rInfo, arg=arg )
+        
+    # Asking for new feature extraction from images? 
+    if arg.get('newFeats') or newAll:
+        fe.main_fe_run( rInfo = rInfo, arg=arg )
 
-    if newScore or newAll:
-
+    # Asking for new score based on sim, image, and/or feature extractions?
+    if arg.get('newScore') or newAll:
         ms.MS_Run( printBase = printBase, printAll = printAll, \
                 rInfo = rInfo, params = arg.get('scoreParams'), \
                 arg = arg )
-
-    if arg.get('tInfo',None) != None:
-        arg.tInfo.addRunDict(rInfo)
     
-    # Clean up run directory if temporary files were created
+    # Clean up temporary files from run directory.
     rInfo.delTmp()
 
 # end processing run

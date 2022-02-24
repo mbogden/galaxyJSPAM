@@ -2,7 +2,7 @@
     Author:     Matthew Ogden
     Created:    21 Feb 2020
     Altered:    03 Sep 2020
-Description:    This is hopefully my final attempt at impliementing a pipeline scoring method.
+Description:    For all things from a machine score out of the JSPAM simulation data.
 '''
 
 from os import path, listdir
@@ -501,7 +501,7 @@ def perturbation_compare_setup( rInfo, param, args ):
     
     # Else, have rInfo retrieve img location
     else:
-        iImg = rInfo.getModelImage(mName,initImg=True)
+        iImg = rInfo.getModelImage(mName, imgType='init')
         rInfo.initImg[mName] = iImg
         
     if type(iImg) == type(None): 

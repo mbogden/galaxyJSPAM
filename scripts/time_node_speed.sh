@@ -6,7 +6,7 @@ echo "Begin Timing" > time.txt
 # Kill all of my python processes before beginning. 
 pkill -9 python3
 
-for (( i = 8; i >= 1; i=i-1 ))
+for (( i = 1; i <= 8; i=i+1 ))
 do
     { echo "Nodes: $i" ; }>>time.txt 2>&1
     echo "Nodes: $i"

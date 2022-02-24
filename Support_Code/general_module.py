@@ -143,11 +143,9 @@ class inArgClass:
 
         self.printBase = True
         self.printAll = False
-        self.nProc = -1
 
         self.simple = False
         self.runDir = None
-        self.sdssDir = None
         self.targetDir = None
         self.dataDir = None
 
@@ -156,16 +154,6 @@ class inArgClass:
 
         elif argFile != None:
             self.readArgFile( argFile )
-
-        # Override certain values if others are on
-        if getattr( self, 'newAll', False ):
-
-            self.newInfo = True
-            self.newParam = True
-
-            self.newSim = True
-            self.newImg = True
-            self.newScore = True
 
         if self.printAll:
             self.printBase = True
@@ -387,8 +375,9 @@ def checkPP(arg):
     pHolder.loadQueue( printVal, argList )
 
     pHolder.runCores()
+    
 
-def readImg( imgLoc, printAll = False, toSize=None ):
+def readImg( imgLoc, printAll = False, toSize=None, toType=np.float32 ):
 
     # Check if path is valid
     if not path.exists( imgLoc ):
@@ -401,7 +390,7 @@ def readImg( imgLoc, printAll = False, toSize=None ):
     img = cv2.imread( imgLoc, 0 ) 
     
     # Convert to floating point with values between 0 and 1
-    if img.dtype == np.uint8:
+    if img.dtype != np.float32 and toType == np.float32:
         img = uint8_to_float32(img)
 
     # Resize if requested
@@ -413,14 +402,14 @@ def readImg( imgLoc, printAll = False, toSize=None ):
 
 # End get image
 
-def saveImg( img, imgLoc, printAll = False ):
+def saveImg( imgLoc, img ):
     
     # Convert to floating point with values between 0 and 1
     if img.dtype == np.float32:
         img = float32_to_uint8(img)
         
     # Read image from disk
-    img = cv2.imread( imgLoc, 0 ) 
+    img = cv2.imwrite( imgLoc, img ) 
 
 # End save image
 

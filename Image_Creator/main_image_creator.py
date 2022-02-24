@@ -29,7 +29,6 @@ def set_new_func( inFunc ):
 
 def main(arg):
 
-
     if arg.printAll:
 
         arg.printArg()
@@ -59,8 +58,8 @@ def main_ic_run( rInfo = None, arg = gm.inArgClass() ):
     
     # extract variables
     rDir = arg.runDir
-    printBase=arg.printBase
-    printAll=arg.printAll
+    printBase=rInfo.printBase
+    printAll=rInfo.printAll
     overWrite = arg.get('overWrite',False)
     
     if rInfo == None:
@@ -79,11 +78,11 @@ def main_ic_run( rInfo = None, arg = gm.inArgClass() ):
         print('IC: rInfo.status: ', rInfo.status )
 
     if rInfo.status == False:
-        print('IC: WARNGING:\n\t - rInfo status not good. Exiting...' )
+        if printBase: print('IC: WARNGING:\n\t - rInfo status not good. Exiting...' )
         return
     
     if scoreParams == None:
-        print("IC: WARNING: Please provide score parameters")
+        if printBase: print("IC: WARNING: Please provide score parameters")
         return
     
     elif printAll:
@@ -106,7 +105,8 @@ def main_ic_run( rInfo = None, arg = gm.inArgClass() ):
         create_image_from_parameters( rInfo, sParam, printAll = printAll, overwrite=overWrite, )
         
         if printBase:
-            print( 'IM_LOOP: %4d / %4d' % (i+1,n), end='\r' )
+            print( 'IC_LOOP: %4d / %4d' % (i+1,n), end='\r' )
+    if printBase: print( 'IC_LOOP: %4d / %4d: COMPLETE' % (n,n) )
             
 # End main image creator run
         
@@ -130,24 +130,33 @@ def create_image_from_parameters( rInfo, sParam, overwrite=False, printAll = Fal
     
     # Grab idenitfying names
     imgName = sParam['imgArg'].get('name',None)
+    imgType = sParam['imgArg'].get('type','model')
     simName = sParam['simArg'].get('name',None)
 
-    # If image is already created, return
-    mImgLoc = rInfo.findImgLoc( imgName, )
-    iImgLoc = rInfo.findImgLoc( imgName, initImg=True )
+    if imgType == 'model':
+        # If image is already created, return
+        mImgLoc = rInfo.findImgLoc( imgName, imgType='model')
+        iImgLoc = rInfo.findImgLoc( imgName, imgType='init' )
+
+        # Check if images already created
+        if mImgLoc != None and iImgLoc != None:        
+            if printAll: print("IC: Image '%s' already made for %s"%(imgName,rInfo.get('run_id')))
+
+            # Unless overwriting images, load images and return
+            if not overwrite: 
+                mImg = gm.readImg( mImgLoc )
+                iImg = gm.readImg( iImgLoc )
+                return
+            
+    elif imgType == 'wndchrm':
+        wImgLoc = rInfo.findImgLoc( imgName, imgType='wndchrm')
+        mImgLoc = rInfo.findImgLoc( imgName, )
     
-    # Check if images already created
-    if mImgLoc != None and iImgLoc != None:        
-        if printAll: print("IC: Image '%s' already made for %s"%(imgName,rInfo.get('run_id')))
-        
-        # Unless overwriting images, load images and return
-        if not overwrite: 
-            mImg = gm.readImg( mImgLoc )
-            iImg = gm.readImg( iImgLoc )
-            rInfo.img[imgName] = mImg
-            rInfo.init[imgName] = iImg
+        # Check if images already created
+        if wImgLoc != None and mImgLoc != None and not overwrite:        
+            if printAll: print("IC: Image '%s' already made for %s"%(imgName,rInfo.get('run_id')))
             return
-    
+            
     # Get particles
     pts = getParticles( rInfo, simName, printAll=printAll )    
     if type( pts ) == type( None ):
@@ -170,27 +179,37 @@ def create_image_from_parameters( rInfo, sParam, overwrite=False, printAll = Fal
     mImg = normImg( mImg, imgArg )
     iImg = normImg( iImg, imgArg )
     
+
     # Use image as float32 type for scoring
     if mImg.dtype == np.uint8:
-        rInfo.img[imgName] = gm.uint8_to_float32( mImg )
-        
+        mImg = gm.uint8_to_float32( mImg )
+        rInfo.img[imgName] = mImg
+
     if mImg.dtype == np.uint8:
-        rInfo.init[imgName] = gm.uint8_to_float32( iImg )
-        
+        iImg = gm.uint8_to_float32( iImg )
+        rInfo.init[imgName] = iImg
+
     # Get Image locations
     mImgLoc = rInfo.findImgLoc( imgName, newImg = True )
-    iImgLoc = rInfo.findImgLoc( imgName, newImg = True, initImg=True )
-    
+    iImgLoc = rInfo.findImgLoc( imgName, newImg = True, imgType = 'init' )
+
     if printAll: 
         im.tabprint("Saving model image at: %s"%mImgLoc)
         im.tabprint("Saving unperturbed at: %s"%iImgLoc)
-        
+            
     # Save image
-    cv2.imwrite(mImgLoc,mImg)
-    cv2.imwrite(iImgLoc,iImg)
-    
-    # Clean up run directory of particle files
-    rInfo.delTmp()
+    gm.saveImg(mImgLoc,mImg)
+    gm.saveImg(iImgLoc,iImg)
+        
+    # If type wndchrm, also place in wndchrm folder as tiff. 
+    if imgType ==  'wndchrm': 
+        if np.amax( mImg.shape ) > 100:
+            if rInfo.printBase: im.tabprint("WARNING: WNDCHRM images over 100 pixels not allowed.")
+            return
+        
+        wImgLoc = rInfo.findImgLoc( imgName, newImg = True, imgType = 'wndchrm' )
+        if printAll:    im.tabprint("Saving wndchrm image : %s"%wImgLoc)
+        gm.saveImg( wImgLoc, mImg )
 
 # End image from score parameter file
 
@@ -702,7 +721,7 @@ def addCircles(img, imgParam, cSize = 7):
     return cimg
 
 # Function for modifying base target image
-def adjustTargetImage( tInfo, new_param, startingImg = 'zoo_0', printAll = False, overWrite=False ):
+def adjustTargetImage( tInfo, new_param, startingImg = 'zoo_0', printAll = False, overWrite=False, wndchrm_image=False ):
     
     if printAll:
         print("\nIC: Adusting Starting Target Image\n")
@@ -779,15 +798,50 @@ def adjustTargetImage( tInfo, new_param, startingImg = 'zoo_0', printAll = False
         gm.tabprint("Writing to loc: %s"%newLoc)
     
     # Write image to location    
-    cv2.imwrite( newLoc, newImg )
+    gm.saveImg( newLoc, newImg )
+    
+    if wndchrm_image:
+        wndImgLoc = tInfo.saveWndchrmImage( newImg, newName )
     
     if printAll:
         gm.tabprint("File should exist: %s"%gm.validPath(newLoc))
     
     # Have tInfo load image
-    tImg = tInfo.getTargetImage( new_param['imgArg']['name'] )
+    tImg = tInfo.getTargetImage( new_param['imgArg']['name'], overwrite=True )
     
     return tImg
+
+
+def plot_run_images( rInfo, group_param, nCol = 3 ):
+    from math import ceil
+    
+    i = 0
+    j = 0
+    n = len( group_param )
+    nRow = ceil( n / nCol )
+    if nRow < 2:
+        nRow = 2
+    
+    fig, ax = plt.subplots( nRow, nCol ,figsize=(nCol*4,nRow*4) )
+    
+    for pKey in group_param:
+        
+        imgName = group_param[pKey]['imgArg']['name']
+        
+        ax[i,j].set_title(imgName)
+        img = rInfo.getModelImage( imgName, overWrite = True, toType = np.uint8)
+        if type(img) == type(None):
+            print("image warning: None")
+        elif img.dtype != np.uint8:
+            print("img warning:",img.dtype)
+        else:
+            ax[i,j].imshow( img, cmap='gray' )
+        
+        j += 1
+        if j >= nCol:
+            j = 0
+            i += 1    
+    
 
 
 # Run main after declaring functions

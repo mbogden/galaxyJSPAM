@@ -5,8 +5,13 @@ Description:    This program is the main function that prepares galaxy models,
                 runs them through the JSPAM software and stores particle files
 '''
 
-from os import path
+from os import system, remove, listdir, getcwd, chdir, path, rename
 from sys import path as sysPath
+from zipfile import (
+    ZipFile,
+    ZIP_DEFLATED,
+    ZIP_STORED
+)
 
 # For loading in Matt's general purpose python libraries
 supportPath = path.abspath( path.join( __file__ , "../../Support_Code/" ) )
@@ -14,8 +19,27 @@ sysPath.append( supportPath )
 import general_module as gm
 import info_module as im
 
+
 def test():
-    print("SS: Hi!  You're in Matthew's main code for all things simulation.")
+    print("SM: Hi!  You're in Matthew's main code for all things simulation.")
+
+# For testing and developement from outside. 
+new_func = None
+def set_new_func( new_func_ptr ):
+    global new_func
+    new_func = new_func_ptr
+# End set new function
+    
+# Expected SPAM files names and executable location
+spam_exe_loc = "./Simulator/bin/basic_run"
+siName = "a_0.000"
+sfName = "a_0.101"
+
+# Will return None is not found
+spam_exe = gm.validPath( spam_exe_loc )
+
+nPart = 0
+maxN = 1e5  # Arbitrary limit in case of typo, can be changed if needed
 
 def main(arg):
 
@@ -29,17 +53,11 @@ def main(arg):
     
     if arg.simple:
         if arg.printBase: 
-            print("SS: Simple!~")
+            print("SM: Simple!~")
             print("\t- Nothing else to see here")
 
     elif arg.runDir != None:
-        procRun( arg.runDir, printAll=arg.printAll )
-
-    elif arg.targetDir != None:
-        procTarget( arg.targetDir, printAll=arg.printAll )
-
-    elif arg.dataDir != None:
-        procAllData( arg.dataDir, printAll=arg.printAll )
+        sim_run( arg.runDir, printAll=arg.printAll )
 
     else:
         print("SS: Nothing selected!")
@@ -52,299 +70,224 @@ def main(arg):
 # End main
 
 
-def procRun( rDir, rInfo=None, printBase=True, printAll=False ):
+def main_sm_run( rInfo, cmdArg = gm.inArgClass() ):
+    
+    
+    printBase = rInfo.printBase
+    printAll = rInfo.printAll
 
     if printBase:
-        print( "SS.procRun: Inputs" )
-        print( "\t - rDir:", rDir )
-
-    if rInfo == None:
-        rInfo = im.run_info_class( runDir=rDir, printBase = printBase, printAll=True )
-
+        print( "SM.main_sm_run:" )
+    
     # Check if run is valid
     if rInfo.status == False:
-        print("SS: WARNING:")
+        print("SM: WARNING:")
         print("\t - Run directory not good.")
         return
 
     elif printBase:
-        print( 'SS: rInfo.status: ', rInfo.status )
+        im.tabprint("Run ID: %s" % rInfo.get("run_id"))
+        im.tabprint( "rInfo status: %s" % rInfo.status )
 
-    if printAll:
-        rInfo.printInfo()
-        pass
-
+    # Get score parameter data for creating new files
+    scoreParams = cmdArg.get('scoreParams',None)
+    
+    if scoreParams == None:
+        if printBase: print("SM: WARNING: Please provide score parameters")
+        return
+    
+    elif printAll:
+        im.tabprint("Score parameters len: %d"%len(scoreParams))
+    
+    # Extract unique simulation scenerios
+    simParams = {}
+    for pKey in scoreParams:
+        simKey = scoreParams[pKey]['simArg']['name']
+        if simKey not in simParams:
+            simParams[simKey] = scoreParams[pKey]['simArg']
+    
+    # Check if simulation already exists
+    todoList = []
+    overWrite =  cmdArg.get('overWrite', False)
+    if overWrite and printAll:
+        im.tabprint("Overwriting old simulations")
+    
+    # Loop through score parameters and grab unique simulation scenarios. 
+    for simKey in simParams:
+        
+        # If overwriting command given, add.
+        if overWrite:            
+            todoList.append(simKey)
+            continue
+        
+        # Find if points file exists, add if it doesn't
+        ptsLoc = rInfo.findPtsLoc( simParams[simKey]['name'] )        
+        if ptsLoc == None:
+            todoList.append(simKey)
+        else:
+            im.tabprint("Particles Found: %s" % simParams[simKey]['name'])
+    # End simKey in simParams
+    
+    if printBase:
+        im.tabprint("Simulations to run: %d" % len(todoList))
+    
+    # if no simluations, leave early
+    if len(todoList) == 0:
+        return
+        
+    # Double check spam's executable is already built.
+    if spam_exe == None:
+        print("WARNING: SM.main_sm_run")
+        im.tabprint("SPAM executable command not found")
+        im.tabprint("location expected: %s" % spam_exe_loc )
+        return
+        
+    for simKey in todoList:
+        new_simulation( rInfo, simParams[simKey], cmdArg )
+    
 # end processing run dir
 
-
-# Process target directory
-def procTarget( tDir, printBase = True, printAll=False ):
-
-    if printBase:
-        print("SS.procTarget:")
-        print("\t - tDir: " , tDir)
-
-    #tInfo = im.target_info_class( targetDir=tDir, printAll=True )
-    tInfo = im.target_info_class( targetDir=tDir, printAll=False )
-
-    if printBase:
-        print("SS.procTarget:")
-        print("\t - tInfo.status: %s" % tInfo.status )
-
-    # Check if target is valid
-    if tInfo.status == False:
-        print("SS: WARNING: procTarget:")
-        print("\t - Target not good.")
-        return
-
-    if printAll:
-        tInfo.printInfo()
-
-    tInfo.gatherRunInfos()
+def new_simulation( rInfo, simArg, cmdArg ):
     
-    for r in tInfo.runDirs:
-        print("t")
-
-# End processing sdss dir
-
-
-def procAllData( dataDir, printBase=True, printAll=False ):
-
-    from os import listdir
-
-    if printBase: 
-        print("SS.procAllData")
-        print("\t - dataDir: %s" % arg.dataDir )
-
-    # Check if directory exists
-    if not path.exists( dataDir ):  
-        print("SS.procAllData: WARNING: Directory not found")
-        print('\t - ' , dataDir )
-        return
-
-    # Append trailing '/' if needed
-    if dataDir[-1] != '/': dataDir += '/'  
-
-    dataList = listdir( dataDir )   # List of items found in folder
-    tDirList = []  # List of folders that are target directories
-
-    # Find target directories
-    for folder in dataList:
-        tDir = dataDir + folder
-        tempInfo = im.target_info_class( targetDir=tDir, printAll=False )
-
-        # if a valid target directory
-        if tempInfo.status:  tDirList.append( tempInfo )
-
+    printBase = rInfo.printBase
+    printAll = rInfo.printAll
+        
     if printBase:
-        print( '\t - Target Directories: %d' % len( tDirList ) )
+        print("\nSM.new_simulation:")
+        im.tabprint("New Simulation Name: %s" % simArg['name'])
+    
+    # Grab needed variables and directories.
+    model_data = rInfo.get('model_data', None)
+    ptsDir = rInfo.get('ptsDir', None)
+    tmpDir = rInfo.get('tmpDir', None)
+    nPts = simArg.get('nPts',None)
+                
+    if printAll:
+        im.tabprint("n particles: %s" % nPts)
+        im.tabprint("model_data: %s" % model_data)
+        im.tabprint("ptsDir: %s" % ptsDir)
+        im.tabprint("tmpDir: %s" % tmpDir)
+    
+    # Check for valid number of particles
+    if nPts != None:
+        # Check if using "k" abbreviation in num_particles
+        if 'k' in nPts:
+            kLoc = nPts.index('k')
+            n = int( nPts[0:kLoc] ) * 1000
+            nPts = n
+        
+        nPts = int( nPts )
+        
+        # Check if particle count is over max.
+        if nPts > maxN:
+            if printBase: 
+                print("\nWARNING: SM.new_simulation:")
+                im.tabprint("Number of points is greater than max")
+                im.tabprint("n particles: %s" % nPts)
+                im.tabprint("n max: %s" % maxN)
+            return False
+    # end if nPts
+    
+    # Check if needed info has been obtained
+    if (model_data == None or ptsDir == None or tmpDir == None or nPts == None):
+        
+        if printBase: 
+            print("\nWARNING: SM.new_simulation:")
+            im.tabprint("A required argument was invalid")
+            im.tabprint("n particles: %s" % nPts)
+            im.tabprint("model_data: %s" % model_data)
+            im.tabprint("ptsDir: %s" % ptsDir)
+            im.tabprint("tmpDir: %s" % tmpDir)
+        return False
+    
+    # Save current working directory and move to temp folder
+    pDir = getcwd()    
+    chdir( tmpDir )
+    
+    if printAll:
+        im.tabprint('Previous Working Dir: %s' % pDir)
+        im.tabprint(' Current Working Dir: %s' % getcwd() )
+    
+    # Call SPAM wrapper
+    goodRun, retVal = spam_wrapper( nPts, model_data, printCmd = printAll )
+    
+    # Print results
+    if not goodRun and printBase:
+        print("WARNING: SM.new_simulation")
+        im.tabprint("New simulation failed.  Error given")
+        print(retVal)
+        return
+    
+    if goodRun and printAll:
+        print("SM.new_simulation: Good simulation, value returned")
+        print(retVal)
+    
+    # Generate file names and locations
+    
+    # Unique names
+    iName = '%s_pts.000' % simArg['name']
+    fName = '%s_pts.101' % simArg['name']
+    
+    # Particle location created by SPAM.
+    siLoc = tmpDir + siName
+    sfLoc = tmpDir + sfName
+    
+    # Unique Loc
+    iLoc = tmpDir + iName
+    fLoc = tmpDir + fName
+    
+    # Rename temp particle files to prevent overwriting and later use
+    rename( siLoc, iLoc )
+    rename( sfLoc, fLoc )
+    
+    if printAll:
+        im.tabprint("Particles Generated")
+        im.tabprint("I: (%s) - %s" % ( path.isfile( iLoc ), iLoc ) )
+        im.tabprint("F: (%s) - %s" % ( path.isfile( fLoc ), fLoc ) )
+    
+    # Remove other files and outputs
+    remove(tmpDir + "fort.21")
+    remove(tmpDir + "fort.24")
+    remove(tmpDir + "fort.50")
+    remove(tmpDir + "gmon.out")
+    remove(tmpDir + "gscript")    
+    
+    # Check if saving particles files is required.
+    if cmdArg.get("zipSim",True):
+        
+        zipName = '%s.zip' % simArg['name']
+        
+        if printAll: 
+            im.tabprint("Zipping Files to: %s" % (ptsDir + zipName ) )
+            
+        # Auto closed on with exit
+        with ZipFile( ptsDir + zipName, 'w') as myzip:
+            myzip.write(iLoc, iName, compress_type=ZIP_DEFLATED)
+            myzip.write(fLoc, fName, compress_type=ZIP_DEFLATED)
 
-# End of procAllData
+# End Def new_simulation
+
+def spam_wrapper( nPts, model_data, printCmd ):
+    
+    # Build and Call SPAM executable with arguments
+    sysCmd = '%s -m %d -n1 %d -n2 %d %s' % (spam_exe, 0, nPts, nPts, model_data)
+    
+    if printCmd:
+        print("\nSM.spam_wrapper: ")
+        im.tabprint('Calling Shell cmd: %s' % sysCmd)
+        
+    try:
+        retVal = system(sysCmd)        
+        return True, retVal
+            
+    except Exception as e:
+        return False, e
+    
+# End spam_wrapper
+
 
 # Run main after declaring functions
 if __name__ == '__main__':
     from sys import argv
     arg = gm.inArgClass( argv )
     main( arg )
-
-
-'''
-
-from re import (
-    compile,
-    match
-)
-
-from zipfile import (
-    ZipFile,
-    ZIP_DEFLATED,
-    ZIP_STORED
-)
-
-basicRun = ""  # Set with the required flag -basicRun in new_readArg
-if path.isfile("./Simulator/bin/basic_run"):
-    basicRun = path.abspath("./Simulator/bin/basic_run")
-
-runDir = ''  # Set in new_readArg
-nPart = 0
-maxN = 1e6  # Arbitrary limit in case of typo, can be changed if needed
-
-compressFiles = True
-overWrite = False
-
-
-# SE_TODO: Work with this function for main
-# Variables are checked to exist in new_readArg function, and sets exitEarly as needed
-
-def simulator_v2(argList):
-
-    # Takes list of strings that is the info.txt (As generated by readInfoFile) in question and extracts the model_data
-    # information, and returns that
-    def getModelData(l):
-        if len(l) == 0:
-            print("Empty info.txt")
-            return
-
-        r = compile(r'^model_data\s(.*)')
-        for line in l:
-            m = match(r, line)
-            if m:
-                return m.group(1)
-
-        return ""
-
-    endEarly = new_readArg(argList)  # Checks that things exist, and sets endEarly accordingly
-    # Exit program with error
-    if endEarly:
-        print('Exiting...\n')
-        exit(-1)
-
-    # Read info.txt and get model data located in runDir
-    md = getModelData(readInfoFile(runDir + "info.txt"))
-
-    if md == "":
-        print("Error reading model data from info.txt")
-        exit(-1)
-
-    # Double check that the particle_files exists, it should have been made by the pipeline
-    if not path.isdir(runDir + "particle_files/"):
-        mkdir(runDir + "particle_files/")
-
-    # SE_TODO: Check 'particle_files' folder if particles of nPart size have already been made
-    # Ignore if overWrite is true
-
-    # Move active directory into 'particle_files'.
-    chdir(runDir + "particle_files/")
-
-    # Call JSPAM!
-    runBasicRun(nPart, md)
-
-    # Move the files to the new names
-    file_000 = runDir + "particle_files/a_0.000"
-    file_101 = runDir + "particle_files/a_0.101"
-
-    if not path.exists(file_000):
-        print("No " + file_000 + " found, exiting...")
-        exit(-1)
-
-    if not path.exists(file_101):
-        print("No " + file_000 + " found, exiting...")
-        exit(-1)
-
-    # Zip them for convenience
-    # Auto closed on with exit
-    with ZipFile(runDir + "particle_files/" + str(nPart) + "_pts.zip", 'w') as myzip:
-        myzip.write(file_000, str(nPart) + "_pts.000", compress_type=ZIP_DEFLATED)
-        myzip.write(file_101, str(nPart) + "_pts.101", compress_type=ZIP_DEFLATED)
-
-    # Remove the unzipped files and other outputs
-    remove(file_000)
-    remove(file_101)
-    remove(runDir + "particle_files/fort.21")
-    remove(runDir + "particle_files/fort.24")
-    remove(runDir + "particle_files/fort.50")
-    remove(runDir + "particle_files/gmon.out")
-    remove(runDir + "particle_files/gscript")
-# End simulator_v2
-
-def runBasicRun(nPart, data):
-    global basicRun
-
-    sysCmd = '%s -m %d -n1 %d -n2 %d %s' % (basicRun, 0, nPart, nPart, data)
-
-    if printAll:
-        print('Running command: ', sysCmd)
-
-    try:
-        retVal = system(sysCmd)
-
-        if printAll:
-            print("Command Complete: " + str(retVal))
-        return True
-
-    except Exception as e:
-        print("Failed running command due to: " + e)
-        return False
-# End runBasicRun
-
-def new_readArg(argList):
-    # Global input arguments
-    global runDir, nPart, overWrite, basicRun
-
-    # Loop through command line arguments
-    for i, arg in enumerate(argList):
-
-        # Ignore argument unless it has '-' specifier
-        if arg[0] != '-':
-            continue
-
-        # Turns out path.abspath doesn't understand ~
-        elif arg == '-runDir':
-            runDir = argList[i + 1]
-            if runDir[0] == '~':
-                runDir = path.expanduser(runDir)
-            else:
-                runDir = path.abspath(runDir)
-
-            if not runDir[-1] == '/':
-                runDir += '/'
-
-        elif arg == '-nPart':
-            nPart = argList[i + 1]
-
-        elif arg == '-overWrite':
-            overWrite = True
-
-        elif arg == '-basicRun':
-            basicRun = argList[i + 1]
-            if basicRun[0] == '~':
-                basicRun = path.expanduser(basicRun)
-            else:
-                basicRun = path.abspath(basicRun)
-
-    # Check validity of commandline arguments
-    endEarly = False
-
-    # Check if run Dir exists or if not given one
-    if not path.isdir(runDir):
-        if runDir == '':
-            print("ERROR: Please specify path to run directory.")
-            print("\t$: python simulator_v2.py -runDir /path/to/runDir ...")
-        else:
-            print("ERROR: Path to run directory not found: '%s'" % runDir)
-        endEarly = True
-    # End check runDir
-
-    # Check if basicRun exists
-    if not path.isfile(basicRun):
-        print("ERROR: Can't find basic_run.")
-        print("\tbasic_run location: %s" % basicRun)
-        print("\tcurrent location: %s" % getcwd())
-        print("\t$: python simulator_v2.py -basicRun /path/basic_run ...")
-        endEarly = True
-
-    # Check if number of particles was specified
-    if nPart == 0:
-        print("ERROR: Please specify number of particles per galaxy.")
-        print("\t$: python simulator_v2.py -nPart 1000 ...")
-        endEarly = True
-
-    # Check if input particles was an integer
-    try:
-        nPart = int(nPart)
-    except:
-        print("ERROR: -nPart is not an integer: '%s'" % nPart)
-        nPart = 0
-        endEarly = True
-
-    return endEarly
-# End new_readArg
-
-# Execute everything after declaring functions
-print('')
-if __name__ == "__main__":
-    argList = argv
-    simulator_v2(argList)
-print('')
-
-'''
