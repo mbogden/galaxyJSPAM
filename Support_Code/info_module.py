@@ -947,6 +947,32 @@ class target_info_class:
             tabprint( list(runDictList.keys()) )
         
         return runDictList
+    
+
+    def getOrbParam( self, generation_id = 'galaxy_zoo_merger'):
+
+        if generation_id == 'galaxy_zoo_merger':
+            rDicts = self.iter_run_dicts()
+            nModels = len(rDicts)
+
+            zScores = np.zeros(nModels)
+            mData = np.zeros((nModels, 34))
+
+            for i,rd in enumerate(rDicts):
+
+                rDict = rDicts[rd]
+                zScores[i] = rDict.get('zoo_merger_score')
+
+                m1 = rDict['model_data']
+                m2 = m1.split(",")
+                mData[i,:] = np.array(m2)
+
+            return (zScores, mData)
+
+        else:
+            print("IM.target_info_class: Generations other than 'galaxy_zoo_merger' not working at this time")
+            return (None, None)
+    # End getOrbParam
 
 
     def saveInfoFile( self ):
