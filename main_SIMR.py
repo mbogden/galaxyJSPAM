@@ -76,7 +76,7 @@ def main(arg):
         simr_run( arg )
 
     elif arg.targetDir != None:
-        simr_target( arg )
+        target_main( arg )
 
     elif arg.dataDir != None:
         simr_many_target( arg )
@@ -91,149 +91,45 @@ def main(arg):
 
 # End main
 
-def simr_many_target( arg ):
-    
-
-    dataDir   = arg.dataDir
-    printBase = arg.printBase
-    printAll  = arg.printAll 
-
-    if printBase and mpi_rank == 0: 
-        print("SIMR.procAllData")
-        print("\t - dataDir: %s" % arg.dataDir )
-    
-    # Check if valid directory
-    dataDir = gm.validPath(dataDir)
-    
-    if dataDir == None:
-
-        if printBase and mpi_rank == 0: 
-            print("SIMR: WARNING: simr_many_target: Invalid data directory")
-            print("\t - dataDir: %s" % dataDir )
-            
-            
-    # Prep arguments for targets
-    tArg = deepcopy(arg)
-    tArg.dataDir = None
-    tArg.printBase = True
-    
-    # Get list of directories/files and go through
-    targetList = listdir( dataDir )   # List of items found in folder
-    targetList.sort()
-    
-    # Normal local machine runs
-    if mpi_size == 1:
-        
-        for folder in targetList:  
-            
-            tArg.targetDir = dataDir + folder            
-            simr_target( arg = tArg )
-
-    
-    elif mpi_size > 1:
-
-        for folder in targetList:  
-            
-            tInfo = None
-            if mpi_rank == 0:
-                tArg.targetDir = dataDir + folder
-                tInfo = im.target_info_class( tArg=tArg )
-            
-                # If creating a new base, create new images
-                if arg.get('newBase',False):
-                    chime_0 = tInfo.readScoreParam( 'chime_0' )
-                    chime_image = ic.adjustTargetImage( tInfo, chime_0['chime_0'] \
-                                                       , printAll = arg.printAll )
-                    tInfo.saveWndchrmImage( chime_image, chime_0['chime_0']['imgArg'] )
-                
-                if tInfo.status:                    
-                    if printAll: gm.tabprint("Rank %d sending tInfo: %s" % (mpi_rank, tInfo.get('target_id')))
-                    tInfo = mpi_comm.bcast( tInfo, root=0 )
-                    
-                else:
-                    if printAll: gm.tabprint("Rank %d sending None:" % (mpi_rank))
-                    tInfo = mpi_comm.bcast( None, root=0 )
-                    
-            else:
-                tInfo = mpi_comm.bcast( tInfo, root=0 )
-
-            if type( tInfo ) != type( None ):
-                if printAll: gm.tabprint("Rank %d received: %s" % (mpi_rank, tInfo.get('target_id')))
-                simr_target( tInfo = tInfo, arg = tArg )
-            elif printAll:
-                gm.tabprint("Rank %d received None:"%mpi_rank)
-
-# End data dir
-
 
 # Process target directory
-def simr_target( cmdArg=gm.inArgClass(), tInfo = None ):
-
-    tDir = cmdArg.targetDir
-    printBase = cmdArg.printBase
-    printAll = cmdArg.printAll
+def target_main( cmdArg=gm.inArgClass(), tInfo = None ):
     
-    if cmdArg.printAll: 
-        cmdArg.printBase = True
+    if cmdArg.printAll:
+        print("SIMR: target_main:")
 
-    if printAll and mpi_rank == 0:
-        print("SIMR.simr_target: input")
-        print("\t - tDir: %s" % tDir )
-        print("\t - tInfo: %s" % type(tInfo) )
-
-    # Check if given a target
-    if tInfo == None and tDir == None and cmdArg.get('tInfo') == None:
-        print("WARNING: SIMR.simr_target:")
-        print("\t - Please provide either target directory or target_info_class")
-        return
-
-    # Read target directory if location given. 
-    elif tInfo == None and tDir != None:
+    # Initialize target_info from disk and cmd arguments
+    if mpi_rank == 0 and tInfo == None:        
+        tInfo = target_initialize( cmdArg, tInfo )
+        
+    # If in mpi_env, send to others
+    if mpi_size > 1:
         
         if mpi_rank == 0:
-            
-            tInfo = im.target_info_class( targetDir=tDir, tArg = cmdArg )
-            
-            # If creating a new base, create new images
-            if cmdArg.get('newBase',False):
-                chime_0 = tInfo.readScoreParam( 'chime_0' )
-                chime_image = ic.adjustTargetImage( tInfo, chime_0['chime_0'], \
-                                                   printAll = cmdArg.printAll )
-                tInfo.saveWndchrmImage( chime_image, chime_0['chime_0']['imgArg']['name'] )
-                
-            
-            # Gather scores if called for
-            if cmdArg.get('update',False):
-                tInfo.gatherRunInfoFiles()
-                tInfo.updateScores()
-                tInfo.saveInfoFile()
-            
-            # Check if others are expecting this tInfo
-            if mpi_size > 1:
-                tInfo = mpi_comm.bcast( tInfo, root=0 )
+            if printBase: print("SIMR: target_main: sending tInfo to others")
+            tInfo = mpi_comm.bcast( tInfo, root=0 )
 
+        # others waiting for target info class. 
         else:
             tInfo = None
             tInfo = mpi_comm.bcast( tInfo, root=0 )
-        
-    # get target if in arguments. 
-    elif tInfo == None and cmdArg.tInfo != None:
-        tInfo = cmdArg.tInfo
 
-    if printBase and mpi_rank == 0:
-        if tInfo.status: print("SIMR: target: %s - %s - %d Models" % ( tInfo.status, tInfo.get('target_id'), len( tInfo.tDict['zoo_merger_models'] ) ) )
-        else: print("SIMR: target: %s - %s" % ( tInfo.status, tDir ) )
-
-    # Check if valid directory
-    if tInfo.status == False:
-        print("WARNING: SIMR.simr_target:  Target Info status bad")
-        return
-
-    if cmdArg.get('printParam', False) and mpi_rank == 0:
-        tInfo.printParams()
+    # Have all check for valid tInfo
+    if tInfo == None or tInfo.status == False:
+        return None
+    
+    print("WORKING")
+    
+    
+    # If asking for genetic algorithm
+    if cmdArg.get( 'gaRun', False ):
+        print("WORKING: gaRun")
+    
+    elif cmdArg.get( 'newGen', False ):
+        print("WORKING: newGen")
     
     # Create new files/scores if called upon
-    if cmdArg.get( 'newAll', False ) \
+    elif cmdArg.get( 'newAll', False ) \
     or cmdArg.get( 'newSim', False ) \
     or cmdArg.get( 'newImage', False ) \
     or cmdArg.get( 'newFeats', False ) \
@@ -241,13 +137,80 @@ def simr_target( cmdArg=gm.inArgClass(), tInfo = None ):
     or cmdArg.get( 'normFeats', False ):
         if printBase: 
             print("SIMR.simr_target:  Creating new scores")
+            
         new_target_scores( tInfo, cmdArg )
     else:
         if printBase: 
-            print("SIMR.simr_target:  No scores to create. BYE!")
-        
-        
+            print("SIMR.simr_target:  Nothing Selected.")
 
+def target_new_generation( tInfo, ):
+    
+    print("hi")
+
+def target_initialize( cmdArg=gm.inArgClass(), tInfo = None ):
+    
+    
+    tDir = cmdArg.targetDir
+    printBase = cmdArg.printBase
+    printAll = cmdArg.printAll
+    
+    if cmdArg.printAll: 
+        cmdArg.printBase = True
+
+    if printAll:
+        print("SIMR.target_initialize:")
+        print("\t - tDir: %s" % tDir )
+        print("\t - tInfo: %s" % type(tInfo) )
+
+    # Check if given a target
+    if tInfo == None and tDir == None and cmdArg.get('tInfo') == None:
+        print("WARNING: SIMR.simr_initialize_target:")
+        print("\t - Please provide either target directory or target_info_class")
+        return
+
+    # Read target directory if location given. 
+    elif tInfo == None and tDir != None:
+        
+        tInfo = im.target_info_class( targetDir=tDir, tArg = cmdArg )
+
+        # If creating a new base, create new images
+        if cmdArg.get('newBase',False):
+            chime_0 = tInfo.readScoreParam( 'chime_0' )
+            chime_image = ic.adjustTargetImage( tInfo, chime_0['chime_0'], \
+                                               printAll = cmdArg.printAll )
+            tInfo.saveWndchrmImage( chime_image, chime_0['chime_0']['imgArg']['name'] )
+
+
+        # Gather scores if called for
+        if cmdArg.get('update',False):
+            tInfo.gatherRunInfoFiles()
+            tInfo.updateScores()
+            tInfo.saveInfoFile()
+
+        
+    # get target if in arguments. 
+    elif tInfo == None and cmdArg.tInfo != None:
+        tInfo = cmdArg.tInfo
+
+    if printBase:
+        if tInfo.status: 
+            print("SIMR: target: %s - %s - %d Models" % ( tInfo.status, tInfo.get('target_id'), len( tInfo.tDict['zoo_merger_models'] ) ) )
+
+            
+        else: 
+            print("SIMR: target: %s - %s" % ( tInfo.status, tDir ) )
+
+    # Check if valid directory
+    if tInfo.status == False:
+        print("WARNING: SIMR.simr_target:  Target Info status bad")
+        return None
+            
+    if cmdArg.get('printParam', False):
+        tInfo.printParams()
+        
+    return tInfo
+# End target_initialize
+        
 
 def new_target_scores( tInfo, tArg ):
 
@@ -519,6 +482,80 @@ def simr_run( cmdArg = None, rInfo = None, rDir = None ):
 
 # end processing run
 
+
+def simr_many_target( arg ):
+    
+
+    dataDir   = arg.dataDir
+    printBase = arg.printBase
+    printAll  = arg.printAll 
+
+    if printBase and mpi_rank == 0: 
+        print("SIMR.procAllData")
+        print("\t - dataDir: %s" % arg.dataDir )
+    
+    # Check if valid directory
+    dataDir = gm.validPath(dataDir)
+    
+    if dataDir == None:
+
+        if printBase and mpi_rank == 0: 
+            print("SIMR: WARNING: simr_many_target: Invalid data directory")
+            print("\t - dataDir: %s" % dataDir )
+            
+            
+    # Prep arguments for targets
+    tArg = deepcopy(arg)
+    tArg.dataDir = None
+    tArg.printBase = True
+    
+    # Get list of directories/files and go through
+    targetList = listdir( dataDir )   # List of items found in folder
+    targetList.sort()
+    
+    # Normal local machine runs
+    if mpi_size == 1:
+        
+        for folder in targetList:  
+            
+            tArg.targetDir = dataDir + folder            
+            simr_target( arg = tArg )
+
+    
+    elif mpi_size > 1:
+
+        for folder in targetList:  
+            
+            tInfo = None
+            if mpi_rank == 0:
+                tArg.targetDir = dataDir + folder
+                tInfo = im.target_info_class( tArg=tArg )
+            
+                # If creating a new base, create new images
+                if arg.get('newBase',False):
+                    chime_0 = tInfo.readScoreParam( 'chime_0' )
+                    chime_image = ic.adjustTargetImage( tInfo, chime_0['chime_0'] \
+                                                       , printAll = arg.printAll )
+                    tInfo.saveWndchrmImage( chime_image, chime_0['chime_0']['imgArg'] )
+                
+                if tInfo.status:                    
+                    if printAll: gm.tabprint("Rank %d sending tInfo: %s" % (mpi_rank, tInfo.get('target_id')))
+                    tInfo = mpi_comm.bcast( tInfo, root=0 )
+                    
+                else:
+                    if printAll: gm.tabprint("Rank %d sending None:" % (mpi_rank))
+                    tInfo = mpi_comm.bcast( None, root=0 )
+                    
+            else:
+                tInfo = mpi_comm.bcast( tInfo, root=0 )
+
+            if type( tInfo ) != type( None ):
+                if printAll: gm.tabprint("Rank %d received: %s" % (mpi_rank, tInfo.get('target_id')))
+                simr_target( tInfo = tInfo, arg = tArg )
+            elif printAll:
+                gm.tabprint("Rank %d received None:"%mpi_rank)
+
+# End data dir
 
 # Run main after declaring functions
 if __name__ == '__main__':

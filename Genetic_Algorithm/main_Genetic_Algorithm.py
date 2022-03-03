@@ -17,7 +17,9 @@ import info_module as im
 # For loading other dependencies
 from copy import deepcopy
 import numpy as np
+import numpy.linalg as LA
 import math
+import random
 
 
 def test():

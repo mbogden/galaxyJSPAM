@@ -579,22 +579,22 @@ class target_info_class:
     sFrame = None	   # Score dataframe
     rInfo = None	   # run_info_class for accessing run directories
 
-    printBase = True
-    printAll = False
+    printBase = True   # If printing basic info during code execution
+    printAll = False   # Printing of all info during code execution
 
-    targetDir = None
-    zooMergerDir = None
-    plotDir = None
+    targetDir = None     # The directory on disk for storing everyting relating to target
+    zooMergerDir = None  # Directory for original Galaxy Zoo: Merger Models for target
+    simrDir = None       # Directory for creating new models for target
+    plotDir = None       # Directory for any plots
 
-    baseInfoLoc = None
-    allInfoLoc = None
-    scoreLoc = None
-    baseScoreLoc = None
-    zooMergerLoc = None
+    baseInfoLoc = None   # Location of basic info file
+    allInfoLoc = None    # Location of all file containing nearly all target and model information
+    scoreLoc = None      # Location for all scores 
+    baseScoreLoc = None  # Location of basic score file.
 
 
     # For user to see headers.
-    targetHeaders = ( 'target_id', 'target_images', 'simulation_parameters', 'image_parameters', 'zoo_merger_models', 'score_parameters', 'progress', 'model_sets' )
+    targetHeaders = ( 'target_id', 'target_images', 'simulation_parameters', 'image_parameters', 'zoo_merger_models', 'score_parameters', 'progress', 'model_sets', 'ga_models' )
     
     baseHeaders = ( 'target_id', )
      
@@ -658,6 +658,139 @@ class target_info_class:
         self.status = True
 
     # End target init 
+    
+    # Create a new directory of runs based on new SIMR Models
+    def create_new_generation( self, simr_models ):
+
+        from os import mkdir
+
+        if self.printAll:
+            print("IM.create_new_generation:")
+
+        # Expecting python dictionary for arguments
+        sampleDict = { 'type' : 'python_dictionary' }
+        if type( simr_models ) != type( sampleDict ):
+            print("WARNING: IM.create_new_generation:")
+            gm.tabprint("Expecting 'simr_models' of type: %s" % type( sampleDict ) )
+            gm.tabprint("Received type: %s" % type( simr_models ) )
+            return
+
+        if self.printAll:
+            gm.tabprint("simr_model Keys: %s" % str( list( simr_models.keys())))
+
+        # Extract 
+        mName = simr_models.get('evolution_method', None)
+        gName = simr_models.get('generation_name', None)
+        mData = simr_models.get('model_data', None)
+
+        if type( mName ) == type( None ) \
+        or type( gName ) == type( None ) \
+        or type( mData ) == type( None ):
+            print("WARNING: IM.create_new_generation:")
+            gm.tabprint("input variable 'simr_models' invalid")
+            gm.tabprint("Expected Keys: %s" % str( ['evolution_method','generation_name','model_data']) )
+            gm.tabprint("evolution_method: %s" % type( simr_models.get('evolution_method', None) ) )
+            gm.tabprint("generation_name: %s" % type( simr_models.get('generation_name', None) ) )
+            gm.tabprint("model_data: %s" % type( simr_models.get('model_data', None) ) )
+            return 
+
+        # example numpy array. 
+        npArr = np.zeros((2,2))
+
+        # Expecting numpy array for parameter data 
+        if type( mData ) != type( npArr ):
+            print("WARNING: IM.create_new_generation:")
+            gm.tabprint("Expecting parameter array of type: %s" % type(npArr) )
+            gm.tabprint("Received a type: %s" % type(mData) )
+            return
+
+        # Expectin 2D array
+        if mData.ndim != 2:
+            if self.printBase: 
+                print("WARNING: IM.create_new_generation:")
+                gm.tabprint("Expecting 2-D parameter array" )
+                gm.tabprint("Received shape: %s" % str(mData.shape) )
+                return
+
+        # Expecting over 14 parameters for giving to SPAM
+        if mData.shape[1] < 14:
+            if self.printBase: 
+                print("WARNING: IM.create_new_generation:")
+                gm.tabprint("Expecting at least 14 parameters per model for SPAM:" )
+                gm.tabprint("Received shape: %s" % str(mData.shape) )
+                return
+
+        # Now Then, Create 
+        if not path.exists( self.simrDir ): mkdir( self.simrDir )
+
+        fullName = '%s_%s' % ( mName, gName )
+        genLoc = self.simrDir + fullName + '/'
+
+        if path.exists( genLoc ):
+
+            if self.printBase:
+                gm.tabprint("Model Generation already exists: %s" % genLoc )
+
+            if simr_models.get( 'overwrite', False ):
+
+                if self.printAll: 
+                    gm.tabprint("Removing Previous Folder: %s" % genLoc )
+
+                from shutil import rmtree
+                rmtree( genLoc )
+
+            else:
+                if self.printBase: 
+                    print("WARNING: IM.create_new_generation:")
+                    gm.tabprint("Please add overwrite command if you wish to overwrite")
+                    gm.tabprint("Returning...")
+                return
+
+
+        if self.printAll:
+            gm.tabprint("Creating Model Generation: %s" % genLoc )
+            gm.tabprint("Model Count: %d" % mData.shape[0])
+
+        mkdir( genLoc )
+        # Generation Folder created
+
+
+        # Create Run folders
+
+        nRuns = mData.shape[0]
+        for i in range( nRuns ):
+
+            # Create model name
+            model_id = 'run_%s' % str(i).zfill(4)
+            model_dir = genLoc + model_id + '/'
+            info_file = model_dir + 'base_info.json'
+
+            # Create string out of parameters
+            model_data = mData[i,:]
+            model_string = ','.join( map(str, model_data) )
+
+            # Create the information file for the run/model
+            mInfo = {}
+            mInfo['run_id'] = model_id
+            mInfo['generation_id'] = fullName
+            mInfo['model_data'] = model_string
+
+            # Print first if needed
+            if i < 1:
+                if self.printAll:
+                    print('model_dir: ', model_dir)
+                    print('info_file: ', info_file)
+                    pprint(mInfo)
+
+            # Create model directories and files
+            mkdir( model_dir )
+            gm.saveJson( mInfo, info_file )
+
+        if self.printAll:
+            gm.tabprint("Created directories: %d" % len( listdir( genLoc ) ) )
+            gm.tabprint("Expected directories: %d" % nRuns )
+
+    # End create_new_generation
 
     def getTargetImage( self, tName = None, overwrite=False, printAll = False ):
         
@@ -1046,6 +1179,7 @@ class target_info_class:
         self.infoDir = self.targetDir + 'information/'
         self.gen0 = self.targetDir + 'gen000/'
         self.zooMergerDir = self.targetDir + 'zoo_merger_models/'
+        self.simrDir = self.targetDir + 'simr_models/'
         self.plotDir = self.targetDir + 'plots/'
         
         # Directires inside info dir
@@ -1058,8 +1192,7 @@ class target_info_class:
         self.allInfoLoc = self.infoDir + 'target_info.json'
         self.baseInfoLoc = self.infoDir + 'base_target_info.json'
         self.scoreLoc = self.infoDir + 'scores.csv'
-        self.baseScoreLoc = self.infoDir + 'base_scores.csv'    
-        self.zooMergerLoc = self.infoDir + 'galaxy_zoo_models.txt'
+        self.baseScoreLoc = self.infoDir + 'base_scores.csv'
         self.imgParamLocOld = self.infoDir + 'param_target_images.json'
         
         # Various files within the wndchrm directory
@@ -1157,9 +1290,12 @@ class target_info_class:
         if not path.exists( self.plotDir ): mkdir( self.plotDir )
         if not path.exists( self.imgDir ): mkdir( self.imgDir )
         if not path.exists( self.maskDir ): mkdir( self.maskDir )
+        if not path.exists( self.simrDir ): mkdir( self.simrDir )
 
         if not path.exists( self.zooMergerDir ):
-            print("IM: WARNING: This message should not be seen.")
+            print("WARNING: IM.target_info_class.newTargetSetup: This message should not be seen.")
+            print("TO-DO: Create Directory of Galaxy Zoo: Merger model file.")
+            return False
         
         # Check for base file
         newBase = tArg.get('newBase',False)
