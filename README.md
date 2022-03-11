@@ -33,7 +33,7 @@ python3 -m pip install -r requirements.txt
 Much of the Image Feature Extraction used in this Project utilizes the open-source software WNDCHRM. [Pub][1] [Repo][2].
     
     
-The following is my, Matthew Ogden's, notes on installing WNDCHRM for the first time on a personal machine. 
+The following is my, Matthew Ogden's, notes on installing WNDCHRM for the first time on a personal machine. I cannot guarantee they will work in all scenarios.
     
 ``` 
     sudo apt-get install build-essential 
@@ -45,7 +45,6 @@ The following is my, Matthew Ogden's, notes on installing WNDCHRM for the first 
     sudo ./build.sh 
     
 ``` 
-
 
 ## Instructions<a id="Instructions"> 
     

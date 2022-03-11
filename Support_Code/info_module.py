@@ -688,7 +688,6 @@ class target_info_class:
 
     targetDir = None     # The directory on disk for storing everyting relating to target
     zooMergerDir = None  # Directory for original Galaxy Zoo: Merger Models for target
-    simrDir = None       # Directory for creating new models for target
     plotDir = None       # Directory for any plots
 
     baseInfoLoc = None   # Location of basic info file
@@ -763,6 +762,7 @@ class target_info_class:
 
     # End target init 
     
+    #####    DEPRECATED FUNCTION.  Is being overwritten later. 
     # Create a new directory of runs based on new SIMR Models
     def create_new_generation( self, simr_models ):
 
@@ -1279,7 +1279,7 @@ class target_info_class:
         self.infoDir = self.targetDir + 'information/'
         self.gen0 = self.targetDir + 'gen000/'
         self.zooMergerDir = self.targetDir + 'zoo_merger_models/'
-        self.simrDir = self.targetDir + 'simr_models/'
+        self.tmpDir = self.targetDir + 'tmp/'
         self.plotDir = self.targetDir + 'plots/'
         
         # Directires inside info dir
@@ -1390,7 +1390,7 @@ class target_info_class:
         if not path.exists( self.plotDir ): mkdir( self.plotDir )
         if not path.exists( self.imgDir ): mkdir( self.imgDir )
         if not path.exists( self.maskDir ): mkdir( self.maskDir )
-        if not path.exists( self.simrDir ): mkdir( self.simrDir )
+        if not path.exists( self.tmpDir ): mkdir( self.tmpDir )
 
         if not path.exists( self.zooMergerDir ):
             print("WARNING: IM.target_info_class.newTargetSetup: This message should not be seen.")
