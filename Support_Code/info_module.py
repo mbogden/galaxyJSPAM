@@ -100,7 +100,6 @@ class run_info_class:
     infoHeaders = [ 'run_id', 'model_data', 'machine_scores' ]
 
 
-
     def __init__( self, runDir=None, rArg = gm.inArgClass(), \
                  printBase=None, printAll=None, ):
 
