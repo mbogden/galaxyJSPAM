@@ -160,6 +160,12 @@ class inArgClass:
 
         if self.printAll:
             self.printBase = True
+        
+        # Because I'm terrible at camelcase for this word. 
+        if self.get('overwrite',False) or self.get('overWrite',False):
+            self.overwrite = True
+            self.overWrite = True
+            
 
     def get( self, inVal, default = None ):
 
