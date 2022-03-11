@@ -313,7 +313,7 @@ def score_target_compare( rInfo, param, args ):
     tImg = tInfo.getTargetImage(tName)
     
     # Finally, should have tImg.  Leave if not
-    if type(tImg) == None:
+    if type(tImg) == type(None):
         if printBase: print("Error: MS: target_compare_setup: failed to load target image")
         return None
     elif printAll: 
