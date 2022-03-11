@@ -304,8 +304,12 @@ def target_test_new_gen_scores( cmdArgs, tInfo ):
     # Have rank 0 prep args and broadcast
     if mpi_rank == 0:
         runArgs = target_prep_cmd_params( tInfo, cmdArgs )
-        runArgs.setArg( 'newAll', True )
-        runArgs.setArg( 'newInfo', True )
+        
+        # Add args for new score
+        if type( runArgs ) != type( None ):
+            runArgs.setArg( 'newAll', True )
+            runArgs.setArg( 'newInfo', True )
+            
         mpi_comm.bcast( runArgs, root=0 )
 
     # If in mpi and expecting info.
