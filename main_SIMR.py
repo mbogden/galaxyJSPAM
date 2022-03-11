@@ -18,10 +18,10 @@ import pandas as pd
 import numpy as np 
 import cv2 
 from time import sleep 
-from mpi4py import MPI 
+from mpi4py import MPI
 from mpi_master_slave import Master, Slave, WorkQueue
 
-mpi_comm = MPI.COMM_WORLD    
+mpi_comm = MPI.COMM_WORLD
 mpi_rank = mpi_comm.Get_rank()
 mpi_size = mpi_comm.Get_size()
 
@@ -52,11 +52,11 @@ def main(arg):
     if arg.printBase and mpi_rank == 0:
         test()
 
-    if mpi_size > 1:     
+    if mpi_size > 1:
+        sleep(mpi_rank*0.015)
         if mpi_rank == 0 and arg.printBase:
             print( 'SIMR: main: In MPI environment!')
-        sleep(1)
-        if arg.printAll: gm.tabprint('I am %d of %d ' %( mpi_rank, mpi_size ) ) 
+        if arg.printBase: gm.tabprint('I am %d / %d on %s' %( mpi_rank, mpi_size, MPI.Get_processor_name() ) ) 
         mpi_comm.Barrier()
         
     if arg.printAll and mpi_rank == 0:
@@ -289,7 +289,7 @@ def target_test_new_gen_scores( cmdArgs, tInfo ):
     
     if printBase:
         sleep(mpi_rank*0.25)
-        print( "SIMR.target_test_new_gen_scores: %d of %d" %(mpi_rank,mpi_size))
+        print( "SIMR.target_test_new_gen_scores: %d of %d on %s" %( mpi_rank, mpi_size, MPI.Get_processor_name() ) )
     
     # Make sure you're in an MPI_environment with more than 1 core.
     if mpi_size == 1:
