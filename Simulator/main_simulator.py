@@ -229,11 +229,9 @@ def new_simulation( rInfo, simArg, cmdArg ):
         return False
     
     # Save current working directory and move to temp folder
-    pDir = getcwd()    
     chdir( tmpDir )
     
     if printAll:
-        im.tabprint('Previous Working Dir: %s' % pDir)
         im.tabprint(' Current Working Dir: %s' % getcwd() )
     
     # Call SPAM wrapper
@@ -278,7 +276,7 @@ def new_simulation( rInfo, simArg, cmdArg ):
     remove(tmpDir + "fort.24")
     remove(tmpDir + "fort.50")
     remove(tmpDir + "gmon.out")
-    remove(tmpDir + "gscript")    
+    remove(tmpDir + "gscript")
     
     # Check if saving particles files is required.
     if cmdArg.get("zipSim",False):
