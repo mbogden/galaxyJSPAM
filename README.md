@@ -86,28 +86,33 @@ ___
 - `-paramName name_of_param`               Name of a score parameters file already saved in target's score_parameters folder.
 - `-targetLoc path/to/score/target.png`    Path to an existing target image of colliding galaxies.
 ___
-- `-newSim`    (Default: False) Tells program to create a new simulation of a model. (TODO)
+- `-newGen`  (Default: False)    Used for testing new MPI Queue for creating new models
+- `-gaExp`   (Default: False)    Short for "Genetic Algorithm Experiment".  Directs program to begin a genetic evolution of models over target given.
+- `-gaLoc`   (Default: target)   Possible locations Workers use when generating model data to create a score.  
+- `-gaParam path/to/param.json`   Location for genetic algorithm parameter file 
+___
+- `-newSim`    (Default: False) Tells program to create a new simulation of a model.
+- `-zipSim`    (Default: False) Tells program to zip particles files created by simulator.  Warning, files can be large.
 - `-newImage`  (Default: False) Tells program to create a new model image.
 - `-newFeats`  (Default: False) Tells program to create WNDCHRM features out of model image.
 - `-newScore`  (Default: False) Tells program to create a new machine score.
 - `-newPlot`   (Default: False) Tells program to create series of plots for a target.
 - `-newAll`    (Default: False) Tells program to create a new simulation, image, and score.
-- `-overWrite` (Default: False) Tells program to create a new simulation, image, and/or score even if that file already exists.
-- `-zipSim`    (Default: True)  Tells program to zip particles files created by simulator.  Warning, they can be large.
+- `-overWrite` (Default: False) Tells program to create a new files even if they already exist.
 ___
-- `newInfo`    (Default: False) Remove current information file.  Create a new one from a copy of the base.
-- `newBase`    (Default: False) Remove the base information file and generate a new one. 
-- `newRunInfo` (Default: False) Will remove the information file for all models found in a target.
-- `newRunBase` (Default: False) Will remove the base information file and generate a new one for all models found in a target.
+- `-newInfo`    (Default: False) Remove current information file.  Create a new one from a copy of the base.
+- `-newBase`    (Default: False) Remove the base information file and generate a new one. 
+- `-newRunInfo` (Default: False) Will remove the information file for all models found in a target.
+- `-newRunBase` (Default: False) Will remove the base information file and generate a new one for all models found in a target.
 ___
-- `startRun`  (Default: 0)  While iterating through target models, start with N'th model
-- `endRun`    (Default: -1) While iterating through target models, end with N'th model. (-1 go until end)
-- `skipRun`   (Default: 1)  While iterating through target models, skip to everyh N'th model
+- `-startRun`  (Default: 0)  While iterating through target models, start with N'th model
+- `-endRun`    (Default: -1) While iterating through target models, end with N'th model. (-1 go until end)
+- `-skipRun`   (Default: 1)  While iterating through target models, skip to everyh N'th model
 ___
-- `normFeats`  (Default: False) Takes WNDCHRM features created in runs and normalizes them.  Must be paired with -normName or -normLoc.
-- `normName file_name` Loots for a feature normalization file in target's WNDCHRM directory.
-- `normLoc path/to/file.json`   Looks for feature normalization file in specified path.
-- `wndchrmAnalysis`   Performs wndchrm analysis
+- `-normFeats`  (Default: False) Takes WNDCHRM features created in runs and normalizes them.  Must be paired with -normName or -normLoc.
+- `-normName file_name` Loots for a feature normalization file in target's WNDCHRM directory.
+- `-normLoc path/to/file.json`   Looks for feature normalization file in specified path.
+- `-wndchrmAnalysis`   Performs wndchrm analysis
 ___
 
 ### Common Commands
