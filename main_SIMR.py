@@ -152,6 +152,7 @@ def target_main( cmdArg=gm.inArgClass(), tInfo = None ):
 class new_score_worker(Slave):
     
     rank = mpi_rank
+    worker_dir = None
 
     def __init__(self, tInfo, runArgs ):
         
@@ -166,7 +167,7 @@ class new_score_worker(Slave):
             print("Worker %d: __init__:" % mpi_rank )
         
         # Where to save new run data 
-        if self.runArgs.get( 'genLoc', 'target' ) == 'target':
+        if self.runArgs.get( 'gaLoc', 'target' ) == 'target':
             
             tmpDir = self.tInfo.get('tmpDir', None)
             if tmpDir == None:
@@ -179,6 +180,48 @@ class new_score_worker(Slave):
                 if gm.validPath( self.worker_dir ) == None:
                     print("%d creating dir: %s" % (self.rank, self.worker_dir))
                     mkdir( self.worker_dir )
+            
+                    
+        # For Babbage, our local cluster
+        elif self.runArgs.get( 'gaLoc', None ) == 'babbage':
+            
+            # Hardcoded location of the tmp dir for babbages local computers
+            tmpBabbageDir = '/state/partition1/'
+            #tmpBabbageDir = 'tmpDir/'
+            
+            # If invalid location, complain
+            if gm.validPath( tmpBabbageDir ) == None:
+                self.worker_dir = None
+                print("WARNING %d: Invalid dir: %s" % ( mpi_rank, tmpBabbageDir ) )
+            
+            # Working local diskspace is valid
+            else:
+                
+                # Hardcoded
+                tmpDir = tmpBabbageDir + 'mbo2d_simr/'
+                
+                if gm.validPath( tmpDir ) == None:
+                    
+                    # Wait to create, I'm hoping to avoid multiple people creating it at the same time.
+                    waitTime = np.random.uniform() * 10
+                    sleep(waitTime)
+                    
+                    # Hoping only one person will create and everyone else 
+                    if gm.validPath( tmpDir ) == None:
+                        mkdir( tmpDir )
+                        print("Worker %d created tmp dir: %s" % (mpi_rank, tmpDir ) )
+                    
+                # Everyone meet up again
+                if gm.validPath( tmpDir ) != None:
+                    
+                    self.worker_dir = tmpDir + 'worker_dir_%s/' % str(self.rank).zfill(4)
+                    print("%d creating dir: %s" % (self.rank, self.worker_dir))
+                    mkdir( self.worker_dir )
+                
+                # Check if valid, if not create.
+                    
+        # Final command to ensure it's either a valid location or None.
+        self.worker_dir = gm.validPath( self.worker_dir )
 
         
     def do_work(self, data):
@@ -188,7 +231,10 @@ class new_score_worker(Slave):
         
         if self.runArgs.printAll:
             print('Worker %d: do_work: received %s' % (mpi_rank, run_id), )
-        sleep( 0.1 * i )
+            
+        # Double check if Worker has a valid working directory
+        if type( self.worker_dir ) == type( None ):
+            return (i, None)
         
         # Create run variables
         runDir = self.worker_dir + '%s/' % run_id
@@ -209,6 +255,9 @@ class new_score_worker(Slave):
         gm.saveJson( mInfo, infoLoc )
         
         rInfo = im.run_info_class( runDir = runDir, rArg = self.runArgs )
+        
+        if rInfo.status == False:
+            return (i, None)
         
         # Create simulation, image and compute score
         simr_run( cmdArg = self.runArgs, rInfo = rInfo )
@@ -236,7 +285,6 @@ def target_genetic_algorithm( cmdArgs, tInfo ):
     printAll = tInfo.printAll
     
     if printBase:
-        sleep(mpi_rank*0.002)
         print( "SIMR.target_genetic_algorithm: %d of %d" %(mpi_rank,mpi_size) )
       
     # Make sure you're in an MPI_environment with more than 1 core.
@@ -287,9 +335,8 @@ def target_test_new_gen_scores( cmdArgs, tInfo ):
     printBase = tInfo.printBase
     printAll = tInfo.printAll
     
-    if printBase:
-        sleep(mpi_rank*0.25)
-        print( "SIMR.target_test_new_gen_scores: %d of %d on %s" %( mpi_rank, mpi_size, MPI.Get_processor_name() ) )
+    if printBase and mpi_rank == 0:
+        print( "SIMR.target_test_new_gen_scores: %d nodes" %( mpi_size ) )
     
     # Make sure you're in an MPI_environment with more than 1 core.
     if mpi_size == 1:
@@ -334,7 +381,7 @@ def target_test_new_gen_scores( cmdArgs, tInfo ):
         
         # WORKING: Use zoo merger data for testing and developing.
         zScores, mData = tInfo.getOrbParam()
-        newData = mData[0:15,:]
+        newData = mData[0:2,:]
         
         # Create Master Class.
         master = Master( range(1, mpi_size ) )
@@ -362,7 +409,7 @@ def target_test_new_gen_scores( cmdArgs, tInfo ):
         
         # Create second queue of items
         # Add data to compute in queue
-        for i in range( 15, 30 ):
+        for i in range( 15, 17 ):
             mpi_queue.add_work( data=( i, mData[i,:] ) )
         
         # Stay in loop until queue has items
