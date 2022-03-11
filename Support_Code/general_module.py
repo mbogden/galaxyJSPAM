@@ -142,7 +142,7 @@ def readFile( fileLoc, stripLine=False ):
 
 class inArgClass:
 
-    def __init__( self, inArg=None, argFile=None ):
+    def __init__( self, cmdLine=None ):
 
         self.printBase = True
         self.printAll = False
@@ -152,11 +152,12 @@ class inArgClass:
         self.targetDir = None
         self.dataDir = None
 
-        if inArg != None:
-            self.updateArg( inArg )
-
-        elif argFile != None:
-            self.readArgFile( argFile )
+        if cmdLine != None:
+            self.updateArg( cmdLine )
+        
+        # If given file to read
+        if self.get('argFile',None) != None:
+            self.readArgFile( )
 
         if self.printAll:
             self.printBase = True
@@ -165,7 +166,7 @@ class inArgClass:
         if self.get('overwrite',False) or self.get('overWrite',False):
             self.overwrite = True
             self.overWrite = True
-            
+    
 
     def get( self, inVal, default = None ):
 
@@ -213,6 +214,27 @@ class inArgClass:
             self.printArg()
 
     # End update input arguments
+    
+    def readArgFile( self, ):
+        
+        argLoc = validPath( self.argFile )
+        
+        if argLoc == None:
+            print("WARNING: GM.inArgClass.readArgFile: ")
+            tabprint("Cannot find arg file: (%s) - %s" %( path.exists(self.argFile) , self.argFile) )
+            return
+        
+        args = readJson( argLoc )
+        
+        if args == None:
+            print("WARNING: GM.inArgClass.readArgFile: ")
+            tabprint("Cannot find arg file: (%s) - %s" %( path.exists(self.argFile) , self.argFile) )
+            return
+        
+        # Assumed you've read in a JSON
+        for key in args:
+            self.setArg( key, args[key] )
+        
 
     # For manual setting
     def setArg( self, inName, inArg ):

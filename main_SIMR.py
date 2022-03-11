@@ -536,7 +536,6 @@ def target_initialize( cmdArg=gm.inArgClass(), tInfo = None ):
         for key in params:
             ic.adjustTargetImage( tInfo = tInfo, new_param = params[key], \
                                  overWrite = cmdArg.get('overWrite'), printAll = printAll )           
-        
     return tInfo
 
 # End target_initialize
@@ -553,9 +552,7 @@ def target_prep_cmd_params( tInfo, tArg ):
 
     
     if tInfo.printAll:
-        gm.tabprint( '%d in target_prep_cmd_params: %s: '% (mpi_rank, tInfo.get('target_id') ) )    
-
-    tArg.printArg()
+        gm.tabprint( '%d in target_prep_cmd_params: %s: '% (mpi_rank, tInfo.get('target_id') ) ) 
     
     # Copy cmd Arg to send to runs
     runArgs = deepcopy( tArg )
