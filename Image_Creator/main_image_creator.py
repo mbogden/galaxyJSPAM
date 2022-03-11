@@ -218,24 +218,19 @@ def getParticles( rInfo, simName, printAll=False ):
     
     # Check if files are loaded in run info class
     pts = rInfo.pts.get(simName,None)
-    
+
     # Load points if not found
     if pts != None:
         return pts
     
-    # Get particle location 
-    ptsZipLoc = rInfo.findPtsLoc( ptsName = simName )
-    if printAll: im.tabprint("Loading points from file: %s"%ptsZipLoc)
-        
-    if ptsZipLoc == None:
-        if rInfo.printBase: print("WARNING: IC: zipped points not found: %s"%ptsZipLoc)
-        return None
-    
+
     # Read particles using rInfo
-    pts_i, pts_f = rInfo.getParticles( simName )
+    pts_i, pts_f = rInfo.readParticles( simName )
     
     if type(pts_i) == type(None) or type( pts_f ) == type(None): 
-        if rInfo.printBase: print("WARNING: IC: zipped points failed to read: %s"%ptsZipLoc)
+        if rInfo.printBase: 
+            print("WARNING: IC.getParticles:")
+            gm.tabprint("Failed to read particles: %s" % simName)
         return None
     
     # Analyze points with particle class

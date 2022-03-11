@@ -11,6 +11,9 @@ import cv2
 from os import path
 from sys import path as sysPath
 from mpi4py import MPI
+from mpi_master_slave import Master, Slave
+from mpi_master_slave import WorkQueue
+import time
 
 supportPath = path.abspath( path.join( __file__ , "../../Support_Code/" ) )
 sysPath.append( supportPath )
@@ -247,134 +250,10 @@ class inArgClass:
 # Global input arguments
 
 
-class ppClass:
-
-    import multiprocessing as mp
-    from queue import Empty
-    from time import sleep
-
-    nCores = 1
-    printProg = False
-
-    jobQueue = mp.Queue()
-    nQueue = 0
-
-    funcPtr = None
-    manager = mp.Manager()
-
-    def __init__(self, nCore, printProg=False):
-        
-        if type(nCore) != type( 123 ):
-            nCore = int(nCore)            
-
-        # 0 for all, negative all minus negative
-        if nCore < 1:
-            self.nCores = self.mp.cpu_count() + nCore
-            if self.nCores < 1: self.nCores = 1
-        else:
-            self.nCores = nCore
-
-        self.printProg = printProg
-
-    def printProgBar(self):
-        self.printProg = True
-
-    # Assuming you're only running a single function
-    def loadQueue( self, funcIn, inList ):
-
-        self.funcPtr = funcIn
-        self.nQueue = len( inList )
-
-        for args in inList:
-
-            self.jobQueue.put(args)
-
-    def runCores( self ):
-
-        if self.nCores == 1:
-            print("Why use parallel processing with 1 core?")
-
-        self.coreList = []
-
-        # Start all processes
-        for i in range( self.nCores ):
-            p = self.mp.Process( target=self.coreFunc, )
-            self.coreList.append( p )
-            p.start()
-
-        # Wait until all processes are complete
-        for p in self.coreList:
-            self.coreList.pop()
-            p.join()
-
-    # Blah
-
-    def __del__( self, ):
-        # check if queue is still full
-        pass
-
-
-    def coreFunc( self ):
-
-        n = int( self.nQueue )
-        from sys import stdout
-
-        # Keep core running until shared queue is empty
-        while True:
-
-            try:
-                funcArgs = self.jobQueue.get( block=True, timeout=1 )
-
-            # Will exist loop if queue is empty
-            except self.Empty:
-                #print('%s - queue empty' % self.mp.current_process().name)
-                break
-
-            if self.printProg:
-                p = n - int( self.jobQueue.qsize() )
-                perc = ( p / n ) * 100
-                
-                stdout.write( "%.1f%% - %d / %d	  \r" % ( perc, p, n ) )
-
-            # Run desired function on core
-            self.funcPtr(**funcArgs)
-
-    # End exectute function
-
-    def testPrint():
-        print("Inside parallel processing python Module.  Written by Matthew Ogden")
-
-# End parallel processing class
-
 def printVal( n1, n2=1 ):
     from time import sleep
     #print("Val: %d %d" % ( n1, n2) )
     sleep(n1)
-    
-
-
-def checkPP(arg):
-
-    import multiprocessing as mp
-
-    print("Hi!  You're in Matt's parallel processing module.")
-    print("\t- requested cores: %s" % arg.nProc)
-    print("\t- available cores: %d" % mp.cpu_count() )
-
-    nCores = 2
-    pHolder = ppClass( nCores )
-
-    pHolder.printProgBar()
-
-    argList = []
-
-    for i in range( 4 ): 
-        argList.append( dict( n1=i, n2=i ) )
-        argList.append( dict( n1=i ) )
-
-    pHolder.loadQueue( printVal, argList )
-
-    pHolder.runCores()
     
 
 def readImg( imgLoc, printAll = False, toSize=None, toType=np.float32 ):
@@ -417,9 +296,80 @@ def saveImg( imgLoc, img ):
 def tabprint( inprint, begin = '\t - ', end = '\n' ):
     print('%s%s' % (begin,inprint), end=end )
 
-class mpi_class:
-    status = "HI from MPI"
-    
+
+# The following code is based on MPI_Master_Slave example code provided here: https://github.com/luca-s/mpi-master-slave
+
+class MyApp(object):
+    """
+    This is my application that has a lot of work to do so it gives work to do
+    to its slaves until all the work is done
+    """
+
+    def __init__(self, slaves):
+        # when creating the Master we tell it what slaves it can handle
+        self.master = Master(slaves)
+        # WorkQueue is a convenient class that run slaves on a tasks queue
+        self.work_queue = WorkQueue(self.master)
+
+    def terminate_slaves(self):
+        """
+        Call this to make all slaves exit their run loop
+        """
+        self.master.terminate_slaves()
+
+    def run(self, tasks=10):
+        """
+        This is the core of my application, keep starting slaves
+        as long as there is work to do
+        """
+        #
+        # let's prepare our work queue. This can be built at initialization time
+        # but it can also be added later as more work become available
+        #
+        for i in range(tasks):
+            # 'data' will be passed to the slave and can be anything
+            self.work_queue.add_work(data=('Do task', i))
+
+        #
+        # Keeep starting slaves as long as there is work to do
+        #
+        while not self.work_queue.done():
+
+            #
+            # give more work to do to each idle slave (if any)
+            #
+            self.work_queue.do_work()
+
+            #
+            # reclaim returned data from completed slaves
+            #
+            for slave_return_data in self.work_queue.get_completed_work():
+                done, message = slave_return_data
+                if done:
+                    print('Master: slave finished is task and says "%s"' % message)
+
+            # sleep some time: this is a crucial detail discussed below!
+            time.sleep(0.03)
+
+
+class MySlave(Slave):
+    """
+    A slave process extends Slave class, overrides the 'do_work' method
+    and calls 'Slave.run'. The Master will do the rest
+    """
+
+    def __init__(self):
+        super(MySlave, self).__init__()
+
+    def do_work(self, data):
+        rank = MPI.COMM_WORLD.Get_rank()
+        name = MPI.Get_processor_name()
+        task, task_arg = data
+        print('  Slave %s rank %d executing "%s" task_id "%d"' % (name, rank, task, task_arg) )
+        return (True, 'I completed my task (%d)' % task_arg)
+
+
+
 
 
 # Run main after declaring functions
@@ -433,8 +383,6 @@ if __name__ == '__main__':
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     size = comm.Get_size()
-    print( 'MPI: ', rank, size )
+    print( 'MPI: rank %d - size %d' %(rank, size) )
 
-    checkPP(arg)
-    
     

@@ -12,13 +12,14 @@ from os import path, listdir
 from sys import path as sysPath, exit
 from copy import deepcopy
 
-sysPath.append( path.abspath( 'Machine_Score/' ) )
 
 import pandas as pd 
 import numpy as np 
 import cv2 
 from time import sleep 
 from mpi4py import MPI 
+from mpi_master_slave import Master, Slave, WorkQueue
+
 mpi_comm = MPI.COMM_WORLD    
 mpi_rank = mpi_comm.Get_rank()
 mpi_size = mpi_comm.Get_size()
@@ -30,6 +31,7 @@ import Simulator.main_simulator as sm
 import Image_Creator.main_image_creator as ic
 import Feature_Extraction.main_feature_extraction as fe
 import Neural_Network.main_neural_networks as nn
+sysPath.append( path.abspath( 'Machine_Score/' ) )
 from Machine_Score import main_machine_score as ms
 import Score_Analysis.main_score_analysis as sa
 
@@ -95,6 +97,9 @@ def main(arg):
 # Process target directory
 def target_main( cmdArg=gm.inArgClass(), tInfo = None ):
     
+    printAll = cmdArg.printAll
+    printBase = cmdArg.printBase
+    
     if cmdArg.printAll:
         print("SIMR: target_main:")
 
@@ -118,15 +123,9 @@ def target_main( cmdArg=gm.inArgClass(), tInfo = None ):
     if tInfo == None or tInfo.status == False:
         return None
     
-    print("WORKING")
-    
-    
     # If asking for genetic algorithm
-    if cmdArg.get( 'gaRun', False ):
-        print("WORKING: gaRun")
-    
-    elif cmdArg.get( 'newGen', False ):
-        print("WORKING: newGen")
+    if cmdArg.get( 'gaExp', False ):
+        target_geneteric_algorithm( tInfo, cmdArg )
     
     # Create new files/scores if called upon
     elif cmdArg.get( 'newAll', False ) \
@@ -138,14 +137,85 @@ def target_main( cmdArg=gm.inArgClass(), tInfo = None ):
         if printBase: 
             print("SIMR.simr_target:  Creating new scores")
             
-        new_target_scores( tInfo, cmdArg )
-    else:
-        if printBase: 
-            print("SIMR.simr_target:  Nothing Selected.")
-
-def target_new_generation( tInfo, ):
+        target_new_scores( tInfo, cmdArg )
     
-    print("hi")
+    elif cmdArg.get( 'newGen', False ):
+        
+        target_new_gen_scores( cmdArg, tInfo )
+    else:
+        if printBase and mpi_rank == 0: 
+            print("SIMR.simr_target:  Nothing Selected.")
+     
+
+class new_score_worker(Slave):
+
+    def __init__(self):
+        super(new_score_worker, self).__init__()
+        print("Worker %d: __init__:" % mpi_rank )
+
+    def do_work(self, data):
+        rank = MPI.COMM_WORLD.Get_rank()
+        name = MPI.Get_processor_name()
+        run_id, mData = data
+        print('Worker %d: do_work: received %d' % (mpi_rank, run_id), mData )
+        sleep( 0.1 * run_id )
+        return (True, 'I printed my task (%d)' % run_id)
+            
+def target_new_gen_scores( cmdArgs, tInfo ):
+    
+    
+    printBase = tInfo.printBase
+    printAll = tInfo.printAll
+    
+    if printBase:
+        sleep(mpi_rank*0.25)
+        print( "SIMR.target_new_gen_scores: %d of %d" %(mpi_rank,mpi_size))
+    
+    # Make sure you're in an MPI_environment with more than 1 core.
+    if mpi_size == 1:
+        print("WARNING: SIMR.target_new_gen_scores:")
+        gm.tabprint("Please run code with mpirun to work properly")
+        gm.tabprint("Example: 'mpirun -n 4 python3 main_simr.py -newGen'")
+        return
+    
+    zScores, mData = (None, None)
+    
+    # If Master create queue and use workers
+    if mpi_rank == 0:
+        
+        print("WORKING: SIMR.target_main")
+        gm.tabprint("Using zoo merger data for testing")
+        zScores, mData = tInfo.getOrbParam()
+        newData = mData[0:15,:]
+        
+        master = Master( range(1, mpi_size ) )
+         
+        # Create Queue
+        mpi_queue = WorkQueue( master )
+        
+        for i in range( newData.shape[0] ):
+            mpi_queue.add_work( data=( i, newData[i,:] ) )
+        
+        # Stay in loop until queue is empty
+        while not mpi_queue.done():
+            
+            # tell a slave to do work if needed.
+            mpi_queue.do_work()
+            for slave_return_data in mpi_queue.get_completed_work():
+                done, message = slave_return_data
+                if done:
+                    #print('Master: slave finished is task and says "%s"' % message)
+                    pass
+            pass
+            
+        master.terminate_slaves()
+    
+    else:
+        gm.tabprint(" %d: Creating new_score_worker" % mpi_rank)
+        new_score_worker().run()
+        
+        
+    
 
 def target_initialize( cmdArg=gm.inArgClass(), tInfo = None ):
     
@@ -212,13 +282,13 @@ def target_initialize( cmdArg=gm.inArgClass(), tInfo = None ):
 # End target_initialize
         
 
-def new_target_scores( tInfo, tArg ):
+def target_new_scores( tInfo, tArg ):
 
     printBase = tArg.printBase
     printAll = tArg.printAll
     
     if printBase and mpi_rank == 0:
-        print("SIMR: new_target_scores: %s" % tInfo.get('target_id') )
+        print("SIMR: target_new_scores: %s" % tInfo.get('target_id') )
 
     # Check if parameter are given
     params = tArg.get('scoreParams')
@@ -228,7 +298,7 @@ def new_target_scores( tInfo, tArg ):
     # If invalid, complain
     if params == None and paramLoc == None and paramName == None:
         if printBase and mpi_rank == 0:
-            print("SIMR: WARNING: new_target_scores: params not valid")
+            print("SIMR: WARNING: target_new_scores: params not valid")
             gm.tabprint('Params: %s'%type(params))
             gm.tabprint('ParamName: %s'%paramName)
             gm.tabprint('ParamLoc : %s'%paramLoc)
@@ -275,11 +345,11 @@ def new_target_scores( tInfo, tArg ):
     # Check for final parameter file is valid
     if params == None:
         if printBase:
-            print("SIMR: WARNING: new_target_scores: Failed to load parameter class")
+            print("SIMR: WARNING: target_new_scores: Failed to load parameter class")
         return
     
     if tInfo.printAll and mpi_size > 1:
-        gm.tabprint( 'Rank %d in new_target_scores: %s: '% (mpi_rank, tInfo.get('target_id') ) )    
+        gm.tabprint( 'Rank %d in target_new_scores: %s: '% (mpi_rank, tInfo.get('target_id') ) )    
         mpi_comm.Barrier()
     
     tArg.setArg('tInfo', tInfo)
@@ -292,16 +362,18 @@ def new_target_scores( tInfo, tArg ):
     # Change printing variables
     if tArg.get('printAllRun',False):
         runArgs.setArg('printBase',True)
-        runArgs.setArg('printAll',True)        
+        runArgs.setArg('printAll',True)  
+        
     elif tArg.get('printBaseRun',False):
         runArgs.setArg('printBase',True)
-        runArgs.setArg('printAll',False)        
+        runArgs.setArg('printAll',False)     
+        
     else:
         runArgs.setArg('printBase',False)
         runArgs.setArg('printAll',False)
     
     if printAll:
-        print('SIMR.new_target_scores: Printing new run argments\n')
+        print('SIMR.target_new_scores: Printing new run argments\n')
         runArgs.printArg()
         print('')
 
@@ -362,7 +434,7 @@ def new_target_scores( tInfo, tArg ):
                 scatter_lists.append([])
 
         if printAll:
-            print("SIMR: new_target_scores: MPI Scatter argList")
+            print("SIMR: target_new_scores: MPI Scatter argList")
             gm.tabprint("Rank 0 argList: %d"%len(argList))
             gm.tabprint("Rank 0 scatter_lists: %d"%len(scatter_lists))
             for i,lst in enumerate(scatter_lists):
@@ -412,14 +484,14 @@ def new_target_scores( tInfo, tArg ):
 def simr_run( cmdArg = None, rInfo = None, rDir = None ):
 
     # Initialize variables
-    if arg == None:
+    if cmdArg == None:
         print("SIMR: WARNING: No arg. Exiting")
 
     if rDir == None:
-        rDir = arg.runDir
+        rDir = cmdArg.runDir
         
-    printAll = arg.printAll
-    printBase = arg.printBase    
+    printAll = cmdArg.printAll
+    printBase = cmdArg.printBase    
     
     if printBase:
         print("SIMR.simr_run: Inputs")
@@ -429,11 +501,11 @@ def simr_run( cmdArg = None, rInfo = None, rDir = None ):
     # Initialize info file
     if rInfo == None:
         
-        if arg.get('rInfo') != None:
-            rInfo = arg.rInfo
+        if cmdArg.get('rInfo') != None:
+            rInfo = cmdArg.rInfo
             
         elif rDir != None:
-            rInfo = im.run_info_class( runDir=rDir, rArg=arg )
+            rInfo = im.run_info_class( runDir=rDir, rArg=cmdArg )
 
     if printBase:
         print('SIMR.pipelineRun: ')
@@ -444,38 +516,71 @@ def simr_run( cmdArg = None, rInfo = None, rDir = None ):
         return None
     
     # Check if score parameters were given
-    if arg.get('paramLoc') != None and arg.get('scoreParams') == None:
-        sParams = gm.readJson( arg.paramLoc )
+    if cmdArg.get('paramLoc') != None and cmdArg.get('scoreParams') == None:
+        sParams = gm.readJson( cmdArg.paramLoc )
         if sParams == None:
-            if arg.printBase: print("ERROR: SIMR: simr_run: Error reading param file: %s"%arg.paramLoc )
+            if cmdArg.printBase: print("ERROR: SIMR: simr_run: Error reading param file: %s"%cmdArg.paramLoc )
         else:
-            arg.scoreParams = sParams
+            cmdArg.scoreParams = sParams
     
     # If invalid, complain
-    if arg.get('scoreParams',None) == None:
+    if cmdArg.get('scoreParams',None) == None:
         if printBase:
             print("SIMR: WARNING: simr_run: params not valid")
-        return   
+        return
     
-    # Check if new files should be created/altered
-    newAll = arg.get('newAll',False)
+    # Check for new scores to create
+    overWrite =  cmdArg.get('overWrite', False) or cmdArg.get('overwrite', False)
+    scoreParams = cmdArg.get('scoreParams',None)
+    newParams = {}
+    
+    if overWrite:
+        if rInfo.printAll: im.tabprint("Overwriting old scores")
+        newParams = deepcopy( scoreParams )
+        
+    # Loop through score parameters and grab unique simulation scenarios. 
+    else:
+        for key in scoreParams:
+            score = rInfo.getScore( scoreParams[key]['name'] )
+            if score == None:
+                newParams[key] = scoreParams[key]
+        # End simKey in simParams
+    
+    # No new scores
+    if len( newParams ) == 0:
+        
+        if rInfo.printBase:
+            im.tabprint("No new scores")
+        return
+    
+    else:
+        if rInfo.printBase:
+            gm.tabprint("Creating new scores")
+        
+    
+    tmpArg = deepcopy( cmdArg )
+    tmpArg.scoreParams = newParams
+
+    # Check if new files should be created/altered    
+    
+    newAll = cmdArg.get('newAll',False)
     # Asking for new simulation data?
-    if arg.get('newSim') or newAll:
-        sm.main_sm_run( rInfo = rInfo, cmdArg=arg )
+    if cmdArg.get('newSim') or newAll:
+        sm.main_sm_run( rInfo = rInfo, cmdArg=tmpArg )
 
     # Asking for new image creation?
-    if arg.get('newImage') or newAll:
-        ic.main_ic_run( rInfo = rInfo, arg=arg )
-        
+    if cmdArg.get('newImage') or newAll:
+        ic.main_ic_run( rInfo = rInfo, arg=tmpArg )
+        ''
     # Asking for new feature extraction from images? 
-    if arg.get('newFeats') or newAll:
-        fe.main_fe_run( rInfo = rInfo, arg=arg )
+    if cmdArg.get('newFeats') or newAll:
+        fe.main_fe_run( rInfo = rInfo, arg=tmpArg )
 
     # Asking for new score based on sim, image, and/or feature extractions?
-    if arg.get('newScore') or newAll:
+    if cmdArg.get('newScore') or newAll:
         ms.MS_Run( printBase = printBase, printAll = printAll, \
-                rInfo = rInfo, params = arg.get('scoreParams'), \
-                arg = arg )
+                rInfo = rInfo, params = tmpArg.get('scoreParams'), \
+                arg = tmpArg )
     
     # Clean up temporary files from run directory.
     rInfo.delTmp()

@@ -31,9 +31,37 @@ def set_new_func( new_func_ptr ):
 # End set new function
     
 # Expected SPAM files names and executable location
-spam_exe_loc = "./Simulator/bin/basic_run"
+
+spam_exe_loc = gm.validPath( __file__[0: __file__.rfind('/')] + "/bin/basic_run" )
 siName = "a_0.000"
 sfName = "a_0.101"
+
+spam_param_names = [ \
+     'sec_vec_1', \
+     'sec_vec_2', \
+     'sec_vec_3', \
+     'sec_vec_4', \
+     'sec_vec_5', \
+     'sec_vec_6', \
+     'mass_1', \
+     'mass_2', \
+     'rout_1', \
+     'rout_2', \
+     'phi_1', \
+     'phi_2', \
+     'theta_1', \
+     'theta_2', \
+     'epsilon_1', \
+     'epsilon_2', \
+     'rscale_1_1', \
+     'rscale_1_2', \
+     'rscale_1_3', \
+     'rscale_2_1', \
+     'rscale_2_2', \
+     'rscale_2_3', \
+    ]
+
+#print("SIM: SPAM LOC: ", spam_exe_loc)
 
 # Will return None is not found
 spam_exe = gm.validPath( spam_exe_loc )
@@ -121,8 +149,8 @@ def main_sm_run( rInfo, cmdArg = gm.inArgClass() ):
             continue
         
         # Find if points file exists, add if it doesn't
-        ptsLoc = rInfo.findPtsLoc( simParams[simKey]['name'] )        
-        if ptsLoc == None:
+        iLoc, fLoc = rInfo.findPtsLoc( simParams[simKey]['name'] )        
+        if iLoc == None or fLoc == None:
             todoList.append(simKey)
         else:
             im.tabprint("Particles Found: %s" % simParams[simKey]['name'])
@@ -253,7 +281,7 @@ def new_simulation( rInfo, simArg, cmdArg ):
     remove(tmpDir + "gscript")    
     
     # Check if saving particles files is required.
-    if cmdArg.get("zipSim",True):
+    if cmdArg.get("zipSim",False):
         
         zipName = '%s.zip' % simArg['name']
         

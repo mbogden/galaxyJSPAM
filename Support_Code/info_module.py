@@ -96,6 +96,8 @@ class run_info_class:
     wndAllLoc = None
     
     tLink = None
+    
+    infoHeaders = [ 'run_id', 'model_data', 'machine_scores' ]
 
 
 
@@ -134,7 +136,7 @@ class run_info_class:
             return
                  
         # Read info file
-        if path.exists( self.infoLoc ):
+        if path.exists( self.infoLoc ) and self.rDict == None:
 
             if self.printAll: print('\t - Reading Info file.')
             with open( self.infoLoc, 'r' ) as iFile:
@@ -222,8 +224,20 @@ class run_info_class:
         if not path.exists( self.imgDir ): mkdir( self.imgDir )
         if not path.exists( self.miscDir ): mkdir( self.miscDir )
         if not path.exists( self.wndDir ): mkdir( self.wndDir ) 
-        if not path.exists( self.tmpDir ): mkdir( self.tmpDir ) 
-
+        if not path.exists( self.tmpDir ): mkdir( self.tmpDir )
+            
+        # Read info file
+        if not path.exists( self.infoLoc ):
+            return False
+        
+        with open( self.infoLoc, 'r' ) as iFile:
+                self.rDict = json.load( iFile )
+        
+        if self.rDict.get( "run_id", None ) == None:
+            return False
+        
+        if self.rDict.get( "model_data", None ) == None:
+            return False
 
             
     def __del__(self,):
@@ -243,9 +257,99 @@ class run_info_class:
                 
             elif path.isdir(fLoc):
                 rmtree(fLoc)
+                
+                
+    def readParticles( self, ptsName ):
+        
+        if self.printAll:
+            print("IM.run_info_class.readParticles:")
+            gm.tabprint('pts name: %s' % ptsName )
+        
+        # See if particle files are in temp folder unzipped
+        iLoc, fLoc = self.findPtsLoc( ptsName = ptsName )
+
+        # If found, read and return
+        if iLoc != None and fLoc != None:
+            pts1 = pd.read_csv( fLoc, header=None, delim_whitespace=True ).values
+            pts2 = pd.read_csv( fLoc, header=None, delim_whitespace=True ).values
+            return pts1, pts2
+        
+        
+        # Else need to unzip a file
+        ptsZipLoc = self.findZippedPtsLoc( ptsName = ptsName )
+
+        if self.printAll: tabprint("Loading points from file: %s"%ptsZipLoc)
+
+        if ptsZipLoc == None:
+            if self.printBase: 
+                print("WARNING: IM.run_info_class.readParticles:")
+                gm.tabprint("zipped points not found: %s"%ptsZipLoc)
+            return None, None
+
+
+        from zipfile import ZipFile
+
+        zipLoc = self.findPtsLoc( ptsName )        
+        if zipLoc == None:
+            return None
+
+        # Check if zip files need rezipping
+        self.delTmp()
+        rezip = True
+
+        with ZipFile( zipLoc ) as zip:
+
+            for zip_info in zip.infolist():
+
+                if zip_info.filename[-1] == '/':
+                    continue
+                if len( zip_info.filename.split('/') ) > 1:
+                    rezip = True
+
+                zip_info.filename = path.basename( zip_info.filename)
+                zip.extract(zip_info, self.tmpDir)
+
+        if rezip:
+            from os import remove
+            remove(zipLoc)
+
+            with ZipFile( zipLoc, 'w' ) as zip:
+                for f in listdir( self.tmpDir ):
+                    fLoc = self.tmpDir + f
+                    zip.write( fLoc, path.basename(fLoc) )
+
+        files = listdir( self.tmpDir )
+        pts1 = None
+        pts2 = None
+
+        for f in files:
+            fLoc = self.tmpDir + f
+
+            if '.000' in f:
+                pts1 = pd.read_csv( fLoc, header=None, delim_whitespace=True ).values
+
+            if '.101' in f:
+                pts2 = pd.read_csv( fLoc, header=None, delim_whitespace=True ).values
+        
+        return pts1, pts2
+    
+    
+    def findPtsLoc( self, ptsName ):
+
+        # Unique Loc
+        iLoc = self.tmpDir + '%s_pts.000' % ptsName
+        fLoc = self.tmpDir + '%s_pts.101' % ptsName
+
+        if gm.validPath( iLoc ) and gm.validPath( fLoc ):
+            return ( iLoc, fLoc )
+        else:
+            return (None, None)
+
+    # End findPtsFile
+        
             
 
-    def findPtsLoc( self, ptsName ):
+    def findZippedPtsLoc( self, ptsName ):
 
         ptsLoc = self.ptsDir + '%s.zip' % ptsName
         oldLoc1 = self.ptsDir + '%s_pts.zip' % ptsName
@@ -407,15 +511,15 @@ class run_info_class:
 
     def getScore( self, sName,  ):
 
+        # Make sure rDict exists
         if self.rDict == None:
             return None
-        elif self.get('machine_scores') == None:
-            self.rDict['machine_scores']
-            return None
-
-        score = self.rDict['machine_scores'].get( sName, None )
-
-        return score
+        
+        # Create machine scores if needed
+        elif self.get('machine_scores',None) == None:
+            self.rDict['machine_scores'] = {}
+        
+        return self.rDict['machine_scores'].get( sName, None )
 
     def getAllScores( self  ):
         return self.get('machine_scores')
@@ -679,17 +783,14 @@ class target_info_class:
             gm.tabprint("simr_model Keys: %s" % str( list( simr_models.keys())))
 
         # Extract 
-        mName = simr_models.get('evolution_method', None)
         gName = simr_models.get('generation_name', None)
         mData = simr_models.get('model_data', None)
 
-        if type( mName ) == type( None ) \
-        or type( gName ) == type( None ) \
+        if type( gName ) == type( None ) \
         or type( mData ) == type( None ):
             print("WARNING: IM.create_new_generation:")
             gm.tabprint("input variable 'simr_models' invalid")
             gm.tabprint("Expected Keys: %s" % str( ['evolution_method','generation_name','model_data']) )
-            gm.tabprint("evolution_method: %s" % type( simr_models.get('evolution_method', None) ) )
             gm.tabprint("generation_name: %s" % type( simr_models.get('generation_name', None) ) )
             gm.tabprint("model_data: %s" % type( simr_models.get('model_data', None) ) )
             return 
@@ -723,8 +824,7 @@ class target_info_class:
         # Now Then, Create 
         if not path.exists( self.simrDir ): mkdir( self.simrDir )
 
-        fullName = '%s_%s' % ( mName, gName )
-        genLoc = self.simrDir + fullName + '/'
+        genLoc = self.simrDir + gName + '/'
 
         if path.exists( genLoc ):
 
@@ -772,14 +872,14 @@ class target_info_class:
             # Create the information file for the run/model
             mInfo = {}
             mInfo['run_id'] = model_id
-            mInfo['generation_id'] = fullName
+            mInfo['generation_id'] = gName
             mInfo['model_data'] = model_string
 
             # Print first if needed
             if i < 1:
                 if self.printAll:
-                    print('model_dir: ', model_dir)
-                    print('info_file: ', info_file)
+                    gm.tabprint('model_dir: %s' % model_dir)
+                    gm.tabprint('info_file: %s' % info_file)
                     pprint(mInfo)
 
             # Create model directories and files
