@@ -441,14 +441,14 @@ def target_initialize( cmdArg=gm.inArgClass(), tInfo = None ):
     if cmdArg.printAll: 
         cmdArg.printBase = True
 
-    if printAll:
+    if printBase:
         print("SIMR.target_initialize:")
         print("\t - tDir: %s" % tDir )
         print("\t - tInfo: %s" % type(tInfo) )
 
     # Check if given a target
     if tInfo == None and tDir == None and cmdArg.get('tInfo') == None:
-        print("WARNING: SIMR.simr_initialize_target:")
+        print("WARNING: SIMR.target_initialize:")
         print("\t - Please provide either target directory or target_info_class")
         return
 
@@ -478,50 +478,36 @@ def target_initialize( cmdArg=gm.inArgClass(), tInfo = None ):
 
     if printBase:
         if tInfo.status: 
-            print("SIMR: target: %s - %s - %d Models" % ( tInfo.status, tInfo.get('target_id'), len( tInfo.tDict['zoo_merger_models'] ) ) )
-
-            
-        else: 
-            print("SIMR: target: %s - %s" % ( tInfo.status, tDir ) )
+            gm.tabprint("%s - %s - %d Models" % ( tInfo.status, tInfo.get('target_id'), len( tInfo.tDict['zoo_merger_models'] ) ) )
 
     # Check if valid directory
     if tInfo.status == False:
-        print("WARNING: SIMR.simr_target:  Target Info status bad")
+        print("WARNING: SIMR.target_initialize:  Target Info status bad")
         return None
             
     if cmdArg.get('printParam', False):
         tInfo.printParams()
         
-    return tInfo
-# End target_initialize
-
-
-def target_prep_cmd_params( tInfo, tArg ):
-
-    printBase = tArg.printBase
-    printAll = tArg.printAll
+    cmdArg.setArg('tInfo', tInfo)
     
-    if printBase:
-        print("SIMR: target_prep_cmd_params: %s" % tInfo.get('target_id') )
-
-    # Check if parameter are given
-    params = tArg.get('scoreParams')
-    paramName = tArg.get('paramName',None)
-    paramLoc = gm.validPath( tArg.get('paramLoc',None) )
+    
+    # Check if valid score parameters.
+    params = cmdArg.get('scoreParams')
+    paramName = cmdArg.get('paramName',None)
+    paramLoc = gm.validPath( cmdArg.get('paramLoc',None) )
+    
+    # If params there, move on
+    if params != None:
+        pass
     
     # If invalid, complain
-    if params == None and paramLoc == None and paramName == None:
+    elif params == None and paramLoc == None and paramName == None:
         if printBase:
-            print("SIMR: WARNING: target_prep_cmd_params: params not valid")
+            print("WARNING: target_initialize: params not valid")
             gm.tabprint('ParamType: %s'%type(params))
             gm.tabprint('ParamName: %s'%paramName)
             gm.tabprint('ParamLoc : %s'%paramLoc)
-        return None
-    
-    # If params there, move on
-    elif params != None:
-        pass
-    
+
     # If given a param name, assume target knows where it is.
     elif params == None and paramName != None:
         params = tInfo.readScoreParam(paramName)
@@ -533,14 +519,42 @@ def target_prep_cmd_params( tInfo, tArg ):
     # Check for final parameter file is valid
     if params == None:
         if printBase:
-            print("SIMR: WARNING: target_prep_cmd_params: Failed to load parameter class")
-        return None
+            print("WARNING: SIMR.target_initialize: Failed to load parameter class")    
+    
+    cmdArg.setArg('scoreParams', params)
+    
+    # Check if needing to make any images for new scoring.
+    
+    if cmdArg.get( 'newTargetImage', False ):
+        if printBase:
+            print("SIMR.target_initialize: Creating new target image")
+        
+        if type( params ) == type( None ):
+            print("WARNING: SIMR.target_initialize: Please provide params for new target image.")
+        
+        # Loop through all params for creation
+        for key in params:
+            ic.adjustTargetImage( tInfo = tInfo, new_param = params[key], \
+                                 overWrite = cmdArg.get('overWrite'), printAll = printAll )           
+        
+    return tInfo
+
+# End target_initialize
+
+
+def target_prep_cmd_params( tInfo, tArg ):
+
+    printBase = tArg.printBase
+    printAll = tArg.printAll
+    
+    if printBase:
+        print("SIMR: target_prep_cmd_params: %s" % tInfo.get('target_id') )
+
+
     
     if tInfo.printAll:
         gm.tabprint( '%d in target_prep_cmd_params: %s: '% (mpi_rank, tInfo.get('target_id') ) )    
-    
-    tArg.setArg('tInfo', tInfo)
-    tArg.setArg('scoreParams', params)
+
     tArg.printArg()
     
     # Copy cmd Arg to send to runs

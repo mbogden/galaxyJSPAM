@@ -734,11 +734,13 @@ def adjustTargetImage( tInfo, new_param, startingImg = 'zoo_0', printAll = False
         gm.tabprint("Param: %s"%type(old_param))
     
     # Check if target image is already created
-    newName = new_param['imgArg']['name']
-    if newName in tParams and not overWrite:        
+    newName = new_param['cmpArg']['targetName']
+    newImg = tInfo.getTargetImage( newName )
+    
+    if type( newImg ) != type( None ) and not overWrite:
         if printAll: gm.tabprint("Target image already made: %s"%newName)
             
-        return
+        return None
     
     # Define function
     def Centers2Points( param ):
@@ -787,7 +789,7 @@ def adjustTargetImage( tInfo, new_param, startingImg = 'zoo_0', printAll = False
     newImg = cv2.warpAffine( tImg, M, ( w, h ) )
     
     # Create location for new image
-    newLoc = tInfo.findTargetImage( tName = new_param['imgArg']['name'], newImg=True)
+    newLoc = tInfo.findTargetImage( tName = newName, newImg=True)
     
     if printAll:
         gm.tabprint("Writing to loc: %s"%newLoc)
@@ -802,7 +804,7 @@ def adjustTargetImage( tInfo, new_param, startingImg = 'zoo_0', printAll = False
         gm.tabprint("File should exist: %s"%gm.validPath(newLoc))
     
     # Have tInfo load image
-    tImg = tInfo.getTargetImage( new_param['imgArg']['name'], overwrite=True )
+    tImg = tInfo.getTargetImage( newName, overwrite=True )
     
     return tImg
 
