@@ -149,136 +149,6 @@ def target_main( cmdArg=gm.inArgClass(), tInfo = None ):
             print("SIMR.simr_target:  Nothing Selected.")
 
 
-class new_score_worker(Slave):
-    
-    rank = mpi_rank
-    worker_dir = None
-    printWorker = None
-
-    def __init__(self, tInfo, runArgs ):
-        
-        super(new_score_worker, self).__init__()
-        
-        # Save info for creating scores later. 
-        self.tInfo = tInfo
-        self.runArgs = runArgs
-        self.printWorker = runArgs.get('printWorker',False)
-        self.score_names = [ name for name in self.runArgs.scoreParams ]
-        
-        if self.runArgs.printBase:  
-            print("Worker %d: __init__:" % mpi_rank )
-        
-        # Where to save new run data 
-        if self.runArgs.get( 'gaLoc', 'target' ) == 'target':
-            
-            tmpDir = self.tInfo.get('tmpDir', None)
-            if tmpDir == None:
-                print("%d WARNING: new_score_worker.__init__: tmpDir not found")
-            
-            else:
-                
-                self.worker_dir = tmpDir + 'worker_dir_%s/' % str(self.rank).zfill(4)
-                
-                if gm.validPath( self.worker_dir ) == None:
-                    print("%d creating dir: %s" % (self.rank, self.worker_dir))
-                    mkdir( self.worker_dir )
-            
-                    
-        # For Babbage, our local cluster
-        elif self.runArgs.get( 'gaLoc', None ) == 'babbage':
-            
-            # Hardcoded location of the tmp dir for babbages local computers
-            tmpBabbageDir = '/state/partition1/'
-            #tmpBabbageDir = 'tmpDir/'
-            
-            # If invalid location, complain
-            if gm.validPath( tmpBabbageDir ) == None:
-                self.worker_dir = None
-                print("WARNING %d: Invalid dir: %s" % ( mpi_rank, tmpBabbageDir ) )
-            
-            # Working local diskspace is valid
-            else:
-                
-                # Hardcoded
-                tmpDir = tmpBabbageDir + 'mbo2d_simr/'
-                
-                if gm.validPath( tmpDir ) == None:
-                    
-                    # Wait to create, I'm hoping to avoid multiple people creating it at the same time.
-                    waitTime = np.random.uniform() * 10
-                    sleep(waitTime)
-                    
-                    # Hoping only one person will create and everyone else 
-                    if gm.validPath( tmpDir ) == None:
-                        mkdir( tmpDir )
-                        print("Worker %d created tmp dir: %s" % (mpi_rank, tmpDir ) )
-                    
-                # Everyone meet up again
-                if gm.validPath( tmpDir ) != None:
-                    
-                    self.worker_dir = tmpDir + 'worker_dir_%s/' % str(self.rank).zfill(4)
-                    print("%d creating dir: %s" % (self.rank, self.worker_dir))
-                    mkdir( self.worker_dir )
-                
-                # Check if valid, if not create.
-                    
-        # Final command to ensure it's either a valid location or None.
-        self.worker_dir = gm.validPath( self.worker_dir )
-
-    # Function for creating a machine score out of SPAM parameters.
-    def do_work(self, data):
-        
-        # Extract needed data to run
-        i, mData = data
-        
-        if self.printWorker:
-            print('Worker %d: do_work: received %s' % (mpi_rank, i), )
-            
-        # Double check if Worker has a valid working directory
-        if type( self.worker_dir ) == type( None ):
-            return (i, None)
-        
-        # Create run variables
-        run_id = 'run_%s' % str(i).zfill(4)
-        runDir = self.worker_dir + '%s/' % run_id
-        infoLoc = runDir + 'base_info.json'
-        model_string = ','.join( map(str, mData) )
-        
-        # Create the information file for the run/model
-        mInfo = {}
-        mInfo['run_id'] = run_id
-        mInfo['model_data'] = model_string
-        
-        # Create model directories and info file
-        if gm.validPath( runDir ) == None:
-            mkdir( runDir )
-            
-        gm.saveJson( mInfo, infoLoc )
-        
-        # Create rInfo class to verify working directory and info file
-        rInfo = im.run_info_class( runDir = runDir, rArg = self.runArgs )
-        
-        # Return if bad. 
-        if rInfo.status == False:
-            return (i, None)
-        
-        # Create simulation, image and compute score
-        simr_run( cmdArg = self.runArgs, rInfo = rInfo )
-        
-        # Built to create several scores, returning only first atm
-        scores = []
-        for name in self.score_names:
-            scores.append( rInfo.getScore( name ) )
-            
-        # Remove directory to convserve disk space.
-        rmtree( runDir )
-        
-        if self.printWorker:
-            print('Worker %d: do_work: Complete: %s - %f' % (mpi_rank, i, scores[0]), )
-        
-        return (i, scores[0])
-    
-# End class new_score_worker
 
         
 def target_genetic_algorithm( cmdArgs, tInfo ):
@@ -336,17 +206,15 @@ def target_genetic_algorithm( cmdArgs, tInfo ):
     # Create Workers and have them on standby to create scores
     if mpi_rank != 0:
         new_score_worker(tInfo, runArgs).run()
-       
-    ##########################################
-    #####   Prepare Genetic Algorithm   ######
-    ##########################################
-    
-    
-    
-       
-       
+        print("Worker %d:  Terminated" % mpi_rank)
+        return
+        
+    ########################################
+    #####   Testing new generations   ######
+    ########################################    
 
-
+    
+    
         
 def target_test_new_gen_scores( cmdArgs, tInfo ):
     
@@ -484,6 +352,138 @@ def score_models_worker_queue( mpi_queue, newData, printBase = True, printAll = 
     print("\nSIMR.score_models_worker_queue: %4d / %4d - Complete\n" % ( n, n ) )
     
     return scores
+
+
+class new_score_worker(Slave):
+    
+    rank = mpi_rank
+    worker_dir = None
+    printWorker = None
+
+    def __init__(self, tInfo, runArgs ):
+        
+        super(new_score_worker, self).__init__()
+        
+        # Save info for creating scores later. 
+        self.tInfo = tInfo
+        self.runArgs = runArgs
+        self.printWorker = runArgs.get('printWorker',False)
+        self.score_names = [ name for name in self.runArgs.scoreParams ]
+        
+        if self.printWorker or self.runArgs.printBase:  
+            print("Worker %d: __init__:" % mpi_rank )
+        
+        # Where to save new run data 
+        if self.runArgs.get( 'gaLoc', 'target' ) == 'target':
+            
+            tmpDir = self.tInfo.get('tmpDir', None)
+            if tmpDir == None:
+                print("%d WARNING: new_score_worker.__init__: tmpDir not found")
+            
+            else:
+                
+                self.worker_dir = tmpDir + 'worker_dir_%s/' % str(self.rank).zfill(4)
+                
+                if gm.validPath( self.worker_dir ) == None:
+                    print("%d creating dir: %s" % (self.rank, self.worker_dir))
+                    mkdir( self.worker_dir )
+            
+                    
+        # For Babbage, our local cluster
+        elif self.runArgs.get( 'gaLoc', None ) == 'babbage':
+            
+            # Hardcoded location of the tmp dir for babbages local computers
+            tmpBabbageDir = '/state/partition1/'
+            #tmpBabbageDir = 'tmpDir/'
+            
+            # If invalid location, complain
+            if gm.validPath( tmpBabbageDir ) == None:
+                self.worker_dir = None
+                print("WARNING %d: Invalid dir: %s" % ( mpi_rank, tmpBabbageDir ) )
+            
+            # Working local diskspace is valid
+            else:
+                
+                # Hardcoded
+                tmpDir = tmpBabbageDir + 'mbo2d_simr/'
+                
+                if gm.validPath( tmpDir ) == None:
+                    
+                    # Wait to create, I'm hoping to avoid multiple people creating it at the same time.
+                    waitTime = np.random.uniform() * 10
+                    sleep(waitTime)
+                    
+                    # Hoping only one person will create and everyone else 
+                    if gm.validPath( tmpDir ) == None:
+                        mkdir( tmpDir )
+                        print("Worker %d created tmp dir: %s" % (mpi_rank, tmpDir ) )
+                    
+                # Everyone meet up again
+                if gm.validPath( tmpDir ) != None:
+                    
+                    self.worker_dir = tmpDir + 'worker_dir_%s/' % str(self.rank).zfill(4)
+                    print("%d creating dir: %s" % (self.rank, self.worker_dir))
+                    mkdir( self.worker_dir )
+                
+                # Check if valid, if not create.
+                    
+        # Final command to ensure it's either a valid location or None.
+        self.worker_dir = gm.validPath( self.worker_dir )
+
+    # Function for creating a machine score out of SPAM parameters.
+    def do_work(self, data):
+        
+        # Extract needed data to run
+        i, mData = data
+        
+        if self.printWorker:
+            print('Worker %d: do_work: received %s' % (mpi_rank, i), )
+            
+        # Double check if Worker has a valid working directory
+        if type( self.worker_dir ) == type( None ):
+            return (i, None)
+        
+        # Create run variables
+        run_id = 'run_%s' % str(i).zfill(4)
+        runDir = self.worker_dir + '%s/' % run_id
+        infoLoc = runDir + 'base_info.json'
+        model_string = ','.join( map(str, mData) )
+        
+        # Create the information file for the run/model
+        mInfo = {}
+        mInfo['run_id'] = run_id
+        mInfo['model_data'] = model_string
+        
+        # Create model directories and info file
+        if gm.validPath( runDir ) == None:
+            mkdir( runDir )
+            
+        gm.saveJson( mInfo, infoLoc )
+        
+        # Create rInfo class to verify working directory and info file
+        rInfo = im.run_info_class( runDir = runDir, rArg = self.runArgs )
+        
+        # Return if bad. 
+        if rInfo.status == False:
+            return (i, None)
+        
+        # Create simulation, image and compute score
+        simr_run( cmdArg = self.runArgs, rInfo = rInfo )
+        
+        # Built to create several scores, returning only first atm
+        scores = []
+        for name in self.score_names:
+            scores.append( rInfo.getScore( name ) )
+            
+        # Remove directory to convserve disk space.
+        rmtree( runDir )
+        
+        if self.printWorker:
+            print('Worker %d: do_work: Complete: %s - %f' % (mpi_rank, i, scores[0]), )
+        
+        return (i, scores[0])
+    
+# End class new_score_worker
 
             
         
