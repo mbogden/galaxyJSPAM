@@ -153,6 +153,7 @@ class new_score_worker(Slave):
     
     rank = mpi_rank
     worker_dir = None
+    printWorker = None
 
     def __init__(self, tInfo, runArgs ):
         
@@ -161,6 +162,7 @@ class new_score_worker(Slave):
         # Save info for creating scores later. 
         self.tInfo = tInfo
         self.runArgs = runArgs
+        self.printWorker = runArgs.get('printWorker',False)
         self.score_names = [ name for name in self.runArgs.scoreParams ]
         
         if self.runArgs.printBase:  
@@ -223,45 +225,47 @@ class new_score_worker(Slave):
         # Final command to ensure it's either a valid location or None.
         self.worker_dir = gm.validPath( self.worker_dir )
 
-        
+    # Function for creating a machine score out of SPAM parameters.
     def do_work(self, data):
         
+        # Extract needed data to run
         i, mData = data
-        run_id = 'run_%s' % str(i).zfill(4)
         
-        if self.runArgs.printAll:
-            print('Worker %d: do_work: received %s' % (mpi_rank, run_id), )
+        if self.printWorker:
+            print('Worker %d: do_work: received %s' % (mpi_rank, i), )
             
         # Double check if Worker has a valid working directory
         if type( self.worker_dir ) == type( None ):
             return (i, None)
         
         # Create run variables
+        run_id = 'run_%s' % str(i).zfill(4)
         runDir = self.worker_dir + '%s/' % run_id
         infoLoc = runDir + 'base_info.json'
-        
-        # Create string out of parameters
         model_string = ','.join( map(str, mData) )
-
+        
         # Create the information file for the run/model
         mInfo = {}
         mInfo['run_id'] = run_id
         mInfo['model_data'] = model_string
         
-        # Create model directories and files
+        # Create model directories and info file
         if gm.validPath( runDir ) == None:
             mkdir( runDir )
             
         gm.saveJson( mInfo, infoLoc )
         
+        # Create rInfo class to verify working directory and info file
         rInfo = im.run_info_class( runDir = runDir, rArg = self.runArgs )
         
+        # Return if bad. 
         if rInfo.status == False:
             return (i, None)
         
         # Create simulation, image and compute score
         simr_run( cmdArg = self.runArgs, rInfo = rInfo )
         
+        # Built to create several scores, returning only first atm
         scores = []
         for name in self.score_names:
             scores.append( rInfo.getScore( name ) )
@@ -269,7 +273,9 @@ class new_score_worker(Slave):
         # Remove directory to convserve disk space.
         rmtree( runDir )
         
-        # Assuming only one score
+        if self.printWorker:
+            print('Worker %d: do_work: Complete: %s - %f' % (mpi_rank, i, scores[0]), )
+        
         return (i, scores[0])
     
 # End class new_score_worker
@@ -299,9 +305,14 @@ def target_genetic_algorithm( cmdArgs, tInfo ):
 
     # Have rank 0 prep args and broadcast
     if mpi_rank == 0:
+        
+        # Use function to prepare tInfo and score params
         runArgs = target_prep_cmd_params( tInfo, cmdArgs )
-        runArgs.setArg( 'newAll', True )
-        runArgs.setArg( 'newInfo', True )
+        
+        # Add args for new score and info for each run
+        if type( runArgs ) != type( None ):
+            runArgs.setArg( 'newAll', True )
+            runArgs.setArg( 'newInfo', True )
         
         # Broadcast master runArgs to everyone.
         mpi_comm.bcast( runArgs, root=0 )
@@ -315,16 +326,23 @@ def target_genetic_algorithm( cmdArgs, tInfo ):
     
     # Have all verify if they have valid arguments
     if type(runArgs) == type(None):
-        print("WARNING: SIMR.target_test_new_gen_scores: Invalid run arguments")
+        print("WARNING %d: SIMR.target_test_new_gen_scores: Invalid run arguments" % mpi_rank)
         return None
+    
+    #################################
+    #####   Initiate Workers   ######
+    #################################
     
     # Create Workers and have them on standby to create scores
     if mpi_rank != 0:
         new_score_worker(tInfo, runArgs).run()
        
-    #####################################
-    #####   Variable Preperation   ######
-    #####################################
+    ##########################################
+    #####   Prepare Genetic Algorithm   ######
+    ##########################################
+    
+    
+    
        
        
 
@@ -332,17 +350,21 @@ def target_genetic_algorithm( cmdArgs, tInfo ):
         
 def target_test_new_gen_scores( cmdArgs, tInfo ):
     
+    ###################################
+    #####   Worker Preperation   ######
+    ###################################
+    
     printBase = tInfo.printBase
     printAll = tInfo.printAll
     
-    if printBase and mpi_rank == 0:
-        print( "SIMR.target_test_new_gen_scores: %d nodes" %( mpi_size ) )
-    
+    if printBase:
+        print( "SIMR.target_genetic_algorithm: %d of %d" %(mpi_rank,mpi_size) )
+      
     # Make sure you're in an MPI_environment with more than 1 core.
     if mpi_size == 1:
-        print("WARNING: SIMR.target_test_new_gen_scores:")
+        print("WARNING: SIMR.target_genetic_algorithm:")
         gm.tabprint("Must run code in mpirun with more than 1 core to work properly")
-        gm.tabprint("Example: 'mpirun -n 4 python3 main_simr.py -newGen'")
+        gm.tabprint("Example: 'mpirun -n 4 python3 main_simr.py -gaExp'")
         return
     
     # Prepare arguments for runs
@@ -350,17 +372,20 @@ def target_test_new_gen_scores( cmdArgs, tInfo ):
 
     # Have rank 0 prep args and broadcast
     if mpi_rank == 0:
+        
+        # Use function to prepare tInfo and score params
         runArgs = target_prep_cmd_params( tInfo, cmdArgs )
         
-        # Add args for new score
+        # Add args for new score and info for each run
         if type( runArgs ) != type( None ):
             runArgs.setArg( 'newAll', True )
             runArgs.setArg( 'newInfo', True )
-            
+        
+        # Broadcast master runArgs to everyone.
         mpi_comm.bcast( runArgs, root=0 )
 
-    # If in mpi and expecting info.
     else:
+        # Workers expecting runArgs.
         runArgs = mpi_comm.bcast( runArgs, root=0 )
     
     # Everyone wait
@@ -368,69 +393,99 @@ def target_test_new_gen_scores( cmdArgs, tInfo ):
     
     # Have all verify if they have valid arguments
     if type(runArgs) == type(None):
-        print("WARNING: SIMR.target_test_new_gen_scores: Invalid run arguments")
+        print("WARNING %d: SIMR.target_test_new_gen_scores: Invalid run arguments" % mpi_rank)
         return None
     
-    zScores, mData = (None, None)
+    #################################
+    #####   Initiate Workers   ######
+    #################################
     
-    # Have Master create queue and launch workers
-    if mpi_rank == 0:
-        
-        print("WORKING: SIMR.target_test_new_gen_scores")
-        gm.tabprint("Using zoo merger data for testing")
-        
-        # WORKING: Use zoo merger data for testing and developing.
-        zScores, mData = tInfo.getOrbParam()
-        newData = mData[0:2,:]
-        
-        # Create Master Class.
-        master = Master( range(1, mpi_size ) )
-         
-        # Create Queue with Master class
-        mpi_queue = WorkQueue( master )
-        
-        # Create first queue of items
-        # Add data to compute in queue
-        for i in range( newData.shape[0] ):
-            mpi_queue.add_work( data=( i, newData[i,:] ) )
-        
-        # Stay in loop until queue has items
-        while not mpi_queue.done():
-            
-            # If workers are available, tell worker to do work.
-            mpi_queue.do_work()  # Linked to class new_score_worker
-            
-            # Get return data if available
-            for return_data in mpi_queue.get_completed_work():
-                run_i, message = return_data
-                print("Master received: %d - %s" % (run_i, message) )
-                    
-            pass
-        
-        # Create second queue of items
-        # Add data to compute in queue
-        for i in range( 15, 17 ):
-            mpi_queue.add_work( data=( i, mData[i,:] ) )
-        
-        # Stay in loop until queue has items
-        while not mpi_queue.done():
-            
-            # If workers are available, tell worker to do work.
-            mpi_queue.do_work()  # Linked to class new_score_worker
-            
-            # Get return data if available
-            for return_data in mpi_queue.get_completed_work():
-                run_i, message = return_data
-                print("Master received: %d - %s" % (run_i, message) )
-                    
-            pass
-        
-        master.terminate_slaves()
-    
-    else:        
-        # Create worker class and be ready to accept work.
+    # Create Workers and have them on standby to create scores
+    if mpi_rank != 0:
         new_score_worker(tInfo, runArgs).run()
+        print("Worker %d:  Terminated" % mpi_rank)
+        return
         
+    ########################################
+    #####   Testing new generations   ######
+    ########################################
+    
+    zScores, mData = (None, None)
+
+    print("WORKING: SIMR.target_test_new_gen_scores")
+    gm.tabprint("Using zoo merger data for testing")
+    # Create Master Class.
+    master = Master( range(1, mpi_size ) )
+    
+    # Create Queue, all workers will be using this
+    mpi_queue = WorkQueue( master )
+
+    # Send data to receive scores
+    
+    # WORKING: Use zoo merger data for testing and developing.
+    zScores, mData = tInfo.getOrbParam()
+    print("Model Data", mData.shape)
+    
+    print("Master 0: Sending first 10 items")
+    newScores = score_models_worker_queue( mpi_queue, mData[0:10,:], printBase, printAll )
+    print("Master 0: First Scores", newScores)
+
+    # Create second queue of items for testing.
+    print("Master 0: Sending second 15 items")
+    newScores = score_models_worker_queue( mpi_queue, mData[10:25,:], printBase, printAll )
+    print("Master 0: Second Scores", newScores)
+
+    # Create Third queue of items.
+    print("Master 0: Sending third 25 items")
+    newScores = score_models_worker_queue( mpi_queue, mData[25:50,:], printBase, printAll )
+    print("Master 0: Third Scores", newScores)
+
+    print("Master 0: Terminating Slaves.")
+    master.terminate_slaves()
+    
+# End target_test_new_gen_scores
+
+def score_models_worker_queue( mpi_queue, newData, printBase = True, printAll = False ):
+    
+    if printBase: print("SIMR.score_models_worker_queue:")
+        
+    # Useful variables
+    n = newData.shape[0]
+    c = 0
+    scores = np.zeros(n)
+
+    
+    # Create queue of items
+    for i in range( n ):
+        mpi_queue.add_work( data=( i, newData[i,:] ) )
+
+    # Stay in loop until queue has items
+    while not mpi_queue.done():
+
+        # If workers are available, tell worker to do work.
+        mpi_queue.do_work()  # Linked to class new_score_worker
+
+        # Get return data if available
+        for i, score in mpi_queue.get_completed_work():
+            
+            # Save data
+            c += 1
+            if score != None:
+                scores[i] = score
+            
+            # Print progress
+            if printAll:
+                print("Master received: %d - %s" % ( i, score ) )
+                
+            if printBase:
+                print("SIMR.score_models_worker_queue: %4d / %4d: %d - %s" % ( c, n, i, str(score) ), end='\r' )
+        
+    # End while not mpi_queue.done()
+    print("\nSIMR.score_models_worker_queue: %4d / %4d - Complete\n" % ( n, n ) )
+    
+    return scores
+
+            
         
 def target_initialize( cmdArg=gm.inArgClass(), tInfo = None ):
     
@@ -464,14 +519,12 @@ def target_initialize( cmdArg=gm.inArgClass(), tInfo = None ):
                                                printAll = cmdArg.printAll )
             tInfo.saveWndchrmImage( chime_image, chime_0['chime_0']['imgArg']['name'] )
 
-
         # Gather scores if called for
         if cmdArg.get('update',False):
             tInfo.gatherRunInfoFiles()
             tInfo.updateScores()
             tInfo.saveInfoFile()
 
-        
     # get target if in arguments. 
     elif tInfo == None and cmdArg.tInfo != None:
         tInfo = cmdArg.tInfo
@@ -489,7 +542,6 @@ def target_initialize( cmdArg=gm.inArgClass(), tInfo = None ):
         tInfo.printParams()
         
     cmdArg.setArg('tInfo', tInfo)
-    
     
     # Check if valid score parameters.
     params = cmdArg.get('scoreParams')
@@ -549,8 +601,6 @@ def target_prep_cmd_params( tInfo, tArg ):
     if printBase:
         print("SIMR: target_prep_cmd_params: %s" % tInfo.get('target_id') )
 
-
-    
     if tInfo.printAll:
         gm.tabprint( '%d in target_prep_cmd_params: %s: '% (mpi_rank, tInfo.get('target_id') ) ) 
     
