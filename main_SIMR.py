@@ -479,7 +479,7 @@ class new_score_worker(Slave):
         rmtree( runDir )
         
         if self.printWorker:
-            print('Worker %d: do_work: Complete: %s - %f' % (mpi_rank, i, scores[0]), )
+            print('Worker %d: do_work: Complete: %d - %f' % (mpi_rank, i, scores[0]), )
         
         return (i, scores[0])
     
