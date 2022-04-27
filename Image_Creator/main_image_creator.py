@@ -218,24 +218,19 @@ def getParticles( rInfo, simName, printAll=False ):
     
     # Check if files are loaded in run info class
     pts = rInfo.pts.get(simName,None)
-    
+
     # Load points if not found
     if pts != None:
         return pts
     
-    # Get particle location 
-    ptsZipLoc = rInfo.findPtsLoc( ptsName = simName )
-    if printAll: im.tabprint("Loading points from file: %s"%ptsZipLoc)
-        
-    if ptsZipLoc == None:
-        if rInfo.printBase: print("WARNING: IC: zipped points not found: %s"%ptsZipLoc)
-        return None
-    
+
     # Read particles using rInfo
-    pts_i, pts_f = rInfo.getParticles( simName )
+    pts_i, pts_f = rInfo.readParticles( simName )
     
     if type(pts_i) == type(None) or type( pts_f ) == type(None): 
-        if rInfo.printBase: print("WARNING: IC: zipped points failed to read: %s"%ptsZipLoc)
+        if rInfo.printBase: 
+            print("WARNING: IC.getParticles:")
+            gm.tabprint("Failed to read particles: %s" % simName)
         return None
     
     # Analyze points with particle class
@@ -739,11 +734,13 @@ def adjustTargetImage( tInfo, new_param, startingImg = 'zoo_0', printAll = False
         gm.tabprint("Param: %s"%type(old_param))
     
     # Check if target image is already created
-    newName = new_param['imgArg']['name']
-    if newName in tParams and not overWrite:        
+    newName = new_param['cmpArg']['targetName']
+    newImg = tInfo.getTargetImage( newName )
+    
+    if type( newImg ) != type( None ) and not overWrite:
         if printAll: gm.tabprint("Target image already made: %s"%newName)
             
-        return
+        return None
     
     # Define function
     def Centers2Points( param ):
@@ -792,7 +789,7 @@ def adjustTargetImage( tInfo, new_param, startingImg = 'zoo_0', printAll = False
     newImg = cv2.warpAffine( tImg, M, ( w, h ) )
     
     # Create location for new image
-    newLoc = tInfo.findTargetImage( tName = new_param['imgArg']['name'], newImg=True)
+    newLoc = tInfo.findTargetImage( tName = newName, newImg=True)
     
     if printAll:
         gm.tabprint("Writing to loc: %s"%newLoc)
@@ -807,7 +804,7 @@ def adjustTargetImage( tInfo, new_param, startingImg = 'zoo_0', printAll = False
         gm.tabprint("File should exist: %s"%gm.validPath(newLoc))
     
     # Have tInfo load image
-    tImg = tInfo.getTargetImage( new_param['imgArg']['name'], overwrite=True )
+    tImg = tInfo.getTargetImage( newName, overwrite=True )
     
     return tImg
 

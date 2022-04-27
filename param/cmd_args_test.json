@@ -1,0 +1,7 @@
+{
+    "printAll": true,
+    "newTargetImage": true,
+    "newGen": true,
+    "targetDir": "targetDir",
+    "paramLoc": "param/test_param.json"
+}

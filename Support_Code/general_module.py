@@ -11,6 +11,9 @@ import cv2
 from os import path
 from sys import path as sysPath
 from mpi4py import MPI
+from mpi_master_slave import Master, Slave
+from mpi_master_slave import WorkQueue
+import time
 
 supportPath = path.abspath( path.join( __file__ , "../../Support_Code/" ) )
 sysPath.append( supportPath )
@@ -139,7 +142,7 @@ def readFile( fileLoc, stripLine=False ):
 
 class inArgClass:
 
-    def __init__( self, inArg=None, argFile=None ):
+    def __init__( self, cmdLine=None ):
 
         self.printBase = True
         self.printAll = False
@@ -149,14 +152,21 @@ class inArgClass:
         self.targetDir = None
         self.dataDir = None
 
-        if inArg != None:
-            self.updateArg( inArg )
-
-        elif argFile != None:
-            self.readArgFile( argFile )
+        if cmdLine != None:
+            self.updateArg( cmdLine )
+        
+        # If given file to read
+        if self.get('argFile',None) != None:
+            self.readArgFile( )
 
         if self.printAll:
             self.printBase = True
+        
+        # Because I'm terrible at camelcase for this word. 
+        if self.get('overwrite',False) or self.get('overWrite',False):
+            self.overwrite = True
+            self.overWrite = True
+    
 
     def get( self, inVal, default = None ):
 
@@ -204,6 +214,27 @@ class inArgClass:
             self.printArg()
 
     # End update input arguments
+    
+    def readArgFile( self, ):
+        
+        argLoc = validPath( self.argFile )
+        
+        if argLoc == None:
+            print("WARNING: GM.inArgClass.readArgFile: ")
+            tabprint("Cannot find arg file: (%s) - %s" %( path.exists(self.argFile) , self.argFile) )
+            return
+        
+        args = readJson( argLoc )
+        
+        if args == None:
+            print("WARNING: GM.inArgClass.readArgFile: ")
+            tabprint("Cannot find arg file: (%s) - %s" %( path.exists(self.argFile) , self.argFile) )
+            return
+        
+        # Assumed you've read in a JSON
+        for key in args:
+            self.setArg( key, args[key] )
+        
 
     # For manual setting
     def setArg( self, inName, inArg ):
@@ -247,134 +278,10 @@ class inArgClass:
 # Global input arguments
 
 
-class ppClass:
-
-    import multiprocessing as mp
-    from queue import Empty
-    from time import sleep
-
-    nCores = 1
-    printProg = False
-
-    jobQueue = mp.Queue()
-    nQueue = 0
-
-    funcPtr = None
-    manager = mp.Manager()
-
-    def __init__(self, nCore, printProg=False):
-        
-        if type(nCore) != type( 123 ):
-            nCore = int(nCore)            
-
-        # 0 for all, negative all minus negative
-        if nCore < 1:
-            self.nCores = self.mp.cpu_count() + nCore
-            if self.nCores < 1: self.nCores = 1
-        else:
-            self.nCores = nCore
-
-        self.printProg = printProg
-
-    def printProgBar(self):
-        self.printProg = True
-
-    # Assuming you're only running a single function
-    def loadQueue( self, funcIn, inList ):
-
-        self.funcPtr = funcIn
-        self.nQueue = len( inList )
-
-        for args in inList:
-
-            self.jobQueue.put(args)
-
-    def runCores( self ):
-
-        if self.nCores == 1:
-            print("Why use parallel processing with 1 core?")
-
-        self.coreList = []
-
-        # Start all processes
-        for i in range( self.nCores ):
-            p = self.mp.Process( target=self.coreFunc, )
-            self.coreList.append( p )
-            p.start()
-
-        # Wait until all processes are complete
-        for p in self.coreList:
-            self.coreList.pop()
-            p.join()
-
-    # Blah
-
-    def __del__( self, ):
-        # check if queue is still full
-        pass
-
-
-    def coreFunc( self ):
-
-        n = int( self.nQueue )
-        from sys import stdout
-
-        # Keep core running until shared queue is empty
-        while True:
-
-            try:
-                funcArgs = self.jobQueue.get( block=True, timeout=1 )
-
-            # Will exist loop if queue is empty
-            except self.Empty:
-                #print('%s - queue empty' % self.mp.current_process().name)
-                break
-
-            if self.printProg:
-                p = n - int( self.jobQueue.qsize() )
-                perc = ( p / n ) * 100
-                
-                stdout.write( "%.1f%% - %d / %d	  \r" % ( perc, p, n ) )
-
-            # Run desired function on core
-            self.funcPtr(**funcArgs)
-
-    # End exectute function
-
-    def testPrint():
-        print("Inside parallel processing python Module.  Written by Matthew Ogden")
-
-# End parallel processing class
-
 def printVal( n1, n2=1 ):
     from time import sleep
     #print("Val: %d %d" % ( n1, n2) )
     sleep(n1)
-    
-
-
-def checkPP(arg):
-
-    import multiprocessing as mp
-
-    print("Hi!  You're in Matt's parallel processing module.")
-    print("\t- requested cores: %s" % arg.nProc)
-    print("\t- available cores: %d" % mp.cpu_count() )
-
-    nCores = 2
-    pHolder = ppClass( nCores )
-
-    pHolder.printProgBar()
-
-    argList = []
-
-    for i in range( 4 ): 
-        argList.append( dict( n1=i, n2=i ) )
-        argList.append( dict( n1=i ) )
-
-    pHolder.loadQueue( printVal, argList )
-
-    pHolder.runCores()
     
 
 def readImg( imgLoc, printAll = False, toSize=None, toType=np.float32 ):
@@ -417,11 +324,6 @@ def saveImg( imgLoc, img ):
 def tabprint( inprint, begin = '\t - ', end = '\n' ):
     print('%s%s' % (begin,inprint), end=end )
 
-class mpi_class:
-    status = "HI from MPI"
-    
-
-
 # Run main after declaring functions
 if __name__ == '__main__':
 
@@ -433,8 +335,6 @@ if __name__ == '__main__':
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     size = comm.Get_size()
-    print( 'MPI: ', rank, size )
+    print( 'MPI: rank %d - size %d' %(rank, size) )
 
-    checkPP(arg)
-    
     

@@ -96,7 +96,8 @@ class run_info_class:
     wndAllLoc = None
     
     tLink = None
-
+    
+    infoHeaders = [ 'run_id', 'model_data', 'machine_scores' ]
 
 
     def __init__( self, runDir=None, rArg = gm.inArgClass(), \
@@ -134,7 +135,7 @@ class run_info_class:
             return
                  
         # Read info file
-        if path.exists( self.infoLoc ):
+        if path.exists( self.infoLoc ) and self.rDict == None:
 
             if self.printAll: print('\t - Reading Info file.')
             with open( self.infoLoc, 'r' ) as iFile:
@@ -222,8 +223,20 @@ class run_info_class:
         if not path.exists( self.imgDir ): mkdir( self.imgDir )
         if not path.exists( self.miscDir ): mkdir( self.miscDir )
         if not path.exists( self.wndDir ): mkdir( self.wndDir ) 
-        if not path.exists( self.tmpDir ): mkdir( self.tmpDir ) 
-
+        if not path.exists( self.tmpDir ): mkdir( self.tmpDir )
+            
+        # Read info file
+        if not path.exists( self.infoLoc ):
+            return False
+        
+        with open( self.infoLoc, 'r' ) as iFile:
+                self.rDict = json.load( iFile )
+        
+        if self.rDict.get( "run_id", None ) == None:
+            return False
+        
+        if self.rDict.get( "model_data", None ) == None:
+            return False
 
             
     def __del__(self,):
@@ -243,9 +256,99 @@ class run_info_class:
                 
             elif path.isdir(fLoc):
                 rmtree(fLoc)
+                
+                
+    def readParticles( self, ptsName ):
+        
+        if self.printAll:
+            print("IM.run_info_class.readParticles:")
+            gm.tabprint('pts name: %s' % ptsName )
+        
+        # See if particle files are in temp folder unzipped
+        iLoc, fLoc = self.findPtsLoc( ptsName = ptsName )
+
+        # If found, read and return
+        if iLoc != None and fLoc != None:
+            pts1 = pd.read_csv( fLoc, header=None, delim_whitespace=True ).values
+            pts2 = pd.read_csv( fLoc, header=None, delim_whitespace=True ).values
+            return pts1, pts2
+        
+        
+        # Else need to unzip a file
+        ptsZipLoc = self.findZippedPtsLoc( ptsName = ptsName )
+
+        if self.printAll: tabprint("Loading points from file: %s"%ptsZipLoc)
+
+        if ptsZipLoc == None:
+            if self.printBase: 
+                print("WARNING: IM.run_info_class.readParticles:")
+                gm.tabprint("zipped points not found: %s"%ptsZipLoc)
+            return None, None
+
+
+        from zipfile import ZipFile
+
+        zipLoc = self.findPtsLoc( ptsName )        
+        if zipLoc == None:
+            return None
+
+        # Check if zip files need rezipping
+        self.delTmp()
+        rezip = True
+
+        with ZipFile( zipLoc ) as zip:
+
+            for zip_info in zip.infolist():
+
+                if zip_info.filename[-1] == '/':
+                    continue
+                if len( zip_info.filename.split('/') ) > 1:
+                    rezip = True
+
+                zip_info.filename = path.basename( zip_info.filename)
+                zip.extract(zip_info, self.tmpDir)
+
+        if rezip:
+            from os import remove
+            remove(zipLoc)
+
+            with ZipFile( zipLoc, 'w' ) as zip:
+                for f in listdir( self.tmpDir ):
+                    fLoc = self.tmpDir + f
+                    zip.write( fLoc, path.basename(fLoc) )
+
+        files = listdir( self.tmpDir )
+        pts1 = None
+        pts2 = None
+
+        for f in files:
+            fLoc = self.tmpDir + f
+
+            if '.000' in f:
+                pts1 = pd.read_csv( fLoc, header=None, delim_whitespace=True ).values
+
+            if '.101' in f:
+                pts2 = pd.read_csv( fLoc, header=None, delim_whitespace=True ).values
+        
+        return pts1, pts2
+    
+    
+    def findPtsLoc( self, ptsName ):
+
+        # Unique Loc
+        iLoc = self.tmpDir + '%s_pts.000' % ptsName
+        fLoc = self.tmpDir + '%s_pts.101' % ptsName
+
+        if gm.validPath( iLoc ) and gm.validPath( fLoc ):
+            return ( iLoc, fLoc )
+        else:
+            return (None, None)
+
+    # End findPtsFile
+        
             
 
-    def findPtsLoc( self, ptsName ):
+    def findZippedPtsLoc( self, ptsName ):
 
         ptsLoc = self.ptsDir + '%s.zip' % ptsName
         oldLoc1 = self.ptsDir + '%s_pts.zip' % ptsName
@@ -407,15 +510,15 @@ class run_info_class:
 
     def getScore( self, sName,  ):
 
+        # Make sure rDict exists
         if self.rDict == None:
             return None
-        elif self.get('machine_scores') == None:
-            self.rDict['machine_scores']
-            return None
-
-        score = self.rDict['machine_scores'].get( sName, None )
-
-        return score
+        
+        # Create machine scores if needed
+        elif self.get('machine_scores',None) == None:
+            self.rDict['machine_scores'] = {}
+        
+        return self.rDict['machine_scores'].get( sName, None )
 
     def getAllScores( self  ):
         return self.get('machine_scores')
@@ -579,22 +682,21 @@ class target_info_class:
     sFrame = None	   # Score dataframe
     rInfo = None	   # run_info_class for accessing run directories
 
-    printBase = True
-    printAll = False
+    printBase = True   # If printing basic info during code execution
+    printAll = False   # Printing of all info during code execution
 
-    targetDir = None
-    zooMergerDir = None
-    plotDir = None
+    targetDir = None     # The directory on disk for storing everyting relating to target
+    zooMergerDir = None  # Directory for original Galaxy Zoo: Merger Models for target
+    plotDir = None       # Directory for any plots
 
-    baseInfoLoc = None
-    allInfoLoc = None
-    scoreLoc = None
-    baseScoreLoc = None
-    zooMergerLoc = None
+    baseInfoLoc = None   # Location of basic info file
+    allInfoLoc = None    # Location of all file containing nearly all target and model information
+    scoreLoc = None      # Location for all scores 
+    baseScoreLoc = None  # Location of basic score file.
 
 
     # For user to see headers.
-    targetHeaders = ( 'target_id', 'target_images', 'simulation_parameters', 'image_parameters', 'zoo_merger_models', 'score_parameters', 'progress', 'model_sets' )
+    targetHeaders = ( 'target_id', 'target_images', 'simulation_parameters', 'image_parameters', 'zoo_merger_models', 'score_parameters', 'progress', 'model_sets', 'ga_models' )
     
     baseHeaders = ( 'target_id', )
      
@@ -658,6 +760,136 @@ class target_info_class:
         self.status = True
 
     # End target init 
+    
+    #####    DEPRECATED FUNCTION.  Is being overwritten later. 
+    # Create a new directory of runs based on new SIMR Models
+    def create_new_generation( self, simr_models ):
+
+        from os import mkdir
+
+        if self.printAll:
+            print("IM.create_new_generation:")
+
+        # Expecting python dictionary for arguments
+        sampleDict = { 'type' : 'python_dictionary' }
+        if type( simr_models ) != type( sampleDict ):
+            print("WARNING: IM.create_new_generation:")
+            gm.tabprint("Expecting 'simr_models' of type: %s" % type( sampleDict ) )
+            gm.tabprint("Received type: %s" % type( simr_models ) )
+            return
+
+        if self.printAll:
+            gm.tabprint("simr_model Keys: %s" % str( list( simr_models.keys())))
+
+        # Extract 
+        gName = simr_models.get('generation_name', None)
+        mData = simr_models.get('model_data', None)
+
+        if type( gName ) == type( None ) \
+        or type( mData ) == type( None ):
+            print("WARNING: IM.create_new_generation:")
+            gm.tabprint("input variable 'simr_models' invalid")
+            gm.tabprint("Expected Keys: %s" % str( ['evolution_method','generation_name','model_data']) )
+            gm.tabprint("generation_name: %s" % type( simr_models.get('generation_name', None) ) )
+            gm.tabprint("model_data: %s" % type( simr_models.get('model_data', None) ) )
+            return 
+
+        # example numpy array. 
+        npArr = np.zeros((2,2))
+
+        # Expecting numpy array for parameter data 
+        if type( mData ) != type( npArr ):
+            print("WARNING: IM.create_new_generation:")
+            gm.tabprint("Expecting parameter array of type: %s" % type(npArr) )
+            gm.tabprint("Received a type: %s" % type(mData) )
+            return
+
+        # Expectin 2D array
+        if mData.ndim != 2:
+            if self.printBase: 
+                print("WARNING: IM.create_new_generation:")
+                gm.tabprint("Expecting 2-D parameter array" )
+                gm.tabprint("Received shape: %s" % str(mData.shape) )
+                return
+
+        # Expecting over 14 parameters for giving to SPAM
+        if mData.shape[1] < 14:
+            if self.printBase: 
+                print("WARNING: IM.create_new_generation:")
+                gm.tabprint("Expecting at least 14 parameters per model for SPAM:" )
+                gm.tabprint("Received shape: %s" % str(mData.shape) )
+                return
+
+        # Now Then, Create 
+        if not path.exists( self.simrDir ): mkdir( self.simrDir )
+
+        genLoc = self.simrDir + gName + '/'
+
+        if path.exists( genLoc ):
+
+            if self.printBase:
+                gm.tabprint("Model Generation already exists: %s" % genLoc )
+
+            if simr_models.get( 'overwrite', False ):
+
+                if self.printAll: 
+                    gm.tabprint("Removing Previous Folder: %s" % genLoc )
+
+                from shutil import rmtree
+                rmtree( genLoc )
+
+            else:
+                if self.printBase: 
+                    print("WARNING: IM.create_new_generation:")
+                    gm.tabprint("Please add overwrite command if you wish to overwrite")
+                    gm.tabprint("Returning...")
+                return
+
+
+        if self.printAll:
+            gm.tabprint("Creating Model Generation: %s" % genLoc )
+            gm.tabprint("Model Count: %d" % mData.shape[0])
+
+        mkdir( genLoc )
+        # Generation Folder created
+
+
+        # Create Run folders
+
+        nRuns = mData.shape[0]
+        for i in range( nRuns ):
+
+            # Create model name
+            model_id = 'run_%s' % str(i).zfill(4)
+            model_dir = genLoc + model_id + '/'
+            info_file = model_dir + 'base_info.json'
+
+            # Create string out of parameters
+            model_data = mData[i,:]
+            model_string = ','.join( map(str, model_data) )
+
+            # Create the information file for the run/model
+            mInfo = {}
+            mInfo['run_id'] = model_id
+            mInfo['generation_id'] = gName
+            mInfo['model_data'] = model_string
+
+            # Print first if needed
+            if i < 1:
+                if self.printAll:
+                    gm.tabprint('model_dir: %s' % model_dir)
+                    gm.tabprint('info_file: %s' % info_file)
+                    pprint(mInfo)
+
+            # Create model directories and files
+            mkdir( model_dir )
+            gm.saveJson( mInfo, info_file )
+
+        if self.printAll:
+            gm.tabprint("Created directories: %d" % len( listdir( genLoc ) ) )
+            gm.tabprint("Expected directories: %d" % nRuns )
+
+    # End create_new_generation
 
     def getTargetImage( self, tName = None, overwrite=False, printAll = False ):
         
@@ -1046,6 +1278,7 @@ class target_info_class:
         self.infoDir = self.targetDir + 'information/'
         self.gen0 = self.targetDir + 'gen000/'
         self.zooMergerDir = self.targetDir + 'zoo_merger_models/'
+        self.tmpDir = self.targetDir + 'tmp/'
         self.plotDir = self.targetDir + 'plots/'
         
         # Directires inside info dir
@@ -1058,8 +1291,7 @@ class target_info_class:
         self.allInfoLoc = self.infoDir + 'target_info.json'
         self.baseInfoLoc = self.infoDir + 'base_target_info.json'
         self.scoreLoc = self.infoDir + 'scores.csv'
-        self.baseScoreLoc = self.infoDir + 'base_scores.csv'    
-        self.zooMergerLoc = self.infoDir + 'galaxy_zoo_models.txt'
+        self.baseScoreLoc = self.infoDir + 'base_scores.csv'
         self.imgParamLocOld = self.infoDir + 'param_target_images.json'
         
         # Various files within the wndchrm directory
@@ -1157,9 +1389,12 @@ class target_info_class:
         if not path.exists( self.plotDir ): mkdir( self.plotDir )
         if not path.exists( self.imgDir ): mkdir( self.imgDir )
         if not path.exists( self.maskDir ): mkdir( self.maskDir )
+        if not path.exists( self.tmpDir ): mkdir( self.tmpDir )
 
         if not path.exists( self.zooMergerDir ):
-            print("IM: WARNING: This message should not be seen.")
+            print("WARNING: IM.target_info_class.newTargetSetup: This message should not be seen.")
+            print("TO-DO: Create Directory of Galaxy Zoo: Merger model file.")
+            return False
         
         # Check for base file
         newBase = tArg.get('newBase',False)

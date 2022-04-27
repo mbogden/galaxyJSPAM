@@ -7,3 +7,4 @@ scikit-image
 opencv-python
 mpi4py
 sklearn
+mpi_master_slave

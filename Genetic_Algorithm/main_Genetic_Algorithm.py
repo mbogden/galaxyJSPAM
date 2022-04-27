@@ -17,7 +17,10 @@ import info_module as im
 # For loading other dependencies
 from copy import deepcopy
 import numpy as np
+import numpy.linalg as LA
 import math
+import random
+import pandas as pd
 
 
 def test():
@@ -168,6 +171,129 @@ def convert_ga_to_spam( in_param, psi ):
 
 # End convert_ga_to_spam
 
+
+def ReadAndCleanupData( filePath, thresh ):
+
+    print("Cleaning target file...")
+
+    # read data into np array
+    df = pd.read_csv( filePath, sep=',|\t', engine='python', header=None )
+    data1 = df.values
+
+    # remove unranked models
+    ind = 0
+    while( not math.isnan(data1[ind,-1]) ):
+        ind += 1
+    # end
+    data2 = data1[0:ind,:]
+    nModel = ind + 1
+
+    # include human score and SPAM params
+    cols = list(range(4,18)) + [ 1 ]
+    data2 = data2[:,cols]
+
+    # ignore bad zoo models
+    data2 = data2[data2[:,-1]>=thresh,:]
+    nModel = data2.shape[0]
+
+    data2 = np.array( data2, dtype=np.float32 )
+
+#	data2[0,2]  = 10
+#	data2[0,5]  = -10
+#	data2[0,10] = 20
+#	data2[0,11] = 20
+#	data2[0,12] = 100
+#	data2[0,13] = 100
+
+    data3 = deepcopy(data2)
+
+    psi = []
+    for i in range(nModel):
+        psi_p = 1
+        psi_s = 1
+
+        if( data2[i,2] < 0 ):
+            data2[i,2]  =  -1 * data2[i,2]
+            data2[i,5]  =  -1 * data2[i,5]
+            data2[i,10] = 180 + data2[i,10]
+            data2[i,11] = 180 + data2[i,11]
+        # end
+        data2[i,10] %= 360
+        data2[i,11] %= 360
+        if( data2[i,10] > 180 ):
+            data2[i,10] = data2[i,10] - 180
+            data2[i,12] = -1 * data2[i,12]
+        # end
+        if( data2[i,11] > 180 ):
+            data2[i,11] = data2[i,11] - 180
+            data2[i,13] = -1 * data2[i,13]
+        # end
+        data2[i,12] %= 360
+        data2[i,13] %= 360
+        if( data2[i,12] > 180 ):
+            data2[i,12] = data2[i,12] - 360
+        # end
+        if( data2[i,13] > 180 ):
+            data2[i,13] = data2[i,13] - 360
+        # end
+
+        if( data2[i,12] > 90 ):
+            data2[i,12] = data2[i,12] - 180
+            psi_p = -1
+        elif( data2[i,12] < -90 ):
+            data2[i,12] = data2[i,12] + 180
+            psi_p = -1
+        # end
+        if( data2[i,13] > 90 ):
+            data2[i,13] = data2[i,13] - 180
+            psi_s = -1
+        elif( data2[i,13] < -90 ):
+            data2[i,13] = data2[i,13] + 180
+            psi_s = -1
+        # end
+        psi.append( [psi_p,psi_s] )
+    # end
+    psi = np.array(psi)
+
+    # energy
+    G = 1
+    r = ( data2[:,0]**2 + data2[:,1]**2 + data2[:,2]**2 )**0.5
+    U = -G*data2[:,6]*data2[:,7]/r
+    v = ( data2[:,3]**2 + data2[:,4]**2 + data2[:,5]**2 )**0.5
+    K = 0.5*data2[:,7]*v**2
+#	c = np.log(1-K/U)
+    c = (K+U)/(K-U)
+
+    # convert p,s mass to ratio,total mass
+    t = data2[:,6] + data2[:,7]
+    f = data2[:,6] / t
+    data2[:,6] = f
+    data2[:,7] = t
+
+    # spherical velocity
+    phi   = ( np.arctan2( data2[:,4], data2[:,3] ) * 180.0 / np.pi ) % 360
+    theta = ( np.arcsin( data2[:,5] / v ) * 180.0 / np.pi )
+
+#	data2[:,2] = c
+#	data2[:,3] = v
+    data2[:,3] = c
+#	data2[:,2] = K
+#	data2[:,3] = U
+
+    data2[:,4] = phi
+    data2[:,5] = theta
+
+#	"""
+    Ap = np.abs(data2[:,8]**2*np.cos(data2[:,12]*np.pi/180.0))
+    As = np.abs(data2[:,9]**2*np.cos(data2[:,13]*np.pi/180.0))
+
+    data2[:,8] = Ap
+    data2[:,9] = As
+#	"""
+
+    return data2, psi, nModel, len(cols)
+
+# end ReadandCleanUpData
 
 
 # Run main after declaring functions
