@@ -82,14 +82,14 @@ ___
 - `-targetDir path/to/target/directory/`   Path to a target directory into the program.
 - `-dataDir path/to/directory/`            Path to directory that contains many target directories.
 ___
-- `-paramLoc path/to/score/param.json`     Path to an existing score parameter file.
-- `-paramName name_of_param`               Name of a score parameters file already saved in target's score_parameters folder.
+- `-scoreParamLoc path/to/score/score_param.json`     Path to an existing score parameter file.
+- `-scoreParamName name_of_score_aram`               Name of a score parameters file already saved in target's score_parameters folder.
 - `-targetLoc path/to/score/target.png`    Path to an existing target image of colliding galaxies.
 ___
 - `-newGen`  (Default: False)    Used for testing new MPI Queue for creating new models
 - `-gaExp`   (Default: False)    Short for "Genetic Algorithm Experiment".  Directs program to begin a genetic evolution of models over target given.
-- `-gaLoc`   (Default: target)   Possible locations Workers use when generating model data to create a score.  
-- `-gaParam path/to/param.json`   Location for genetic algorithm parameter file 
+- `-gaLocName`   (Default: target)   Possible locations Workers use when generating model data to create a score.  
+- `-gaParamLoc path/to/ga_param.json`   Location for genetic algorithm parameter file 
 ___
 - `-newSim`    (Default: False) Tells program to create a new simulation of a model.
 - `-zipSim`    (Default: False) Tells program to zip particles files created by simulator.  Warning, files can be large.

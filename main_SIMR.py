@@ -13,7 +13,6 @@ from sys import path as sysPath, exit
 from copy import deepcopy
 from shutil import rmtree
 
-
 import pandas as pd 
 import numpy as np 
 import cv2 
@@ -153,7 +152,9 @@ def target_main( cmdArg=gm.inArgClass(), tInfo = None ):
     else:
         if printBase and mpi_rank == 0: 
             print("SIMR.simr_target:  Nothing Selected.")
-
+    
+def GA_Experiment_Wrapper():
+    pass
 
 def target_genetic_algorithm( cmdArgs, tInfo ):
     
@@ -249,6 +250,32 @@ def target_test_new_gen_scores_single( cmdArgs, tInfo ):
     print(scores)
 
     pass
+
+
+class ga_machine_score_wrapper:
+    
+    runArgs = None # arguments while scoring individual models
+    tInfo   = None # class for target system
+    psi     = None # variable needed for converting from ga to spam parameters
+    prog    = None # variable for printing scoring progress
+    
+    def __init__( self, runArgs, tInfo, psi, printProg ):
+        
+        # Save variables
+        self.runArgs = runArgs
+        self.tInfo   = tInfo
+        self.psi     = psi
+        self.prog    = printProg
+        
+        if self.prog:  print("SIMR.ga_machine_score_wrapper")
+        
+    def score_models( self, ga_params ):
+        spam_parameters = ga.convert_ga_to_spam( ga_params, self.psi )
+        scores = score_models_iter( self.tInfo, self.runArgs, \
+                                        spam_parameters, printProg = self.prog )
+        return scores
+
+# End ga_machine score wrapper
 
 def score_models_iter( tInfo, runArgs, newData, printProg = True ):    
     
@@ -367,6 +394,7 @@ def target_test_new_gen_scores( cmdArgs, tInfo ):
     
 # End target_test_new_gen_scores
 
+
 def score_models_worker_queue( mpi_queue, newData, printBase = True, printAll = False ):
     
     if printBase: print("SIMR.score_models_worker_queue:")
@@ -430,7 +458,7 @@ class new_score_worker(Slave):
             print("Worker %d: __init__:" % mpi_rank )
         
         # Where to save new run data 
-        if self.runArgs.get( 'gaLoc', 'target' ) == 'target':
+        if self.runArgs.get( 'gaLocName', 'target' ) == 'target':
             
             tmpDir = self.tInfo.get('tmpDir', None)
             if tmpDir == None:
@@ -446,7 +474,7 @@ class new_score_worker(Slave):
             
                     
         # For Babbage, our local cluster
-        elif self.runArgs.get( 'gaLoc', None ) == 'babbage':
+        elif self.runArgs.get( 'gaLocName', None ) == 'babbage':
             
             # Hardcoded location of the tmp dir for babbages local computers
             tmpBabbageDir = '/state/partition1/'
@@ -600,36 +628,36 @@ def target_initialize( cmdArg=gm.inArgClass(), tInfo = None ):
     cmdArg.setArg('tInfo', tInfo)
     
     # Check if valid score parameters.
-    params = cmdArg.get('scoreParams')
-    paramName = cmdArg.get('paramName',None)
-    paramLoc = gm.validPath( cmdArg.get('paramLoc',None) )
+    scoreParams = cmdArg.get('scoreParams')
+    scoreParamName = cmdArg.get('scoreParamName',None)
+    scoreParamLoc = gm.validPath( cmdArg.get('scoreParamLoc',None) )
     
     # If params there, move on
-    if params != None:
+    if scoreParams != None:
         pass
     
     # If invalid, complain
-    elif params == None and paramLoc == None and paramName == None:
+    elif scoreParams == None and scoreParamLoc == None and scoreParamName == None:
         if printBase:
             print("WARNING: target_initialize: params not valid")
-            gm.tabprint('ParamType: %s'%type(params))
-            gm.tabprint('ParamName: %s'%paramName)
-            gm.tabprint('ParamLoc : %s'%paramLoc)
+            gm.tabprint('ParamType: %s'%type(scoreParams))
+            gm.tabprint('scoreParamName: %s'%scoreParamName)
+            gm.tabprint('scoreParamLoc : %s'%scoreParamLoc)
 
     # If given a param name, assume target knows where it is.
-    elif params == None and paramName != None:
-        params = tInfo.readScoreParam(paramName)
+    elif scoreParams == None and scoreParamName != None:
+        scoreParams = tInfo.readScoreParam(scoreParamName)
     
     # If given param location, directly read file
-    elif paramLoc != None:
-        params = gm.readJson(paramLoc)
+    elif scoreParamLoc != None:
+        scoreParams = gm.readJson(scoreParamLoc)
 
     # Check for final parameter file is valid
-    if params == None:
+    if scoreParams == None:
         if printBase:
             print("WARNING: SIMR.target_initialize: Failed to load parameter class")    
     
-    cmdArg.setArg('scoreParams', params)
+    cmdArg.setArg('scoreParams', scoreParams)
     
     # Check if needing to make any images for new scoring.
     
@@ -637,12 +665,12 @@ def target_initialize( cmdArg=gm.inArgClass(), tInfo = None ):
         if printBase:
             print("SIMR.target_initialize: Creating new target image")
         
-        if type( params ) == type( None ):
-            print("WARNING: SIMR.target_initialize: Please provide params for new target image.")
+        if type( scoreParams ) == type( None ):
+            print("WARNING: SIMR.target_initialize: Please provide scoreParams for new target image.")
         
         # Loop through all params for creation
-        for key in params:
-            ic.adjustTargetImage( tInfo = tInfo, new_param = params[key], \
+        for key in scoreParams:
+            ic.adjustTargetImage( tInfo = tInfo, new_param = scoreParams[key], \
                                  overWrite = cmdArg.get('overWrite'), printAll = printAll )           
     return tInfo
 
@@ -851,10 +879,10 @@ def simr_run( cmdArg = None, rInfo = None, rDir = None ):
         return None
     
     # Check if score parameters were given
-    if cmdArg.get('paramLoc') != None and cmdArg.get('scoreParams') == None:
-        sParams = gm.readJson( cmdArg.paramLoc )
+    if cmdArg.get('scoreParamLoc') != None and cmdArg.get('scoreParams') == None:
+        sParams = gm.readJson( cmdArg.scoreParamLoc )
         if sParams == None:
-            if cmdArg.printBase: print("ERROR: SIMR: simr_run: Error reading param file: %s"%cmdArg.paramLoc )
+            if cmdArg.printBase: print("ERROR: SIMR: simr_run: Error reading param file: %s"%cmdArg.scoreParamLoc )
         else:
             cmdArg.scoreParams = sParams
     
@@ -921,6 +949,8 @@ def simr_run( cmdArg = None, rInfo = None, rDir = None ):
     rInfo.delTmp()
 
 # end processing run
+
+
 
 # Run main after declaring functions
 if __name__ == '__main__':
