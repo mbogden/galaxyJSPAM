@@ -130,7 +130,13 @@ def target_main( cmdArg=gm.inArgClass(), tInfo = None ):
     
     # For testing new score workers
     elif cmdArg.get( 'newGen', False ):
-        target_test_new_gen_scores( cmdArg, tInfo )
+        
+        # Default should be used in mpi_env
+        if mpi_size > 1:
+            target_test_new_gen_scores( cmdArg, tInfo )
+        
+        else:
+            target_test_new_gen_scores_single( cmdArg, tInfo )
     
     # Create new files/scores if called upon
     elif cmdArg.get( 'newAll', False ) \
@@ -149,8 +155,6 @@ def target_main( cmdArg=gm.inArgClass(), tInfo = None ):
             print("SIMR.simr_target:  Nothing Selected.")
 
 
-
-        
 def target_genetic_algorithm( cmdArgs, tInfo ):
     
     ###################################
@@ -214,8 +218,59 @@ def target_genetic_algorithm( cmdArgs, tInfo ):
     ########################################    
 
     
+def target_test_new_gen_scores_single( cmdArgs, tInfo ):    
     
+    printBase = tInfo.printBase
+    printAll = tInfo.printAll
+    
+    if printBase:
+        print( "SIMR.target_test_new_gen_scores_single: %d of %d" %(mpi_rank,mpi_size) )
+
+
+    # Use function to prepare tInfo and score params
+    runArgs = target_prep_cmd_params( tInfo, cmdArgs )
+
+    # Add args for new score and info for each run
+    if type( runArgs ) != type( None ):
+        runArgs.setArg( 'newAll', True )
+        runArgs.setArg( 'newInfo', True )
+    
+    # Have all verify if they have valid arguments
+    if type(runArgs) == type(None):
+        print("WARNING %d: SIMR.target_test_new_gen_scores: Invalid run arguments" % mpi_rank)
+        return None
+    
+
+    gm.tabprint("Using zoo merger data for testing")
+    
+    # WORKING: Use zoo merger data for testing and developing.
+    zScores, mData = tInfo.getOrbParam()
+    scores = score_models_iter( tInfo, runArgs, mData[0:7,:] )
+    print(scores)
+
+    pass
+
+def score_models_iter( tInfo, runArgs, newData, printProg = True ):    
+    
+    printBase = tInfo.printBase
+    n = newData.shape[0]
+    scores = np.zeros(n)
+    
+    if newData.shape[1] < 15:
+        diff = 15 - newData.shape[1]
+        newData = np.pad( newData, [(0, 0), (0, diff)], mode='constant')
+    
+    worker = new_score_worker(tInfo, runArgs) 
+    
+    for i in range( n ):
+        ir, score = worker.do_work( (i, newData[i,:]) )
+        scores[ir] = score
+        if printProg:  print('Master: Received %d / %d - %s' % ( ir, n, str(score) ), end='\r' ) 
+    if printProg:  print("\nMaster: Complete")
         
+    return scores
+
+
 def target_test_new_gen_scores( cmdArgs, tInfo ):
     
     ###################################
@@ -226,11 +281,11 @@ def target_test_new_gen_scores( cmdArgs, tInfo ):
     printAll = tInfo.printAll
     
     if printBase:
-        print( "SIMR.target_genetic_algorithm: %d of %d" %(mpi_rank,mpi_size) )
+        print( "SIMR.target_test_new_gen_scores: %d of %d" %(mpi_rank,mpi_size) )
       
     # Make sure you're in an MPI_environment with more than 1 core.
     if mpi_size == 1:
-        print("WARNING: SIMR.target_genetic_algorithm:")
+        print("WARNING: SIMR.target_test_new_gen_scores:")
         gm.tabprint("Must run code in mpirun with more than 1 core to work properly")
         gm.tabprint("Example: 'mpirun -n 4 python3 main_simr.py -gaExp'")
         return
@@ -280,7 +335,6 @@ def target_test_new_gen_scores( cmdArgs, tInfo ):
     
     zScores, mData = (None, None)
 
-    print("WORKING: SIMR.target_test_new_gen_scores")
     gm.tabprint("Using zoo merger data for testing")
     # Create Master Class.
     master = Master( range(1, mpi_size ) )
@@ -359,6 +413,7 @@ class new_score_worker(Slave):
     rank = mpi_rank
     worker_dir = None
     printWorker = None
+    rmRunDir = True
 
     def __init__(self, tInfo, runArgs ):
         
@@ -367,7 +422,8 @@ class new_score_worker(Slave):
         # Save info for creating scores later. 
         self.tInfo = tInfo
         self.runArgs = runArgs
-        self.printWorker = runArgs.get('printWorker',False)
+        self.printWorker = runArgs.get( 'printWorker', False )
+        self.rmRunDir = runArgs.get( 'rmRunDir', True )
         self.score_names = [ name for name in self.runArgs.scoreParams ]
         
         if self.printWorker or self.runArgs.printBase:  
@@ -431,7 +487,7 @@ class new_score_worker(Slave):
         self.worker_dir = gm.validPath( self.worker_dir )
 
     # Function for creating a machine score out of SPAM parameters.
-    def do_work(self, data):
+    def do_work( self, data ):
         
         # Extract needed data to run
         i, mData = data
@@ -476,10 +532,10 @@ class new_score_worker(Slave):
             scores.append( rInfo.getScore( name ) )
             
         # Remove directory to convserve disk space.
-        rmtree( runDir )
+        if self.rmRunDir:  rmtree( runDir )
         
         if self.printWorker:
-            print('Worker %d: do_work: Complete: %d - %f' % (mpi_rank, i, scores[0]), )
+            print('Worker %d: do_work: Complete: %d - %s' % (mpi_rank, i, str(scores[0])), )
         
         return (i, scores[0])
     
@@ -760,8 +816,6 @@ def target_new_scores( tInfo, tArg ):
 # End processing target dir for new scores
 
 
-
-
 def simr_run( cmdArg = None, rInfo = None, rDir = None ):
 
     # Initialize variables
@@ -867,81 +921,6 @@ def simr_run( cmdArg = None, rInfo = None, rDir = None ):
     rInfo.delTmp()
 
 # end processing run
-
-
-def simr_many_target( arg ):
-    
-
-    dataDir   = arg.dataDir
-    printBase = arg.printBase
-    printAll  = arg.printAll 
-
-    if printBase and mpi_rank == 0: 
-        print("SIMR.procAllData")
-        print("\t - dataDir: %s" % arg.dataDir )
-    
-    # Check if valid directory
-    dataDir = gm.validPath(dataDir)
-    
-    if dataDir == None:
-
-        if printBase and mpi_rank == 0: 
-            print("SIMR: WARNING: simr_many_target: Invalid data directory")
-            print("\t - dataDir: %s" % dataDir )
-            
-            
-    # Prep arguments for targets
-    tArg = deepcopy(arg)
-    tArg.dataDir = None
-    tArg.printBase = True
-    
-    # Get list of directories/files and go through
-    targetList = listdir( dataDir )   # List of items found in folder
-    targetList.sort()
-    
-    # Normal local machine runs
-    if mpi_size == 1:
-        
-        for folder in targetList:  
-            
-            tArg.targetDir = dataDir + folder            
-            simr_target( arg = tArg )
-
-    
-    elif mpi_size > 1:
-
-        for folder in targetList:  
-            
-            tInfo = None
-            if mpi_rank == 0:
-                tArg.targetDir = dataDir + folder
-                tInfo = im.target_info_class( tArg=tArg )
-            
-                # If creating a new base, create new images
-                if arg.get('newBase',False):
-                    chime_0 = tInfo.readScoreParam( 'chime_0' )
-                    chime_image = ic.adjustTargetImage( tInfo, chime_0['chime_0'] \
-                                                       , printAll = arg.printAll )
-                    tInfo.saveWndchrmImage( chime_image, chime_0['chime_0']['imgArg'] )
-                
-                if tInfo.status:                    
-                    if printAll: gm.tabprint("Rank %d sending tInfo: %s" % (mpi_rank, tInfo.get('target_id')))
-                    tInfo = mpi_comm.bcast( tInfo, root=0 )
-                    
-                else:
-                    if printAll: gm.tabprint("Rank %d sending None:" % (mpi_rank))
-                    tInfo = mpi_comm.bcast( None, root=0 )
-                    
-            else:
-                tInfo = mpi_comm.bcast( tInfo, root=0 )
-
-            if type( tInfo ) != type( None ):
-                if printAll: gm.tabprint("Rank %d received: %s" % (mpi_rank, tInfo.get('target_id')))
-                simr_target( tInfo = tInfo, arg = tArg )
-            elif printAll:
-                gm.tabprint("Rank %d received None:"%mpi_rank)
-
-# End data dir
 
 # Run main after declaring functions
 if __name__ == '__main__':

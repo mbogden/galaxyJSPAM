@@ -14,6 +14,8 @@ from mpi4py import MPI
 from mpi_master_slave import Master, Slave
 from mpi_master_slave import WorkQueue
 import time
+from datetime import datetime
+from copy import deepcopy
 
 supportPath = path.abspath( path.join( __file__ , "../../Support_Code/" ) )
 sysPath.append( supportPath )
@@ -24,6 +26,18 @@ pprint = pp.pprint
 
 def test():
     print("GM: Hi!  You're in Matthew's module for generally useful functions and classes")
+    
+def getFileFriendlyDateTime():
+    
+    now = datetime.now()
+    dtStr = '%s-%s-%sT%s-%s-%s' % ( str(now.year  ).zfill(4), \
+                                   str(now.month ).zfill(2), \
+                                   str(now.day   ).zfill(2), \
+                                   str(now.hour  ).zfill(2), \
+                                   str(now.minute).zfill(2), \
+                                   str(now.second).zfill(2), \
+                                   )
+    return dtStr
 
 def validPath( inPath, printWarning = False, pathType = None ):
 
@@ -83,12 +97,35 @@ def readJson( jPath ):
     return jDict
 
 # Save json file
-def saveJson( jDict, jPath, pretty=False ):    
+def saveJson( jDict, jPath, pretty=False, convert_numpy_array = False ):    
+    
+    if convert_numpy_array:
+        jDict = convert_json_numpy_array_to_list( jDict )
+             
     with open( jPath, 'w' ) as jFile:
         if pretty:
             json.dump( jDict, jFile, indent=4 )
         else:
             json.dump( jDict, jFile )
+
+            
+def convert_json_numpy_array_to_list( inDict ):
+    
+    outDict = deepcopy( inDict )
+    
+    # Search through first layer
+    for key in outDict:
+            
+        # If item is numpy array, convert to list
+        if type( outDict[key] ) == type( np.zeros(3) ):
+            outDict[key] = outDict[key].tolist()
+
+        # else if a dict with more nested values, do nested function call
+        elif type( outDict[key] ) == type( {'type':'dict'} ):
+            # If item is np array
+            outDict[key] = convert_json_numpy_array_to_list( outDict[key] )
+    
+    return outDict
             
     
 def getScores( scoreLoc ):

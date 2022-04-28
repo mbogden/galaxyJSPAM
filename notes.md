@@ -108,11 +108,15 @@ Might* be good for others to view.
       - characterize with functions or hard point and lines. 
       - Use line to determine direction of brightness.
     - Weigh all machine scores together. 
-      - Take score of all comparison methods and send through machine learning.
+      - Take score of all comparison methods and send through machine learning
+  - Can I train a NN to take images and predict Orbital parameters? 
+      - 
+      
 
 - Triple image comparison
 	- Compare all Model, Unperturbated, and target image
 	- Where Model and unperturbed closely match, lower weight on model image
+    - Train DNN on all three images. 
 
 - Masked comparison
     - Apply mask to both images 
@@ -159,3 +163,63 @@ Might* be good for others to view.
 
 ### Cover
 - What Publication stuff should I work on? 
+
+### Questions for Graham in GA code
+- mmm, xLims, shrink
+    - mmm's appears to be the the SPAM min/maxs of the zoo: merger models converted to GA parameters. 
+    - xLim's become based on the "target" model you're choosing.
+        - Later, we won't have knowledge on the "target" values
+
+        
+    - When a new model population is created, we don't know the psi for those.
+        - Your code uses the psiReal during GA run.  We won't know this moving forward right?
+        - Does using psiReal limit the range of your model space by a 1/4th? 
+        
+- PSI.  In real case, when we don't know.  
+    - Run 4 GA's with each option.
+
+- MMM's
+    - hardcoded.
+    - based on top Zoo Merger models. 
+        - zooThresh.
+
+- initSeed
+    
+
+### Active Working
+GA_working
+- Find purpose of following variables, rename as needed, save in input file
+    - nPop: "Size of population at each step"
+    - nParam:  "14" Number of SPAM parameters the GA is creating/using.
+    - pFit: "[ 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13 ]"  The parameters which GA is actually making changes to. 
+    - xLim:  Limits to parameters being fitted.  Currently based on Galaxy Zoo: Merger Files. 
+    - mmm: mins and maxes of the Zoo Merger models.
+        - Modified into GA parameters? 
+        - How do we determine the limits later?  
+    - psi:  2-element matrix of values either -1 or 1.
+        - Will need to run 4 different simulations to cover all parameter space. 
+    getInitPop
+        - initType:  two different initializing population types
+            - 0: Uniformly random distribution from min to max. 
+                - popSol: (nPop x nParam) matrix filled with random value between limits and pReal values. 
+            - 1: (hardcoded) linearly spaced values from min to max.
+                - Loop 1000 times to find maxCorr and save corresponding R.
+                    - R: (nParam X nPop) matrix:  Appears to be distribution of points across parameter space. 
+                    - corr: ( det( corr( R ) ) )
+                    - Save R with maxCorr found whiling looping 1000 times.
+                - Generate popSol: (nPop x nParam)
+                    - pFit values get maxR value found
+                    - non pFit get pReal values.  (Target values)
+                    
+    - mixProb
+    - stds: Looks like width of SPAM parameter limits.
+    - sigScale: 0.05 ("scale param stdev for prop width") Same for all SPAM parameters?!
+    - pWidth: stds*sigScale
+    - pReal: "data[targetInd, 0:-1]" Am I feeding it the ideal spam parameters?
+    - pBest: The best of the previous generation...? 
+    - xLim: 
+- Changes to make later
+    - getInitPop "initType": Consider making this a variable to feed in later.
+    
+    
+# 

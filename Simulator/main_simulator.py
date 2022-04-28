@@ -229,6 +229,7 @@ def new_simulation( rInfo, simArg, cmdArg ):
         return False
     
     # Save current working directory and move to temp folder
+    prevDir = getcwd()
     chdir( tmpDir )
     
     if printAll:
@@ -290,6 +291,9 @@ def new_simulation( rInfo, simArg, cmdArg ):
         with ZipFile( ptsDir + zipName, 'w') as myzip:
             myzip.write(iLoc, iName, compress_type=ZIP_DEFLATED)
             myzip.write(fLoc, fName, compress_type=ZIP_DEFLATED)
+    
+    # Return to previous working directory to prevent potential errors elsewhere in code.
+    chdir( prevDir )
 
 # End Def new_simulation
 
