@@ -136,7 +136,7 @@ def Genetic_Algorithm_Phase( pFit, start, scoreModels, ga_param, \
 
         if( step > 0 and reseed > 0):
             ind = max( 1, int(reseed*nPop) )
-            popSol_re = ga.getInitPop( ind, start, pFit, ga_param)
+            popSol_re = getInitPop( ind, start, pFit, ga_param)
             order = np.argsort(popFit)
             popSol[order[:ind],:] = popSol_re
         # end
@@ -898,6 +898,29 @@ def ReadAndCleanupData( filePath, thresh ):
     return data2, psi, nModel, len(cols)
 
 # end ReadandCleanUpData
+
+
+def Prep_GA_Input_Parameters( pLoc ):
+
+    # Check if file exists
+    pLoc = gm.validPath( pLoc )
+    if pLoc == None:
+        return None
+    
+    # Read file
+    ga_param = gm.readJson( pLoc )
+    if type(ga_param) == type(None):
+        return None
+
+    # Do some preprocessing of variables.
+    ga_param['generation_number'] = int( ga_param['generation_total_number'] / ga_param['phase_number'] )
+    
+    ga_param['covariance_burn'] = np.power( ga_param['generation_number']/2, -1 )
+    ga_param['covariance_mix_probability'] = ga_param['covariance_mix_probability']/np.sum(ga_param['covariance_mix_probability'])
+    
+    ga_param['parameter_limits'] = np.array( ga_param['parameter_limits'] )
+
+    return ga_param
 
 
 # Run main after declaring functions

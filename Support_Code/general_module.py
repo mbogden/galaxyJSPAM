@@ -262,15 +262,21 @@ class inArgClass:
             return
         
         args = readJson( argLoc )
-        
+                
         if args == None:
             print("WARNING: GM.inArgClass.readArgFile: ")
             tabprint("Cannot find arg file: (%s) - %s" %( path.exists(self.argFile) , self.argFile) )
             return
         
-        # Assumed you've read in a JSON
+        self.updateArgsFromDict( args )
+        
+   
+    def updateArgsFromDict( self, args ):
+        
         for key in args:
             self.setArg( key, args[key] )
+   
+    # End updateArgsFromDict
         
 
     # For manual setting
