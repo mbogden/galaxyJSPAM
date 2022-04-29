@@ -86,9 +86,9 @@ ___
 - `-scoreParamName name_of_score_aram`               Name of a score parameters file already saved in target's score_parameters folder.
 - `-targetLoc path/to/score/target.png`    Path to an existing target image of colliding galaxies.
 ___
+- `-workerLocName`   (Default: target)   Possible locations Workers use when generating model data to create a score.  
 - `-newGen`  (Default: False)    Used for testing new MPI Queue for creating new models
 - `-gaExp`   (Default: False)    Short for "Genetic Algorithm Experiment".  Directs program to begin a genetic evolution of models over target given.
-- `-gaLocName`   (Default: target)   Possible locations Workers use when generating model data to create a score.  
 - `-gaParamLoc path/to/ga_param.json`   Location for genetic algorithm parameter file 
 ___
 - `-newSim`    (Default: False) Tells program to create a new simulation of a model.

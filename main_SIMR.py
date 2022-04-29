@@ -201,7 +201,7 @@ def GA_Experiment_Wrapper( cmdArgs, tInfo ):
         
         if outDir != None:
             # create details file for ga_results
-            rName = 'Testing_%s' % gm.getFileFriendlyDateTime()
+            rName = '%s_%s' % ( ga_param.get('name', 'Testing'), gm.getFileFriendlyDateTime() )
             resultsLocBase = outDir + rName + '_'
             
             print("SIMR.GA_Experiment_Wrapper:")
@@ -219,7 +219,7 @@ def GA_Experiment_Wrapper( cmdArgs, tInfo ):
     
         else:
             print("WARNING: SIMR.GA_Experiment_Wrapper:")
-            gm.tabprint("Results directory not found: %s" % tmp) 
+            gm.tabprint("Results directory not found: %s" % tmpDir ) 
             runArgs = None  # Set runArgs to None so workers no to exit too.
             
     
