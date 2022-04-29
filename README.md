@@ -118,10 +118,10 @@ ___
 ### Common Commands
     
 #### Initialize a target and generate basic direct image comparison scores 
-`python3 main_SIMR.py -dataDir path/to/all/targets/ -newInfo -newBase -newRunInfo -newRunBase -newScore -newImage -paramName zoo_0_direct_scores` 
+`python3 main_SIMR.py -dataDir path/to/all/targets/ -newInfo -newBase -newRunInfo -newRunBase -newScore -newImage -scoreParamName zoo_0_direct_scores` 
     
 #### Generate basic WNDCHRM images, features values, and normalize them.
-`python3 main_SIMR.py -targetDir path/to/target/ -newImage -paramName chime_0 -newFeats -normFeats -normName norm_chime_0` 
+`python3 main_SIMR.py -targetDir path/to/target/ -newImage -scoreParamName chime_0 -newFeats -normFeats -normName norm_chime_0` 
     
 #### Tell program to point at a target directory and generate new machine scores from a parameter file you've created.
 `python3 main_SIMR.py -targetDir path/to/target/ -newScore -paramLoc path/to/param.json` 
@@ -132,6 +132,8 @@ ___
 #### Tell program to go through many targets creating new simulations, images, and score as needed.  Use 24 processors on current machine. 
 `mpirun -n 24 python3 main_SIMR.py -dataDir path/to/all/targets/ -newAll -paramLoc path/to/param.json`  
     
+#### Test Genetic Algorithm Experiment using testing parameters
+    `mpirun -n 8 python3 main_SIMR.py -targetDir path/to/target -scoreParamLoc path/to/test_param.json -printAll -gaExp -gaParamLoc param/init_ga_param.json`
     
 ## Project Overview<a id="overview">
     
