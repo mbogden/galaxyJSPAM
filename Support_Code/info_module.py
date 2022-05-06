@@ -177,7 +177,6 @@ class run_info_class:
         self.tmpDir = self.runDir + 'tmp/'
         self.infoLoc = self.runDir + 'info.json'
         self.baseLoc = self.runDir + 'base_info.json'
-        
         self.wndFitLoc = self.wndDir + 'wndchrm_all.fit'
         self.wndAllLoc = self.wndDir + 'wndchrm_all.csv'
     
@@ -288,15 +287,16 @@ class run_info_class:
 
         from zipfile import ZipFile
 
+        
         zipLoc = self.findPtsLoc( ptsName )        
         if zipLoc == None:
             return None
 
         # Check if zip files need rezipping
         self.delTmp()
-        rezip = True
+        rezip = False
 
-        with ZipFile( zipLoc ) as zip:
+        with ZipFile( ptsZipLoc ) as zip:
 
             for zip_info in zip.infolist():
 
@@ -434,13 +434,13 @@ class run_info_class:
         
         elif imgType == 'init' and not overWrite:            
             img = self.init.get(imgName,None)
-            if type(img) != type(None) and iImg.dtype == toType:
+            if type(img) != type(None) and img.dtype == toType:
                 return img
         
         # Get image location
         imgLoc = self.findImgLoc( imgName = imgName, imgType = imgType )
         if self.printAll: 
-            print("IM: Loading: %s:")
+            print("IM: Loading: %s:" % imgName)
             gm.tabprint( 'imgType: %s' % imgType )
             gm.tabprint( 'imgLoc: %s' % imgLoc )
             
