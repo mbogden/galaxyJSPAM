@@ -430,12 +430,12 @@ class run_info_class:
         if imgType == 'model' and not overWrite:
             mImg = self.img.get(imgName,None)
             if type(mImg) != type(None) and mImg.dtype == toType:
-                return mImg
+                return deepcopy( mImg )
         
         elif imgType == 'init' and not overWrite:            
             img = self.init.get(imgName,None)
             if type(img) != type(None) and img.dtype == toType:
-                return img
+                return deepcopy( img )
         
         # Get image location
         imgLoc = self.findImgLoc( imgName = imgName, imgType = imgType )
@@ -454,7 +454,7 @@ class run_info_class:
         elif imgType == 'init': self.init[imgName] = img
 
         # Return image
-        return img
+        return deepcopy( img )
     
     # End getting model, unperturbed image
 
@@ -904,7 +904,7 @@ class target_info_class:
         tImg = self.targetImgs.get(tName,None)
         if type(tImg) != type(None) and not overwrite:
             if printAll:  gm.tabprint("Returning preloaded target image.")
-            return tImg
+            return deepcopy( tImg )
         
         # Else find and open target image
         if printAll:  gm.tabprint("Searching for target image: %s" % tName)
@@ -916,7 +916,7 @@ class target_info_class:
         
         else:
             self.targetImgs[tName] = gm.readImg(tLoc)
-            return self.targetImgs[tName]
+            return deepcopy( self.targetImgs[tName] )
         
     # End getTargetImage()
 

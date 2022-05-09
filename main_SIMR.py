@@ -853,6 +853,9 @@ def target_prep_cmd_params( tInfo, tArg ):
 
 def target_new_scores( tInfo, cmdArg ):
     
+    printBase = tInfo.printBase
+    printAll = tInfo.printAll
+    
     
     ###############################
     ###  Prepare Run Arguemnts  ###
@@ -878,7 +881,7 @@ def target_new_scores( tInfo, cmdArg ):
 
         # If in mpi and expecting info.
         else:
-            runArgs = mpi_comm.bcast( params, root=0 )
+            runArgs = mpi_comm.bcast( runArgs, root=0 )
 
         mpi_comm.Barrier()
     
@@ -916,7 +919,7 @@ def target_new_scores( tInfo, cmdArg ):
 
             # Loop through wanted scores
             scoreGood = True
-            for sKey in params:
+            for sKey in runArgs.get('scoreParams',{}):
                 if rScore.get(sKey,None) == None:
                     scoreGood = False
                     break
@@ -928,7 +931,7 @@ def target_new_scores( tInfo, cmdArg ):
                 argList.append( dict( cmdArg = runArgs, rDir=rDir, ) )
 
         # Print how many scores expecting to be completed.
-        if printBase:
+        if tInfo.printBase:
             if len(argList) == 0:
                 gm.tabprint("Scores already exist!")        
             else: 
@@ -943,7 +946,7 @@ def target_new_scores( tInfo, cmdArg ):
             for i in range(mpi_size):
                 scatter_lists.append([])
 
-        if printAll:
+        if tInfo.printAll:
             print("SIMR: target_new_scores: MPI Scatter argList")
             gm.tabprint("Rank 0 argList: %d"%len(argList))
             gm.tabprint("Rank 0 scatter_lists: %d"%len(scatter_lists))
@@ -952,7 +955,7 @@ def target_new_scores( tInfo, cmdArg ):
 
     # Scatter argument lists to everyone
     argList = mpi_comm.scatter(scatter_lists,root=0)
-    if printAll:
+    if tInfo.printAll:
         gm.tabprint("Rank %d received: %d"%(mpi_rank,len(argList)))
         
         
