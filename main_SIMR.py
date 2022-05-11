@@ -145,7 +145,7 @@ def target_main( cmdArg=gm.inArgClass(), tInfo = None ):
     or cmdArg.get( 'newFeats', False ) \
     or cmdArg.get( 'newScore', False ) \
     or cmdArg.get( 'normFeats', False ):
-        if printBase: 
+        if printBase and mpi_rank == 0: 
             print("SIMR.simr_target:  Creating new scores")
             
         target_new_scores( tInfo, cmdArg )

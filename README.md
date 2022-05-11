@@ -64,7 +64,7 @@ There are several notebooks in the Notebook folder (Ex. Template.ipynb) that sho
 
 The primary program can be launched in two different methods! 
     - `python3 main_simr.py` 
-    - `mpirun -n 4 python3 main_simr.py` 
+    - `mpirun -n 4 python3 main_SIMR.py` 
 
 #### Input Arguments
 
@@ -124,13 +124,13 @@ ___
 `python3 main_SIMR.py -targetDir path/to/target/ -newImage -scoreParamName chime_0 -newFeats -normFeats -normName norm_chime_0` 
     
 #### Tell program to point at a target directory and generate new machine scores from a parameter file you've created.
-`python3 main_SIMR.py -targetDir path/to/target/ -newScore -paramLoc path/to/param.json` 
+`python3 main_SIMR.py -targetDir path/to/target/ -newScore -scoreParamLoc path/to/param.json` 
     
 #### Tell program to focus on a single model, create a new image, overwrite existing images and print all progress.  Useful for testing new image creation.
-`python3 main_SIMR.py -printAll -runDir path/to/run/ -newImage -overWrite -paramLoc path/to/new_param.json` 
+`python3 main_SIMR.py -printAll -runDir path/to/run/ -newImage -overWrite -scoreParamLoc path/to/new_param.json` 
     
 #### Tell program to go through many targets creating new simulations, images, and score as needed.  Use 24 processors on current machine. 
-`mpirun -n 24 python3 main_SIMR.py -dataDir path/to/all/targets/ -newAll -paramLoc path/to/param.json`  
+`mpirun -n 24 python3 main_SIMR.py -dataDir path/to/all/targets/ -newAll -scoreParamLoc path/to/param.json`  
     
 #### Test Genetic Algorithm Experiment using testing parameters
     `mpirun -n 8 python3 main_SIMR.py -targetDir path/to/target -scoreParamLoc path/to/test_param.json -printAll -gaExp -gaParamLoc param/init_ga_param.json`
