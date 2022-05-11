@@ -1011,7 +1011,9 @@ def simr_run( cmdArg = None, rInfo = None, rDir = None ):
     printBase = cmdArg.printBase    
     
     if printBase:
-        print("SIMR.simr_run: Inputs")
+        print("SIMR.simr_run: ")
+    
+    if printAll:
         print("\t - rDir:", rDir)
         print("\t - rInfo:", type(rInfo) )
 
@@ -1024,13 +1026,16 @@ def simr_run( cmdArg = None, rInfo = None, rDir = None ):
         elif rDir != None:
             rInfo = im.run_info_class( runDir=rDir, rArg=cmdArg )
 
-    if printBase:
-        print('SIMR.pipelineRun: ')
+    if printAll:
+        print('SIMR.simr_run: ')
         print('\t - rInfo: ', (rInfo) )
 
     if rInfo.status == False:
-        if printBase: print("SIMR.pipelineRun: WARNING: runInfo bad")
+        if printBase: print("SIMR.simr_run: WARNING: runInfo bad")
         return None
+    
+    if printBase:
+        gm.tabprint('runID: %s' % rInfo.get('run_id'))
     
     # Check if score parameters were given
     if cmdArg.get('scoreParamLoc') != None and cmdArg.get('scoreParams') == None:
@@ -1070,9 +1075,8 @@ def simr_run( cmdArg = None, rInfo = None, rDir = None ):
             im.tabprint("No new scores")
         return
     
-    else:
-        if rInfo.printBase:
-            gm.tabprint("Creating new scores")
+    else:  
+        if rInfo.printAll:  gm.tabprint("Creating new scores")
         
     
     tmpArg = deepcopy( cmdArg )

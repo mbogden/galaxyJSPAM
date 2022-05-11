@@ -145,11 +145,16 @@ def saveImg( img, imgLoc, printAll = False ):
     if img.dtype == np.float32:
         img = float32_to_uint8(img)
     
-    cv2.imwrite(imgLoc,img)
-
     if not path.exists( imgLoc ) and printAll:
         print("GM: WARNING: image not saved")
         print("\t - %s: " %imgLoc )
+        
+    imgWrote = cv2.imwrite(imgLoc,img)
+    
+    if not imgWrote:
+        print("WARNING: GM.saveImg: ")
+        tabprint("Failed to write image: %s" % imgLoc)
+
 
 def readFile( fileLoc, stripLine=False ):
 

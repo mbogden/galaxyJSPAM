@@ -185,7 +185,7 @@ def create_image_from_parameters( rInfo, sParam, overwrite=False, printAll = Fal
         mImg = gm.uint8_to_float32( mImg )
         rInfo.img[imgName] = mImg
 
-    if mImg.dtype == np.uint8:
+    if iImg.dtype == np.uint8:
         iImg = gm.uint8_to_float32( iImg )
         rInfo.init[imgName] = iImg
 

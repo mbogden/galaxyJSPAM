@@ -11,6 +11,7 @@ from sys import exit, argv, path as sysPath
 import numpy as np
 import cv2
 import pandas as pd
+from copy import deepcopy
 
 # For importing my useful support module
 supportPath = path.abspath( path.join( __file__, "../../Support_Code/" ) )
@@ -224,14 +225,21 @@ def MS_Run( \
     
 # end processing run dir
    
+        
+
 def multi_image_comparison( rInfo, param, arg ):
-    #print( ' YEsssss' )
-    #gm.pprint(param)
+    
+    printBase = arg.printBase
+    printAll = arg.printAll
+    
+    if printBase:  print('MS.multi_image_comparison:')
+    if printAll:   gm.tabprint("score_name: %s" % param['name'] )
     
     imgName = param['imgArg']['name']
     tgtName = param['cmpArg']['targetName']
-    #print('Model Image Name : %s' % imgName)
-    #print('Target Image Name: %s' % tgtName)
+    
+    if printAll:  gm.tabprint("image_name: %s" % imgName )
+    if printAll:  gm.tabprint("target_name: %s" % tgtName )
     
     mImg = rInfo.getModelImage( imgName = imgName, overWrite = True )
     uImg = rInfo.getModelImage( imgName = imgName, imgType = 'init', overWrite = True )
@@ -251,15 +259,14 @@ def multi_image_comparison( rInfo, param, arg ):
     # Reshape target image if needed. 
     if tImg.shape != mImg.shape:
         tImg = cv2.resize( tImg, ( mImg.shape[1], mImg.shape[0] ) )
-        #print('Model: ', mImg.shape )
-        #print("Target: ", tImg.shape)
         
-        
-    score = grahams_scoring_function( tImg, mImg, uImg )  
+    score = grahams_scoring_function( tImg, mImg, uImg, printAll = printAll )
+    
+    if printBase:
+        gm.tabprint("New Score: %s - %s" % (param['name'], str( score ) ) )
     
     if score != None: 
         newScore = rInfo.addScore( name = param['name'], score=score )    
-        if rInfo.printAll: print("MS: New Score!: %s - %f - %f" % (param['name'],score, newScore))
             
     else:
         print("WARNING: MS: New Score is None: %s - %s " % (rInfo.get('run_id'),param['name']))
@@ -286,22 +293,29 @@ def perturb( pm, pt ):
     return r
 # end
 
-def grahams_scoring_function( tImg, mImg, uImg, h = 0.0, score_method = 8 ):
+
+def grahams_scoring_function( tImg, mImg, uImg, h = 0.0, bin_img = False, printAll = False ):
     
+    if printAll:
+        print("MS.grahams_scoring_function")
+        gm.tabprint('tImg: %s' % str( tImg.shape ) )
+        gm.tabprint('mImg: %s' % str( mImg.shape ) )
+        gm.tabprint('uImg: %s' % str( uImg.shape ) )
+     
     # Copy and preprocess images
     T = deepcopy( tImg )
     M = deepcopy( mImg )
     U = deepcopy( uImg )
     
-    # Make pixel values 0 or 1. 
-    T[T>h] = 1.0
-    M[M>h] = 1.0
-    U[U>h] = 1.0
+    if bin_img:
+        # Make pixel values 0 or 1. 
+        T[T>h] = 1.0
+        M[M>h] = 1.0
+        U[U>h] = 1.0
     
     T = np.log( 1+T.flatten() )
     M = np.log( 1+M.flatten() )
     U = np.log( 1+U.flatten() )
-
     
     # Get weights by differences bewteen target, model, unperturbed model. 
     tm = np.abs(T-M)
@@ -309,6 +323,10 @@ def grahams_scoring_function( tImg, mImg, uImg, h = 0.0, score_method = 8 ):
     tu = np.abs(T-U)
     
     weights = ( tm + mu + tu ) + np.ones(len(tu))*np.mean(tm+mu+tu)
+    
+    if printAll:
+        gm.tabprint("weights")
+        print(weights)
 
     # F1
     tmScore = corrW( T, M, weights )
@@ -321,13 +339,21 @@ def grahams_scoring_function( tImg, mImg, uImg, h = 0.0, score_method = 8 ):
     tuScore  = np.corrcoef( T, U )[0,1]
     if( tuScore < 0.01 ):  tuScore = 0.01
     muScoreX = perturb( muScore, tuScore )
-    
+        
+        
     # Final score
     score    = tmScore*muScoreX
     if( score < 0.01 ):  score = 0.01
     
+    if printAll:
+        gm.tabprint("tmScore : %s" % str( tmScore ) )
+        gm.tabprint("muScore : %s" % str( muScore ) )
+        gm.tabprint("tuScore : %s" % str( tuScore ) )
+        gm.tabprint("muScoreX: %s" % str( muScoreX ) )
+        gm.tabprint("score   : %s" % str( score ) )
+    
     return score
-
+# End grahams_scoring_function
 
 def target_compare_setup( rInfo, param, args): 
     # Get variables
