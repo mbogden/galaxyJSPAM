@@ -634,8 +634,11 @@ class new_score_worker(Slave):
                 if gm.validPath( tmpDir ) != None:
                     
                     self.worker_dir = tmpDir + 'worker_dir_%s/' % str(self.rank).zfill(4)
-                    print("%d creating dir: %s" % (self.rank, self.worker_dir))
-                    mkdir( self.worker_dir )
+                    
+                    # Check if worker directory already exists
+                    if gm.validPath( self.worker_dir ) == None: 
+                        print("%d creating dir: %s" % (self.rank, self.worker_dir))
+                        mkdir( self.worker_dir )
                 
                 # Check if valid, if not create.
                     
