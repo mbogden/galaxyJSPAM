@@ -28,7 +28,7 @@ mpi_size = mpi_comm.Get_size()
 import Support_Code.general_module as gm
 import Support_Code.info_module as im
 import Simulator.main_simulator as sm
-import Image_Creator.main_image_creator as ic
+from Image_Creator import main_image_creator as ic
 import Feature_Extraction.main_feature_extraction as fe
 import Neural_Network.main_neural_networks as nn
 sysPath.append( path.abspath( 'Machine_Score/' ) )
@@ -76,7 +76,7 @@ def main(arg):
             print("\t- Nothing else to see here")
 
     elif arg.runDir != None and mpi_rank == 0:
-        simr_run( arg )
+        run_new_score( arg )
 
     elif arg.targetDir != None:
         target_main( arg )
@@ -680,7 +680,7 @@ class new_score_worker(Slave):
             return (i, None)
         
         # Create simulation, image and compute score
-        simr_run( cmdArg = self.runArgs, rInfo = rInfo )
+        run_new_score( cmdArg = self.runArgs, rInfo = rInfo )
         
         # Built to create several scores, returning only first atm
         scores = []
@@ -965,7 +965,7 @@ def target_new_scores( tInfo, cmdArg ):
 
     # Everyone go through their list and execute runs    
     for i,args in enumerate(argList):
-        simr_run( **args )
+        run_new_score( **args )
 
         if mpi_rank == 0:
             gm.tabprint("Rank 0: Progress: %d / %d " % (i+1,len(argList)), end='\r')
@@ -998,7 +998,7 @@ def target_new_scores( tInfo, cmdArg ):
 # End processing target dir for new scores
 
 
-def simr_run( cmdArg = None, rInfo = None, rDir = None ):
+def run_new_score( cmdArg = None, rInfo = None, rDir = None ):
 
     # Initialize variables
     if cmdArg == None:
@@ -1011,7 +1011,7 @@ def simr_run( cmdArg = None, rInfo = None, rDir = None ):
     printBase = cmdArg.printBase    
     
     if printBase:
-        print("SIMR.simr_run: ")
+        print("SIMR.run_new_score: ")
     
     if printAll:
         print("\t - rDir:", rDir)
@@ -1027,11 +1027,11 @@ def simr_run( cmdArg = None, rInfo = None, rDir = None ):
             rInfo = im.run_info_class( runDir=rDir, rArg=cmdArg )
 
     if printAll:
-        print('SIMR.simr_run: ')
+        print('SIMR.run_new_score: ')
         print('\t - rInfo: ', (rInfo) )
 
     if rInfo.status == False:
-        if printBase: print("SIMR.simr_run: WARNING: runInfo bad")
+        if printBase: print("SIMR.run_new_score: WARNING: runInfo bad")
         return None
     
     if printBase:
@@ -1041,14 +1041,14 @@ def simr_run( cmdArg = None, rInfo = None, rDir = None ):
     if cmdArg.get('scoreParamLoc') != None and cmdArg.get('scoreParams') == None:
         sParams = gm.readJson( cmdArg.scoreParamLoc )
         if sParams == None:
-            if cmdArg.printBase: print("ERROR: SIMR: simr_run: Error reading param file: %s"%cmdArg.scoreParamLoc )
+            if cmdArg.printBase: print("ERROR: SIMR: run_new_score: Error reading param file: %s"%cmdArg.scoreParamLoc )
         else:
             cmdArg.scoreParams = sParams
     
     # If invalid, complain
     if cmdArg.get('scoreParams',None) == None:
         if printBase:
-            print("SIMR: WARNING: simr_run: params not valid")
+            print("SIMR: WARNING: run_new_score: params not valid")
         return
     
     # Check for new scores to create
