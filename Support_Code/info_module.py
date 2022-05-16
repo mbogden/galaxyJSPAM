@@ -268,7 +268,7 @@ class run_info_class:
 
         # If found, read and return
         if iLoc != None and fLoc != None:
-            pts1 = pd.read_csv( fLoc, header=None, delim_whitespace=True ).values
+            pts1 = pd.read_csv( iLoc, header=None, delim_whitespace=True ).values
             pts2 = pd.read_csv( fLoc, header=None, delim_whitespace=True ).values
             return pts1, pts2
         
