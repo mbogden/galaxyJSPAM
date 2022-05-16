@@ -72,7 +72,7 @@ program basic_run
     rrr = sqrt(x0(n,1)*x0(n,1)+x0(n,2)*x0(n,2) + x0(n,3)*x0(n,3))
 
     if (mod(istep, showsteps) == 0) then
-       print*,"q",istep, time, rrr
+!       print*,"q",istep, time, rrr
     endif
 
 

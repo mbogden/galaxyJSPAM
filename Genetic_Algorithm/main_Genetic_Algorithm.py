@@ -2,7 +2,7 @@
     Author:     Matthew Ogden and Graham West
     Created:    28 Mar 2022
 Description:    This code facilitates the Genetic Algorithm for evolving Galactic Models.
-                Large portions of are derived from Graham West's Code found at the link.
+                Large portions of this code are copied or derived from Graham West's code found at the following link.
                 https://github.com/gtw2i/GA-Galaxy
 '''
 
@@ -20,18 +20,238 @@ import numpy as np
 import numpy.linalg as LA
 import math
 import random
-import pandas as pd
+import pickle
+
+# Generate random instance
+rng = np.random.default_rng()
 
 
 def test():
     print("GA: Hi!  You're in Matthew's main code for all things genetric algorithm.")
 
-# For testing and developement from outside. 
-new_func = None
-def set_new_func( new_func_ptr ):
-    global new_func
-    new_func = new_func_ptr
-# End set new function
+
+def Genetic_Algorithm_Experiment( ga_param, scorerFunc, \
+                                 writeLocBase, printProg = False ):
+
+    print("GA.Genetic_Algorithm_Experiment: Beginning Experiment")
+    
+    # RUN GA
+    pFit = ga_param['parameter_to_fit']
+    pReal = ga_param['parameter_fixed_values']
+    nPhase = ga_param['phase_number']
+    phaseParams = ga_param['phase_parameter_to_fit']
+    nFits = len( phaseParams )
+
+    # Fit all parameters once before entering phases.
+    chain, scores = Genetic_Algorithm_Phase( pFit, pReal, scorerFunc, ga_param, printProg = printProg )
+
+    # Save initial progress
+    pickle.dump( chain,   open( writeLocBase + "models.pkl", "wb" ) )
+    pickle.dump( scores,  open( writeLocBase + "scores.pkl", "wb" ) )
+
+    # Loop through desired phases. 
+    for phase in range( 1, nPhase ): 
+
+        print('Phase: %d / %d' % ( phase, nPhase ) )
+
+        # Get best solution from previous phase
+        maxScoInd = np.unravel_index( np.argmax(scores, axis=None), scores.shape )
+        pBest = chain[maxScoInd[0],maxScoInd[1],:]
+
+        # Get list of parameters to fit. 
+        pFit = phaseParams[ (phase-1) % nFits ]
+
+        # RUN GA, previous best model as target
+        chain1, scores1 = Genetic_Algorithm_Phase( pFit, pBest, scorerFunc, ga_param, printProg = printProg )
+
+        # Add new data to previous data
+        chain  = np.concatenate( ( chain,  chain1  ) )
+        scores = np.concatenate( ( scores, scores1 ) )
+
+        # Save models and scores obtained until now
+        pickle.dump( chain,   open( writeLocBase + "models.pkl", "wb" ) )
+        pickle.dump( scores,  open( writeLocBase + "scores.pkl", "wb" ) )
+
+    print("GA.Genetic_Algorithm_Experiment: DONE!")    
+
+def Genetic_Algorithm_Phase( pFit, start, scoreModels, ga_param, \
+                            printProg = True, printAll = False):
+    
+    # Grab needed values from parameter file 
+    nGen   = ga_param['generation_number'] 
+    nParam = ga_param['parameter_number']
+    xLim   = ga_param['parameter_limits']
+    psi    = ga_param['parameter_psi']
+    nPop   = ga_param['population_size']
+    nKeep  = ga_param['population_keep']
+    reseed = ga_param['population_reseed_ratio']
+    toMix  = ga_param['covariance_mix_matrix']
+    burn   = ga_param['covariance_burn']
+    mixAmp = ga_param['covariance_mix_amplitude']
+    mixProb = ga_param['covariance_mix_probability']
+    sigScale = ga_param['covariance_scale']
+
+
+    # Initialize variables for convariance matrix
+    stds = np.zeros(nParam)
+    for i in range(nParam):
+        if i in pFit:
+            stds[i] = xLim[i,1]-xLim[i,0]
+        else:
+            stds[i] = 0.00001
+        # end
+    # end
+    
+    pWidth  = stds*sigScale
+    covInit = np.diag(pWidth**2)
+    cov     = np.diag(pWidth**2)
+    cov2    = np.diag(pWidth**2)
+    C       = np.diag(pWidth**2)
+    mean    = deepcopy(start)
+
+    # get initial population
+    popSol = getInitPop( nPop, start, pFit, ga_param)
+    popFit = scoreModels( popSol )
+
+    # get best solution from initalial population
+    fBest   = np.max(popFit)
+    bestInd = np.argmax(popFit)
+    pBest   = popSol[bestInd,:]
+
+    adaCount = 0
+
+    # add init to all
+    chain = [ popSol ]
+    fit   = [ popFit ]
+
+    chainF = []
+    for i in range(nPop):
+        chainF.append( popSol[i] )
+    # end
+
+    # Random walk
+    for step in range(nGen):
+        
+        if printProg: print("GA: step: %d / %d" % (step, nGen) )
+
+        if( step > 0 and reseed > 0):
+            ind = max( 1, int(reseed*nPop) )
+            popSol_re = getInitPop( ind, start, pFit, ga_param)
+            order = np.argsort(popFit)
+            popSol[order[:ind],:] = popSol_re
+        # end
+
+        # perform selection
+        parSol, parFit = Selection( nPop, popSol, popFit, nKeep )
+
+        # perform crossover
+        popSol = Crossover( nPop, nParam, parSol, parFit, cov, step, nGen )
+
+        # get covariance matrix
+        cov, mean, C = getHaarioCov( covInit, C, mean, step, burn, nPop, nParam, chainF, popSol, pFit )
+        
+        # If mix matrix given
+        if toMix:
+            cov2 = mixCov( cov, covInit, step, burn, nPop, nParam, mixProb, mixAmp )
+        else:
+            cov2 = deepcopy( cov )
+
+        # perform mutation
+        popSol = Mutate( step, nGen, nPop, nParam, popSol, cov2, xLim, pFit, nKeep )
+
+        # calculate fits
+        popFit = scoreModels( popSol )
+        
+        # get best solution
+        fTest = np.max(popFit)
+        if( fBest < fTest ):
+            fBest   = fTest
+            bestInd = np.argmax(popFit)
+            pBest   = popSol[bestInd,:]
+        # end
+
+        chain.append( popSol )
+        fit.append(   popFit )
+        for i in range(nPop):
+            chainF.append( popSol[i] )
+        # end
+
+        if printAll:
+            print(np.amax(popFit))
+            print(popSol[np.argmax(popFit),:])
+    # end random walk
+    
+    chain = np.array(chain)
+    fit   = np.array(fit)
+
+    if printAll: print(" ")
+
+    return chain, fit
+# End Generation_Phase
+
+
+def getInitPop( nPop, pReal, pFit, ga_param ):
+    
+    # Grab needed variables from input.
+    nParam = ga_param['parameter_number']
+    xLim   = ga_param['parameter_limits']
+    initType = ga_param['population_initialization_method']
+    nSample  = ga_param['population_sample_size'] 
+
+    # Create blank array for model population to fill
+    popSol = np.zeros((nPop,nParam))
+
+    if initType == 0:        
+        # Loop through each new model
+        for j in range(nParam):
+            if j in pFit:
+                popSol[:,j] = np.random.uniform( xLim[j,0], xLim[j,1], nPop )
+            else:
+                popSol[:,j] = pReal[j] * np.ones( nPop )
+    # end initType 0
+        
+    elif initType == 1:
+        
+        maxCorr = 0.0
+        
+        # Loop through N sample populations.
+        for i in range( nSample ):
+            
+            # Generate a model population with shuffled evenly spaced variable values.
+            R = np.zeros((nParam, nPop))
+            for j in range(nParam):
+                
+                tmp = np.linspace( xLim[j,0], xLim[j,1], nPop )
+                rng.shuffle( tmp )
+                R[j,:] = tmp
+
+            # Find model population with greatest "model space"
+            corr = LA.det(np.corrcoef(R[pFit,:]))
+            if( corr > maxCorr or i == 0 ):
+                maxCorr = corr
+                maxR = deepcopy(R)
+        
+        # end N samples. 
+
+        # Save model population with the greatest "model space"
+        for i in range(nPop):
+            for j in range(nParam):
+                if j in pFit:
+                    popSol[i,j] = maxR[j,i]
+                else:
+                    popSol[i,j] = pReal[j]
+        
+    # end initType 1
+    
+    else:
+        print("ERROR: GA.getInitPop:")
+        gm.tabprint("Population Init Type not available: %s" % str(initType))
+        popSol = None
+
+    return popSol
+
+# end getInitPop
+
 
 # NOTE: The following converts the SPAM parameters into one of 8 true symmetries Graham identies. 
 def convert_spam_to_ga( in_param ):
@@ -138,10 +358,10 @@ def convert_ga_to_spam( in_param, psi ):
     for i in range( out_param.shape[0]):
         
         # add for psi
-        if( psi[i,0] == -1 ):
+        if( psi[0] == -1 ):
             out_param[i,12] += 180.0
         # end
-        if( psi[i,1] == -1 ):
+        if( psi[1] == -1 ):
             out_param[i,13] += 180.0
         # end
 
@@ -166,13 +386,396 @@ def convert_ga_to_spam( in_param, psi ):
         As = out_param[i,9]
         out_param[i,8] = np.abs(Ap/np.cos(out_param[i,12]*np.pi/180.0))**0.5
         out_param[i,9] = np.abs(As/np.cos(out_param[i,13]*np.pi/180.0))**0.5
+    
+    
+    if out_param.shape[1] < 15:
+        diff = 15 - out_param.shape[1]
+        out_param = np.pad( out_param, [(0, 0), (0, diff)], mode='constant')
         
     return out_param
 
 # End convert_ga_to_spam
 
 
+def rotMat( axis, theta ):
+    theta = theta * np.pi / 180.0
+    axis = axis/LA.norm(axis)
+    a = math.cos( theta / 2.0 )
+    b, c, d = -axis * math.sin( theta / 2.0 )
+    aa, bb, cc, dd = a**2, b**2, c**2, d**2
+    bc, ad, ac, ab, bd, cd = b*c, a*d, a*c, a*b, b*d, c*d
+
+    M = [	[ aa+bb-cc-dd, 2*(bc+ad), 2*(bc-ad) ],
+        [ 2*(bc-ad), aa+cc-bb-dd, 2*(cd+ab) ],
+        [ 2*(bd+ac), 2*(cd-ab), aa+dd-bb-cc ] ]
+
+    return np.array(M)
+# end
+
+def Selection( nPop, popSol, popFit, nKeep ):
+    
+    '''
+    print("Selection")
+    print("NPop", nPop)
+    print("popSol", popSol.shape, popSol)
+    print("popFit", popFit.shape, popFit)
+    print("nKeep", nKeep)
+    '''
+
+    # 0: fitness-squared proportional selection
+    # 1: rank proportional selection
+    selectType = 0
+
+    parSol = []
+    parFit = []
+
+    if( selectType == 0 ):
+        xxx = popFit**1
+    #		xxx = np.ones(nPop)
+        xxx = xxx/np.sum(xxx)
+        popProb = np.cumsum( xxx )
+
+        for i in range(nPop-nKeep):
+            r1 = np.random.uniform(0,1)
+            r2 = np.random.uniform(0,1)
+
+            ind1 = np.argmax( r1 <= popProb )
+            ind2 = np.argmax( r2 <= popProb )
+            
+            '''
+            print("r1",r1)
+            print("r2",r2)
+            
+            print("PopProb", popProb)
+            
+            print( r1 <= popProb )
+            print( r2 <= popProb )
+            
+            print("ind1",ind1)
+            print("ind2",ind2)
+            '''
+            parSol.append( [ popSol[ind1], popSol[ind2] ] )
+            parFit.append( [ popFit[ind1], popFit[ind2] ] )
+        # end
+
+        srt = np.argsort( popFit )
+        for i in range(1,nKeep+1):
+            parSol.append( [ popSol[srt[-i]], popSol[srt[-i]] ] )
+            parFit.append( [ popFit[srt[-i]], popFit[srt[-i]] ] )
+        # end
+    else:
+        # get selection probabilities
+        inds = popFit.argsort() + np.ones(nPop)
+        popProb = np.cumsum( inds/np.sum(inds) )
+
+        for i in range(nPop):
+            r1 = np.random.uniform(0,1)
+            r2 = np.random.uniform(0,1)
+
+            ind1 = np.argmax( r1 <= popProb )
+            ind2 = np.argmax( r2 <= popProb )
+            
+            '''
+            print("r1",r1)
+            print("r2",r2)
+            print("ind1",ind1)
+            print("ind2",ind2)
+            '''
+            parents.append( [ popSol[ind1], popSol[ind2] ] )
+        # end
+
+    # end
+    parSol = np.array(parSol)
+    parFit = np.array(parFit)
+
+    return parSol, parFit
+    # end
+
+def Crossover( nPop, nParam, parSol, parFit, cov, step, burn ):
+
+    # 0: parameter swapping w/ PCA
+    # 1: mean crossover
+    """
+    if( step < burn ):
+        crossType = 1
+    else:
+        crossType = 0
+    # end
+    """
+    crossType = 0
+
+    popSol = np.zeros((nPop,nParam))
+
+    if(   crossType == 0 ):
+        if( step < burn ):
+            for i in range(nPop):
+                for j in range(nParam):
+                    r0 = parFit[i,0]/(parFit[i,0]+parFit[i,1])
+                    r  = np.random.uniform(0,1)
+
+                    if( r < r0 ):
+                        popSol[i,j] = parSol[i,0,j]
+                    else:
+                        popSol[i,j] = parSol[i,1,j]
+                    # end
+                # end
+            # end
+        else:
+            # get PCA
+            w, v = LA.eig(cov)
+
+            # convert to PCA basis
+            pcaPar = []
+            for i in range(nPop):
+                p1 = np.dot( v, parSol[i,0,:] )
+                p2 = np.dot( v, parSol[i,0,:] )
+                pcaPar.append( [p1, p2] )
+            # end
+            pcaPar = np.array(pcaPar)
+
+            # mix in PCA basis
+            for i in range(nPop):
+                for j in range(nParam):
+                    r0 = parFit[i,0]/(parFit[i,0]+parFit[i,1])
+                    r  = np.random.uniform(0,1)
+
+                    if( r < r0 ):
+                        popSol[i,j] = pcaPar[i,0,j]
+                    else:
+                        popSol[i,j] = pcaPar[i,1,j]
+                    # end
+                # end
+            # end
+
+            # convert back to parameter basis
+            vinv = LA.inv(v)
+            for i in range(nPop):
+                popSol[i,:] = np.dot( vinv, popSol[i,:] )
+            # end
+        # end
+        popSol = np.array(popSol)
+    elif( crossType == 1 ):
+        for i in range(nPop):
+            r0 = parFit[i,0]/(parFit[i,0]+parFit[i,1])
+            c1 = parSol[i,0,:]*r0 + parSol[i,1,:]*(1-r0)
+            popSol[i,:] = c1
+        # end
+    # end
+
+    return popSol
+# end
+
+def Mutate( step, nGen, nPop, nParam, popSol, cov, xLim, pFit, nKeep ):
+
+    popSol2 = np.zeros((nPop,nParam))
+
+    #	abc = np.linspace( xLim[2,0], xLim[2,1], nPop )
+    #	random.shuffle(abc)
+
+    for i in range(nPop):
+
+        # perturb
+        x = np.random.multivariate_normal(mean=popSol[i,:],cov=cov,size=1)[0]
+
+        # sphere walk, prim
+        phi_v1   = popSol[i,4]/180.0*np.pi
+        theta_v1 = popSol[i,5]/180.0*np.pi
+
+        e_r_v   = np.array( [  math.cos(phi_v1)*math.cos(theta_v1), math.sin(phi_v1)*math.cos(theta_v1), math.sin(theta_v1) ] )
+        e_phi_v = np.array( [                  -math.sin(phi_v1),                  math.cos(phi_v1),              0.0 ] )
+
+        a_v = np.abs( np.random.normal( 0.0, cov[4,4]**0.5 ) )
+        b_v = np.random.uniform(0.0,360.0)
+
+        rot_e_r_v = rotMat( e_r_v, b_v )
+        e_phi_rot_v = np.dot( rot_e_r_v, e_phi_v )
+
+        cross_v = np.cross( e_r_v, e_phi_rot_v )
+
+        rot_cross_v = rotMat( cross_v, a_v )
+        e_r_rot_v = np.dot( rot_cross_v, e_r_v )
+
+        phi_v2   = np.arctan2( e_r_rot_v[1], e_r_rot_v[0] )*180.0/np.pi
+        theta_v2 = np.arcsin(  e_r_rot_v[2] )*180.0/np.pi
+
+        x[4] = phi_v2 % 360.0
+        x[5] = theta_v2
+
+        # sphere walk, prim
+        phi_p1   = popSol[i,10]/180.0*np.pi
+        theta_p1 = popSol[i,12]/180.0*np.pi
+
+        e_r_p   = np.array( [  math.cos(phi_p1)*math.cos(theta_p1), math.sin(phi_p1)*math.cos(theta_p1), math.sin(theta_p1) ] )
+        e_phi_p = np.array( [                  -math.sin(phi_p1),                  math.cos(phi_p1),              0.0 ] )
+
+        a_p = np.abs( np.random.normal( 0.0, cov[10,10]**0.5 ) )
+        b_p = np.random.uniform(0.0,360.0)
+
+        rot_e_r_p = rotMat( e_r_p, b_p )
+        e_phi_rot_p = np.dot( rot_e_r_p, e_phi_p )
+
+        cross_p = np.cross( e_r_p, e_phi_rot_p )
+
+        rot_cross_p = rotMat( cross_p, a_p )
+        e_r_rot_p = np.dot( rot_cross_p, e_r_p )
+
+        phi_p2   = np.arctan2( e_r_rot_p[1], e_r_rot_p[0] )*180.0/np.pi
+        theta_p2 = np.arcsin(  e_r_rot_p[2] )*180.0/np.pi
+
+        x[10] = phi_p2 % 360.0
+        x[12] = theta_p2
+
+        # sphere walk, sec
+        phi_s1   = popSol[i,11]/180.0*np.pi
+        theta_s1 = popSol[i,13]/180.0*np.pi
+
+        e_r_s   = np.array( [  math.cos(phi_s1)*math.cos(theta_s1), math.sin(phi_s1)*math.cos(theta_s1), math.sin(theta_s1) ] )
+        e_phi_s = np.array( [                  -math.sin(phi_s1),                  math.cos(phi_s1),              0.0 ] )
+
+        a_s = np.abs( np.random.normal( 0.0, cov[11,11]**0.5 ) )
+        b_s = np.random.uniform(0.0,360.0)
+
+        rot_e_r_s = rotMat( e_r_s, b_s )
+        e_phi_rot_s = np.dot( rot_e_r_s, e_phi_s )
+
+        cross_s = np.cross( e_r_s, e_phi_rot_s )
+
+        rot_cross_s = rotMat( cross_s, a_s )
+        e_r_rot_s = np.dot( rot_cross_s, e_r_s )
+
+        phi_s2   = np.arctan2( e_r_rot_s[1], e_r_rot_s[0] )*180.0/np.pi
+        theta_s2 = np.arcsin(  e_r_rot_s[2] )*180.0/np.pi
+
+        x[11] = phi_s2 % 360.0
+        x[13] = theta_s2
+
+    #		print xLim[4,0], x[4], xLim[4,1]
+
+        # bounds check
+        eps = 0.00001
+        for j in range(nParam):
+            if( i >= nPop-nKeep ):
+                popSol2[i,j] = popSol[i,j]
+            else:
+                if(   xLim[j,0] > x[j] and j in pFit ):
+                    popSol2[i,j] = 0.5*( xLim[j,0] + popSol[i,j] )
+    #					popSol2[i,j] = xLim[j,0] + eps*(xLim[j,1]-xLim[j,0])
+                elif( xLim[j,1] < x[j] and j in pFit ):
+                    popSol2[i,j] = 0.5*( xLim[j,1] + popSol[i,j] )
+    #					popSol2[i,j] = xLim[j,1] - eps*(xLim[j,1]-xLim[j,0])
+                else:
+                    popSol2[i,j] = x[j]
+                # end
+            # end
+        # end
+
+    # end
+
+    return popSol2
+# end
+
+def getHaarioCov( covInit, C, mean, step, burn, nPop, nParam, chainF2, popSol, pFit ):
+
+    chainF = np.array(chainF2)
+
+    # get AM cov matrix
+    if( step < burn ):
+        C    = deepcopy(covInit)
+        cov2 = deepcopy(covInit)
+    elif( step == burn ):
+        mean = np.mean( np.array(chainF)[int(nPop*burn/2):,:], axis=0 )
+        C    = np.cov( np.transpose( np.array(chainF)[nPop*burn/2:,:] ) )
+
+        C2   = C[np.ix_(pFit,pFit)]
+        w, v = LA.eig(C2)
+    #		cov2  = C*( np.abs( np.prod(np.diag(covInit)[pFit]) / np.prod(w[pFit]) ) )**(1.0/len(pFit))
+        cov2  = C*( np.abs( np.prod(np.diag(covInit)[pFit]) / np.prod(w) ) )**(1.0/len(pFit))
+        cov2[0,:] = covInit[0,:]
+        cov2[1,:] = covInit[1,:]
+        cov2[7,:] = covInit[7,:]
+        cov2[:,0] = covInit[:,0]
+        cov2[:,1] = covInit[:,1]
+        cov2[:,7] = covInit[:,7]
+    elif( step > burn ):
+        for i in range(nPop):
+            gamma = 1.0/(nPop*(step+1)+i)
+            dx   = popSol[i] - mean
+            mean = mean + gamma*dx
+            C    = C    + gamma*(np.outer(dx,dx) - C)
+        # end
+
+        C2   = C[np.ix_(pFit,pFit)]
+        w, v = LA.eig(C2)
+    #		cov2  = C*( np.abs( np.prod(np.diag(covInit)[pFit]) / np.prod(w[pFit]) ) )**(1.0/len(pFit))
+        cov2  = C*( np.abs( np.prod(np.diag(covInit)[pFit]) / np.prod(w) ) )**(1.0/len(pFit))
+        cov2[0,:] = covInit[0,:]
+        cov2[1,:] = covInit[1,:]
+        cov2[7,:] = covInit[7,:]
+        cov2[:,0] = covInit[:,0]
+        cov2[:,1] = covInit[:,1]
+        cov2[:,7] = covInit[:,7]
+    # end
+
+    return cov2, mean, C
+# end
+
+def mixCov( cov, covInit, step, burn, nPop, nParam, mixProb, mixAmp ):
+
+    cov2 = deepcopy(cov)
+    
+    # apply mixing
+    if(   step < burn ):
+        # scale
+        for i in range(nParam):
+            s = np.random.uniform(0,1)
+
+            # thinning
+            if( s <= mixProb[0] ):
+                cov2[i,i] = covInit[i,i]*mixAmp[0]**2
+            # widening
+            elif( s <= mixProb[0] + mixProb[1] ):
+                cov2[i,i] = covInit[i,i]*mixAmp[1]**2
+            # fixing
+            else:
+                cov2[i,i] = covInit[i,i]
+            # end
+        # end
+    elif( step >= burn ):
+        # decompose, normalize
+        w, v = LA.eig(cov)
+
+        # mix
+        for i in range(nParam):
+            s = np.random.uniform(0,1)
+
+            # thinning
+            if( s <= mixProb[0] ):
+                w[i] = w[i]*mixAmp[0]**2
+            # widening
+            elif( s <= mixProb[0] + mixProb[1] ):
+                w[i] = w[i]*mixAmp[1]**2
+            # fixing
+            else:
+                w[i] = w[i]
+            # end
+        # end
+
+        # recompose matrix
+        W    = np.diag(w)
+#			cov2 = np.dot( np.dot(v,W), LA.inv(v) )
+        cov2 = np.dot( np.dot(v,W), np.transpose(v) )
+        cov2 = cov2.real
+        cov2 = 0.5*( cov2 + np.transpose(cov2) )
+    # end
+
+    return cov2
+# end
+
+
+
 def ReadAndCleanupData( filePath, thresh ):
+    
+    import pandas as pd
 
     print("Cleaning target file...")
 
@@ -254,6 +857,7 @@ def ReadAndCleanupData( filePath, thresh ):
         psi.append( [psi_p,psi_s] )
     # end
     psi = np.array(psi)
+    
 
     # energy
     G = 1
@@ -294,6 +898,29 @@ def ReadAndCleanupData( filePath, thresh ):
     return data2, psi, nModel, len(cols)
 
 # end ReadandCleanUpData
+
+
+def Prep_GA_Input_Parameters( pLoc ):
+
+    # Check if file exists
+    pLoc = gm.validPath( pLoc )
+    if pLoc == None:
+        return None
+    
+    # Read file
+    ga_param = gm.readJson( pLoc )
+    if type(ga_param) == type(None):
+        return None
+
+    # Do some preprocessing of variables.
+    ga_param['generation_number'] = int( ga_param['generation_total_number'] / ga_param['phase_number'] )
+    
+    ga_param['covariance_burn'] = np.power( ga_param['generation_number']/2, -1 )
+    ga_param['covariance_mix_probability'] = ga_param['covariance_mix_probability']/np.sum(ga_param['covariance_mix_probability'])
+    
+    ga_param['parameter_limits'] = np.array( ga_param['parameter_limits'] )
+
+    return ga_param
 
 
 # Run main after declaring functions

@@ -177,7 +177,6 @@ class run_info_class:
         self.tmpDir = self.runDir + 'tmp/'
         self.infoLoc = self.runDir + 'info.json'
         self.baseLoc = self.runDir + 'base_info.json'
-        
         self.wndFitLoc = self.wndDir + 'wndchrm_all.fit'
         self.wndAllLoc = self.wndDir + 'wndchrm_all.csv'
     
@@ -269,7 +268,7 @@ class run_info_class:
 
         # If found, read and return
         if iLoc != None and fLoc != None:
-            pts1 = pd.read_csv( fLoc, header=None, delim_whitespace=True ).values
+            pts1 = pd.read_csv( iLoc, header=None, delim_whitespace=True ).values
             pts2 = pd.read_csv( fLoc, header=None, delim_whitespace=True ).values
             return pts1, pts2
         
@@ -288,15 +287,16 @@ class run_info_class:
 
         from zipfile import ZipFile
 
+        
         zipLoc = self.findPtsLoc( ptsName )        
         if zipLoc == None:
             return None
 
         # Check if zip files need rezipping
         self.delTmp()
-        rezip = True
+        rezip = False
 
-        with ZipFile( zipLoc ) as zip:
+        with ZipFile( ptsZipLoc ) as zip:
 
             for zip_info in zip.infolist():
 
@@ -430,17 +430,17 @@ class run_info_class:
         if imgType == 'model' and not overWrite:
             mImg = self.img.get(imgName,None)
             if type(mImg) != type(None) and mImg.dtype == toType:
-                return mImg
+                return deepcopy( mImg )
         
         elif imgType == 'init' and not overWrite:            
             img = self.init.get(imgName,None)
-            if type(img) != type(None) and iImg.dtype == toType:
-                return img
+            if type(img) != type(None) and img.dtype == toType:
+                return deepcopy( img )
         
         # Get image location
         imgLoc = self.findImgLoc( imgName = imgName, imgType = imgType )
         if self.printAll: 
-            print("IM: Loading: %s:")
+            print("IM: Loading: %s:" % imgName)
             gm.tabprint( 'imgType: %s' % imgType )
             gm.tabprint( 'imgLoc: %s' % imgLoc )
             
@@ -454,7 +454,7 @@ class run_info_class:
         elif imgType == 'init': self.init[imgName] = img
 
         # Return image
-        return img
+        return deepcopy( img )
     
     # End getting model, unperturbed image
 
@@ -904,7 +904,7 @@ class target_info_class:
         tImg = self.targetImgs.get(tName,None)
         if type(tImg) != type(None) and not overwrite:
             if printAll:  gm.tabprint("Returning preloaded target image.")
-            return tImg
+            return deepcopy( tImg )
         
         # Else find and open target image
         if printAll:  gm.tabprint("Searching for target image: %s" % tName)
@@ -916,7 +916,7 @@ class target_info_class:
         
         else:
             self.targetImgs[tName] = gm.readImg(tLoc)
-            return self.targetImgs[tName]
+            return deepcopy( self.targetImgs[tName] )
         
     # End getTargetImage()
 

@@ -14,6 +14,8 @@ from mpi4py import MPI
 from mpi_master_slave import Master, Slave
 from mpi_master_slave import WorkQueue
 import time
+from datetime import datetime
+from copy import deepcopy
 
 supportPath = path.abspath( path.join( __file__ , "../../Support_Code/" ) )
 sysPath.append( supportPath )
@@ -24,6 +26,18 @@ pprint = pp.pprint
 
 def test():
     print("GM: Hi!  You're in Matthew's module for generally useful functions and classes")
+    
+def getFileFriendlyDateTime():
+    
+    now = datetime.now()
+    dtStr = '%s-%s-%sT%s-%s-%s' % ( str(now.year  ).zfill(4), \
+                                   str(now.month ).zfill(2), \
+                                   str(now.day   ).zfill(2), \
+                                   str(now.hour  ).zfill(2), \
+                                   str(now.minute).zfill(2), \
+                                   str(now.second).zfill(2), \
+                                   )
+    return dtStr
 
 def validPath( inPath, printWarning = False, pathType = None ):
 
@@ -83,12 +97,35 @@ def readJson( jPath ):
     return jDict
 
 # Save json file
-def saveJson( jDict, jPath, pretty=False ):    
+def saveJson( jDict, jPath, pretty=False, convert_numpy_array = False ):    
+    
+    if convert_numpy_array:
+        jDict = convert_json_numpy_array_to_list( jDict )
+             
     with open( jPath, 'w' ) as jFile:
         if pretty:
             json.dump( jDict, jFile, indent=4 )
         else:
             json.dump( jDict, jFile )
+
+            
+def convert_json_numpy_array_to_list( inDict ):
+    
+    outDict = deepcopy( inDict )
+    
+    # Search through first layer
+    for key in outDict:
+            
+        # If item is numpy array, convert to list
+        if type( outDict[key] ) == type( np.zeros(3) ):
+            outDict[key] = outDict[key].tolist()
+
+        # else if a dict with more nested values, do nested function call
+        elif type( outDict[key] ) == type( {'type':'dict'} ):
+            # If item is np array
+            outDict[key] = convert_json_numpy_array_to_list( outDict[key] )
+    
+    return outDict
             
     
 def getScores( scoreLoc ):
@@ -108,11 +145,16 @@ def saveImg( img, imgLoc, printAll = False ):
     if img.dtype == np.float32:
         img = float32_to_uint8(img)
     
-    cv2.imwrite(imgLoc,img)
-
     if not path.exists( imgLoc ) and printAll:
         print("GM: WARNING: image not saved")
         print("\t - %s: " %imgLoc )
+        
+    imgWrote = cv2.imwrite(imgLoc,img)
+    
+    if not imgWrote:
+        print("WARNING: GM.saveImg: ")
+        tabprint("Failed to write image: %s" % imgLoc)
+
 
 def readFile( fileLoc, stripLine=False ):
 
@@ -162,7 +204,7 @@ class inArgClass:
         if self.printAll:
             self.printBase = True
         
-        # Because I'm terrible at camelcase for this word. 
+        # Because I'm terrible at consisten camelCase for this word. 
         if self.get('overwrite',False) or self.get('overWrite',False):
             self.overwrite = True
             self.overWrite = True
@@ -225,15 +267,21 @@ class inArgClass:
             return
         
         args = readJson( argLoc )
-        
+                
         if args == None:
             print("WARNING: GM.inArgClass.readArgFile: ")
             tabprint("Cannot find arg file: (%s) - %s" %( path.exists(self.argFile) , self.argFile) )
             return
         
-        # Assumed you've read in a JSON
+        self.updateArgsFromDict( args )
+        
+   
+    def updateArgsFromDict( self, args ):
+        
         for key in args:
             self.setArg( key, args[key] )
+   
+    # End updateArgsFromDict
         
 
     # For manual setting

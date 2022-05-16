@@ -6,20 +6,21 @@ Might* be good for others to view.
 - Commands to remember
     - `python3 main_SIMR.py -targetDir path/to/target -newInfo -newRunInfo -newBase -newRunBase` 
     - `python3 main_SIMR.py -dataDir path/to/data -newScore -newImage -paramName zoo_0_direct_scores`
+    -  ``
 
 # Matt's Working To-Do
 
-- Create White Paper
-    - What can it do now? 
-        - modules
-        - parameters
+## NOW
+- Coding
+    - (Working) Add Graham's Machine Scoring Method.
+    - Perform results on many systems. 
+    
+- Disseration Proposal
+    - Literature Review
+        - 30's ish papers to include.  About 1-2 per day
         
-    - what next steps do I want to take?
-        - model optimization
-        - comparing and contrasting methods
-        - verify results. 
 
-- Capsule Networks
+## Later
 
 - Reimplemnet WNDCHRM in Galaxy Code.
     - Install WNDCHRM on needed machine. 
@@ -28,9 +29,6 @@ Might* be good for others to view.
     
 - Implement feature selection on WNDCHRM.
     - You did this in Data Mining.  Do it now. 
-
-- Creating Images appears to have a memory leak.  
-    - Find and prevent?
         
 - Get a single-layer neural network going
     - Gather and pickle images into a temp file/folder.
@@ -38,38 +36,17 @@ Might* be good for others to view.
     - Generalize it to all targets.
     - Create custom equation and weights in neural network. 
 
-- Create Robust Analysis between Different Score parameters. 
-    - Interactive window and grid? 
+- Create Analysis Different Scoring methods and Evolution Methods. 
 
-- Modernize Simuation Code
-
-- Old Stuff
-    - Capstone execution times, why are they acting funny?         
-        - Redo speed test with only creating new scores. 
-    - Test IO choke-point with reading particles.
-        - Might not be an issue if you only create images once. 
-        - Test how big pickle files are for just X,Y particles.
-        - If issue, consider copying files to scratch.
-    - Veryify new scores are being created.
-    
 ## Big picture
 - Create automatic pipeline for evolution
     - Get function to create status update!
     - Create reports for any missing items. 
     
 - Optimization opportunities
-    - Parallel processing
-        - If one model errors out, the rest of the models the processor is responsible for don't get accomplished.
-        - When attempting to repeat the parallel environment, that came processor is in charge of everything that remains to be done, and remaining processors do nothing. 
-        - Randomize list being broadcast? 
-        - Implement Tasker/Working solution? 
     - Simulation 
         - Analyze impact approximation w/o points. Stop if small 
-        - Particle Files: Pickle X,Y,R and zip.  
         - Compare model scores between 100k and 20k pts 
-    - Image Maker
-        - During mpirun, when 1 run fails, processor does not complete rest.
-        - Solution: Implement Tasker/Worker model for parallel processing? 
     - WNDCHRM 
         - implement masks
 
@@ -108,11 +85,15 @@ Might* be good for others to view.
       - characterize with functions or hard point and lines. 
       - Use line to determine direction of brightness.
     - Weigh all machine scores together. 
-      - Take score of all comparison methods and send through machine learning.
+      - Take score of all comparison methods and send through machine learning
+  - Can I train a NN to take images and predict Orbital parameters? 
+      - 
+      
 
 - Triple image comparison
 	- Compare all Model, Unperturbated, and target image
 	- Where Model and unperturbed closely match, lower weight on model image
+    - Train DNN on all three images. 
 
 - Masked comparison
     - Apply mask to both images 
@@ -129,12 +110,6 @@ Might* be good for others to view.
     - Send new matrix to std comparison methods? 
 
 
-## MISC Items
-- General purpose 2d and 3d plot
-  - Allows users to select axis values from dropdown. 
-  - Clicking a point shows image and data about that run.
-  - View runs from 3d? 
-
 ## Score Analysis
 - New graphs
   - Comparing same comparison method between different galaxy pairs
@@ -145,17 +120,14 @@ Might* be good for others to view.
 
 - SVD on images and see which show most variance>? 
 
-# Matt's Personal Setup
-- WSL
-- Open JupyterLab in GalStuff
-- 
+
 # Meeting Notes
+- I'd love a more indepth review of what each line item does.
 
-## Feb. 2, 2022
-### Accomplished
-- Color-coded priority by publication
-- Read and Commented Graham's dissertation
-- Old NN code. 
 
-### Cover
-- What Publication stuff should I work on? 
+
+
+
+4000 particles
+256 generations
+256 pop size

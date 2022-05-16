@@ -11,6 +11,7 @@ from sys import exit, argv, path as sysPath
 import numpy as np
 import cv2
 import pandas as pd
+from copy import deepcopy
 
 # For importing my useful support module
 supportPath = path.abspath( path.join( __file__, "../../Support_Code/" ) )
@@ -187,6 +188,9 @@ def MS_Run( \
             if cmpType == 'direct_image_comparison':
                 score_target_compare( rInfo, param, arg )
                 
+            elif cmpType == 'multi_image_compare':
+                multi_image_comparison( rInfo, param, arg )
+                
             elif cmpType == 'mask_binary_simple_compare':
                 mask_compare_setup( rInfo, param, arg )
                 
@@ -220,6 +224,136 @@ def MS_Run( \
     rInfo.saveInfoFile()
     
 # end processing run dir
+   
+        
+
+def multi_image_comparison( rInfo, param, arg ):
+    
+    printBase = arg.printBase
+    printAll = arg.printAll
+    
+    if printBase:  print('MS.multi_image_comparison:')
+    if printAll:   gm.tabprint("score_name: %s" % param['name'] )
+    
+    imgName = param['imgArg']['name']
+    tgtName = param['cmpArg']['targetName']
+    
+    if printAll:  gm.tabprint("image_name: %s" % imgName )
+    if printAll:  gm.tabprint("target_name: %s" % tgtName )
+    
+    mImg = rInfo.getModelImage( imgName = imgName, overWrite = True )
+    uImg = rInfo.getModelImage( imgName = imgName, imgType = 'init', overWrite = True )
+    tImg = rInfo.tInfo.getTargetImage( tName = tgtName )
+    
+    # Check all images are valid
+    if type( mImg ) == type( None ) \
+    or type( uImg ) == type( None ) \
+    or type( tImg ) == type( None ):
+        print("ERROR: MS.multi_image_comparison:")
+        gm.tabprint("Invalid image")
+        gm.tabprint("Target: %s" % type(tImg) )
+        gm.tabprint("Model : %s" % type(mImg) )
+        gm.tabprint("Init  : %s" % type(uImg) )
+        return
+    
+    # Reshape target image if needed. 
+    if tImg.shape != mImg.shape:
+        tImg = cv2.resize( tImg, ( mImg.shape[1], mImg.shape[0] ) )
+        
+    score = grahams_scoring_function( tImg, mImg, uImg, printAll = printAll )
+    
+    if printBase:
+        gm.tabprint("New Score: %s - %s" % (param['name'], str( score ) ) )
+    
+    if score != None: 
+        newScore = rInfo.addScore( name = param['name'], score=score )    
+            
+    else:
+        print("WARNING: MS: New Score is None: %s - %s " % (rInfo.get('run_id'),param['name']))
+    
+    return score
+
+# End multi_image_comparison
+
+def covW( x, y, w ):
+    n = len(x)
+    return np.sum( w * (x - np.average(x,weights=w)) * (y - np.average(y,weights=w)) )/np.sum(w)*n/(n-1)
+# end
+
+def corrW( x, y, w ):
+    return covW(x,y,w)/( covW(x,x,w)*covW(y,y,w) )**0.5
+# end
+
+def perturb( pm, pt ):
+    if( pm <= pt ):
+        r = pm/pt
+    else:
+        r = (1.0-pm)/(1.0-pt)
+    # end
+    return r
+# end
+
+
+def grahams_scoring_function( tImg, mImg, uImg, h = 0.0, bin_img = False, printAll = False ):
+    
+    if printAll:
+        print("MS.grahams_scoring_function")
+        gm.tabprint('tImg: %s' % str( tImg.shape ) )
+        gm.tabprint('mImg: %s' % str( mImg.shape ) )
+        gm.tabprint('uImg: %s' % str( uImg.shape ) )
+     
+    # Copy and preprocess images
+    T = deepcopy( tImg )
+    M = deepcopy( mImg )
+    U = deepcopy( uImg )
+    
+    if bin_img:
+        # Make pixel values 0 or 1. 
+        T[T>h] = 1.0
+        M[M>h] = 1.0
+        U[U>h] = 1.0
+    
+    T = np.log( 1+T.flatten() )
+    M = np.log( 1+M.flatten() )
+    U = np.log( 1+U.flatten() )
+    
+    # Get weights by differences bewteen target, model, unperturbed model. 
+    tm = np.abs(T-M)
+    mu = np.abs(M-U)
+    tu = np.abs(T-U)
+    
+    weights = ( tm + mu + tu ) + np.ones(len(tu))*np.mean(tm+mu+tu)
+    
+    if printAll:
+        gm.tabprint("weights")
+        print(weights)
+
+    # F1
+    tmScore = corrW( T, M, weights )
+    if( tmScore < 0 ): tmScore = 0.0
+    
+    # F2
+    muScore  = np.corrcoef( M, U )[0,1]
+    if( muScore < 0.01 ):  muScore = 0.01
+    
+    tuScore  = np.corrcoef( T, U )[0,1]
+    if( tuScore < 0.01 ):  tuScore = 0.01
+    muScoreX = perturb( muScore, tuScore )
+        
+        
+    # Final score
+    score    = tmScore*muScoreX
+    if( score < 0.01 ):  score = 0.01
+    
+    if printAll:
+        gm.tabprint("tmScore : %s" % str( tmScore ) )
+        gm.tabprint("muScore : %s" % str( muScore ) )
+        gm.tabprint("tuScore : %s" % str( tuScore ) )
+        gm.tabprint("muScoreX: %s" % str( muScoreX ) )
+        gm.tabprint("score   : %s" % str( score ) )
+    
+    return score
+# End grahams_scoring_function
 
 def target_compare_setup( rInfo, param, args): 
     # Get variables
