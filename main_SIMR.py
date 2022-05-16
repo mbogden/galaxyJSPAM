@@ -214,7 +214,7 @@ def GA_Experiment_Wrapper( cmdArgs, tInfo ):
             ga_details['score_parameters'] = cmdArgs.get('scoreParams')
             ga_details['ga_paramters'] = ga_param
             
-            detailsLoc = resultsLocBase + 'Details.json'
+            detailsLoc = resultsLocBase + 'details.json'
             gm.saveJson( ga_details, detailsLoc, pretty = True, convert_numpy_array=True )
     
         else:
@@ -677,6 +677,7 @@ class new_score_worker(Slave):
         
         # Create rInfo class to verify working directory and info file
         rInfo = im.run_info_class( runDir = runDir, rArg = self.runArgs )
+        rInfo.tInfo = self.tInfo
         
         # Return if bad. 
         if rInfo.status == False:
