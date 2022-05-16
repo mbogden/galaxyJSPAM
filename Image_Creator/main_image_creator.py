@@ -57,9 +57,8 @@ def main(arg):
 def main_ic_run( rInfo = None, arg = gm.inArgClass() ):
     
     # extract variables
-    rDir = arg.runDir
-    printBase=rInfo.printBase
-    printAll=rInfo.printAll
+    printBase = arg.printBase
+    printAll  = arg.printAll
     overWrite = arg.get('overWrite',False)
     
     if rInfo == None:
@@ -69,13 +68,7 @@ def main_ic_run( rInfo = None, arg = gm.inArgClass() ):
 
     if printBase:
         print("IC: image_creator_run")
-        #arg.printArg()
-    
-    if rInfo == None:
-        rInfo = im.run_info_class( runDir=rDir, printBase = False, printAll=printAll )
-
-    if printBase:
-        print('IC: rInfo.status: ', rInfo.status )
+        if printAll: gm.tabprint("printAll")
 
     if rInfo.status == False:
         if printBase: print('IC: WARNGING:\n\t - rInfo status not good. Exiting...' )
@@ -95,7 +88,7 @@ def main_ic_run( rInfo = None, arg = gm.inArgClass() ):
         imgKey = scoreParams[pKey]['imgArg']['name']
         if imgKey not in imgParams:
             imgParams[imgKey] = scoreParams[pKey]
-            
+                
     # Loop through files
     n = len(scoreParams)
     for i, pKey in enumerate(imgParams):
