@@ -222,7 +222,7 @@ def GA_Experiment_Wrapper( cmdArgs, tInfo ):
         
         elif cmdArgs.get('gaParam', None) == None and cmdArgs.get('gaParamLoc', None) != None:
             gaPLoc = cmdArgs.get('gaParamLoc', None)
-            ga_param = ga.Prep_GA_Input_Parameters( gaPLoc )
+            ga_param = ga.Prep_GA_Input_Parameters( tInfo, gaPLoc )
         
         # If invalid ga_param, modify runArgs so workers know to exit too.
         if ga_param == None:

@@ -901,7 +901,7 @@ def ReadAndCleanupData( filePath, thresh ):
 # end ReadandCleanUpData
 
 
-def Prep_GA_Input_Parameters( pLoc ):
+def Prep_GA_Input_Parameters( tInfo, pLoc ):
 
     # Check if file exists
     pLoc = gm.validPath( pLoc )
@@ -919,9 +919,67 @@ def Prep_GA_Input_Parameters( pLoc ):
     ga_param['covariance_burn'] = np.power( ga_param['generation_number']/2, -1 )
     ga_param['covariance_mix_probability'] = ga_param['covariance_mix_probability']/np.sum(ga_param['covariance_mix_probability'])
     
-    ga_param['parameter_limits'] = np.array( ga_param['parameter_limits'] )
+    # Get values based on models from Galaxy Zoo: Mergers
+    if ga_param.get('parameter_limits',None) == None:
+        
+        zoo_params = initialize_ga_parameters(tInfo)
+        
+        ga_param['parameter_fixed_values'] = zoo_params['parameter_fixed_values']
+        ga_param['parameter_psi']          = zoo_params['parameter_psi']
+        ga_param['parameter_limits']       = zoo_params['parameter_limits']
+    
+    else:
+        ga_param['parameter_limits'] = np.array( ga_param['parameter_limits'] )
 
     return ga_param
+
+
+def initialize_ga_parameters( tInfo, ):
+    
+    print('GA.initialize_ga_parameters')
+    
+    # Intialize parameter variable
+    ga_param = {}
+    ga_param['name'] = 'init'
+    ga_param['target_id'] = tInfo.get('target_id')
+    
+    # Read Orbital Paramters of Galaxy Zoo Merger Models
+    #print( )
+    n = len( tInfo.tDict['zoo_merger_models'].keys() )
+    spam_parameters = np.zeros((n,15))
+    for i, rId in enumerate(tInfo.tDict['zoo_merger_models']):
+        
+        modelStr = tInfo.tDict['zoo_merger_models'][rId]['model_data']
+        for j,val in enumerate(modelStr.split(',')):
+            spam_parameters[i,j] = float(val)
+            if j == 14: break
+    
+    ga_parameters, ga_psi = convert_spam_to_ga( spam_parameters )
+    
+    # Used top model for psi and fixed values
+    ga_param['parameter_psi'] = ga_psi[0]
+    ga_param['parameter_fixed_values'] = ga_parameters[0]
+    
+    # Calculate parameter limits
+    ga_param['parameter_limits'] = np.zeros((14,2))
+    mins = np.min( ga_parameters, axis=0 )[0:-1]
+    maxs = np.max( ga_parameters, axis=0 )[0:-1]
+    
+    # Deafult limits are the min/max found in galaxy zoo Mergers
+    for i in range(14):
+        ga_param['parameter_limits'][i,:] = np.array([ mins[i], maxs[i] ])
+    
+    # Hardcoded limits
+    ga_param['parameter_limits'][2,0] = 0  # sym
+    ga_param['parameter_limits'][10,:] = np.array([   0.0, 180.0 ])  # sym
+    ga_param['parameter_limits'][11,:] = np.array([   0.0, 180.0 ])  # sym
+    ga_param['parameter_limits'][12,:] = np.array([ -89.0,  89.0 ])
+    ga_param['parameter_limits'][13,:] = np.array([ -89.0,  89.0 ])
+    
+    
+    return ga_param
+
+# end Create_Parameter_Limits
 
 
 # Run main after declaring functions
