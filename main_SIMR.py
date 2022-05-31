@@ -109,7 +109,6 @@ def Multi_Target( cmdArg = gm.inArgClass() ):
     
     else:
         if mpi_rank == 0:
-            print("WARNING: SIMR.Multi_Target:")
             gm.tabprint('dataDir: %s' % dataDir)
     
     tNames = listdir( dataDir )
@@ -852,6 +851,9 @@ def prep_score_parameters( cmdArg, tInfo ):
                                  overWrite = cmdArg.get('overWrite'), printAll = printAll )
             if new_param != None:
                 scoreParams[key] = new_param
+            else:
+                print("WARNING: SIMR.target_initialize:")
+                gm.tabprint("Bad new parameters")
 
             
     return cmdArg.get('scoreParams',None)
