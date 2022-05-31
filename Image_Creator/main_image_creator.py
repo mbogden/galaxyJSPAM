@@ -712,12 +712,11 @@ def addCircles(img, imgParam, cSize = 7):
 def adjustTargetImage( tInfo, new_param, startingImg = 'zoo_0', printAll = False, overWrite=False, wndchrm_image=False ):
     
     if printAll:
-        print("\nIC: Adusting Starting Target Image\n")
-        #gm.pprint(sParam)
+        print("\nIC.adjustTargetImage:")
         
     tImg = tInfo.getTargetImage( startingImg )
-    tParams = tInfo.getImageParams()    
-    old_param = tParams.get(startingImg,None)
+    tParams = tInfo.getImageParams()
+    old_param = tParams.get( startingImg, None )
     
     # Check if starting img is valid
     if type(tImg) == type(None) or old_param == None:
@@ -725,6 +724,7 @@ def adjustTargetImage( tInfo, new_param, startingImg = 'zoo_0', printAll = False
         gm.tabprint("Previous image and/or params invalid")
         gm.tabprint("Image: %s"%type(tImg))
         gm.tabprint("Param: %s"%type(old_param))
+        return None
     
     # Check if target image is already created
     newName = new_param['cmpArg']['targetName']
@@ -732,8 +732,42 @@ def adjustTargetImage( tInfo, new_param, startingImg = 'zoo_0', printAll = False
     
     if type( newImg ) != type( None ) and not overWrite:
         if printAll: gm.tabprint("Target image already made: %s"%newName)
-            
         return None
+
+    if printAll:
+        gm.tabprint('From: %s' % old_param['name'])
+        gm.tabprint('To  : %s' % new_param['name'])
+
+    # Check for target resize
+    if new_param['imgArg'].get('target_resize',None) != None:
+        gm.tabprint('Creating new galaxy centers: ')
+        
+        # Create new points based on resize
+    
+        # Old target centers
+        px = int( old_param['imgArg']['galaxy_centers']['px'] )
+        py = int( old_param['imgArg']['galaxy_centers']['py'] )
+        sx = int( old_param['imgArg']['galaxy_centers']['sx'] )
+        sy = int( old_param['imgArg']['galaxy_centers']['sy'] )
+        
+        if printAll:
+            gm.tabprint('From: ( %3d , %3d ) ; ( %3d , %3d )' % (px, py, sx, sy))
+        
+        # Create scale to adjust new centers
+        xscale = new_param['imgArg']['image_size']['width'] / old_param['imgArg']['image_size']['width']
+        yscale = new_param['imgArg']['image_size']['height'] / old_param['imgArg']['image_size']['height']
+        
+        px2 = round( px * xscale )
+        py2 = round( py * yscale )
+        sx2 = round( sx * xscale )
+        sy2 = round( sy * yscale )
+        
+        new_param['imgArg']['galaxy_centers'] = { 'px':px2, 'py':py2, 'sx':sx2, 'sy':sy2 }
+        
+        if printAll:
+            gm.tabprint('  To: ( %3d , %3d ) ; ( %3d , %3d )' % (px2, py2, sx2, sy2))
+        
+    # End new target centers if doing resize
     
     # Define function
     def Centers2Points( param ):
@@ -752,7 +786,7 @@ def adjustTargetImage( tInfo, new_param, startingImg = 'zoo_0', printAll = False
         pts[1,0] = sx 
         pts[1,1] = sy 
 
-        # Create right triangle with 3rd point
+        # Create 3rd point in shape of right triangle
         pts[2,0] =  px - (py-sy) 
         pts[2,1] =  py + (px-sx) 
         
@@ -800,7 +834,7 @@ def adjustTargetImage( tInfo, new_param, startingImg = 'zoo_0', printAll = False
     tImg = tInfo.getTargetImage( newName, overwrite=True )
     
     return tImg
-
+# End creating/adjust Targets Image
 
 def plot_run_images( rInfo, group_param, nCol = 3 ):
     from math import ceil
