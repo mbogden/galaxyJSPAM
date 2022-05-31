@@ -133,7 +133,7 @@ ___
 `mpirun -n 24 python3 main_SIMR.py -dataDir path/to/all/targets/ -newAll -scoreParamLoc path/to/param.json`  
     
 #### Test Genetic Algorithm Experiment using testing parameters
-    `mpirun -n 8 python3 main_SIMR.py -targetDir path/to/target -scoreParamLoc path/to/test_param.json -printAll -gaExp -gaParamLoc param/init_ga_param.json`
+    `mpirun -n 8 python3 main_SIMR.py -targetDir path/to/target -scoreParamLoc path/to/exp_score.json -printAll -gaExp -gaParamLoc param/exp_ga.json`
     
 ## Project Overview<a id="overview">
     

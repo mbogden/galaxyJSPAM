@@ -43,6 +43,7 @@ def Genetic_Algorithm_Experiment( ga_param, scorerFunc, \
     nFits = len( phaseParams )
 
     # Fit all parameters once before entering phases.
+    print('Phase: %d / %d\n' % ( 0, nPhase ) )
     chain, scores = Genetic_Algorithm_Phase( pFit, pReal, scorerFunc, ga_param, printProg = printProg )
 
     # Save initial progress
@@ -52,7 +53,7 @@ def Genetic_Algorithm_Experiment( ga_param, scorerFunc, \
     # Loop through desired phases. 
     for phase in range( 1, nPhase ): 
 
-        print('Phase: %d / %d' % ( phase, nPhase ) )
+        print('Phase: %d / %d\n' % ( phase, nPhase ) )
 
         # Get best solution from previous phase
         maxScoInd = np.unravel_index( np.argmax(scores, axis=None), scores.shape )

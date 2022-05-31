@@ -82,8 +82,8 @@ def main(arg):
         target_main( arg )
 
     elif arg.dataDir != None:
-        simr_many_target( arg )
-
+        Multi_Target( arg )
+    
     elif mpi_rank == 0:
         print("SIMR: main: Nothing selected!")
         print("SIMR: main: Recommended options")
@@ -91,8 +91,43 @@ def main(arg):
         print("\t - runDir /path/to/dir/")
         print("\t - targetDir /path/to/dir/")
         print("\t - dataDir /path/to/dir/")
-
+    
 # End main
+
+def Multi_Target( cmdArg = gm.inArgClass() ):
+    
+    if mpi_rank == 0:
+        print("SIMR: Multi_Target:")
+    dDir = cmdArg.get( 'dataDir', None )
+    dataDir = gm.validPath( dDir )
+    
+    if dataDir == None:
+        if mpi_rank == 0:
+            print("WARNING: SIMR.Multi_Target:")
+        gm.tabprint("Invalid dataDir: %s" % dDir)
+        return None
+    
+    else:
+        if mpi_rank == 0:
+            print("WARNING: SIMR.Multi_Target:")
+            gm.tabprint('dataDir: %s' % dataDir)
+    
+    tNames = listdir( dataDir )
+    
+    for n in tNames:    
+        
+        if mpi_rank == 0:  print('****************************')
+        
+        # Prep variables
+        tDir = dataDir + n
+        tArg = deepcopy(cmdArg)
+        tArg.setArg('targetDir', tDir)
+        
+        target_main( tArg )
+        
+    if mpi_rank == 0:  print('****************************')
+    
+# End Multi_Target
 
 
 # Process target directory
@@ -105,7 +140,7 @@ def target_main( cmdArg=gm.inArgClass(), tInfo = None ):
         print("SIMR: target_main:")
 
     # Initialize target_info from disk and cmd arguments
-    if mpi_rank == 0 and tInfo == None:        
+    if mpi_rank == 0 and tInfo == None:
         tInfo = target_initialize( cmdArg, tInfo )
         
     # If in mpi_env, send to others
@@ -154,8 +189,6 @@ def target_main( cmdArg=gm.inArgClass(), tInfo = None ):
         if printBase and mpi_rank == 0: 
             print("SIMR.simr_target:  Nothing Selected.")
     
-
-
 def GA_Experiment_Wrapper( cmdArgs, tInfo ):
     
     ##############################################
@@ -164,6 +197,7 @@ def GA_Experiment_Wrapper( cmdArgs, tInfo ):
     
     printBase = tInfo.printBase
     printAll = tInfo.printAll
+    runArgs = None
     
     if mpi_rank == 0:
         
@@ -184,7 +218,7 @@ def GA_Experiment_Wrapper( cmdArgs, tInfo ):
         if cmdArgs.get('gaParam', None) == None and cmdArgs.get('gaParamLoc', None) == None:
             print("WARNING: SIMR.GA_Experiment_Wrapper:")
             gm.tabprint("Please provide Genetic Algorithm Parameters")
-            gm.tabprint("-gaParamLoc path/to/ga_param.json")
+            gm.tabprint("\"-gaParamLoc path/to/ga_param.json\"")
             runArgs = None
         
         elif cmdArgs.get('gaParam', None) == None and cmdArgs.get('gaParamLoc', None) != None:
@@ -199,7 +233,7 @@ def GA_Experiment_Wrapper( cmdArgs, tInfo ):
         tmpDir = tInfo.get('tmpDir')    # This might be changed later... 
         outDir = gm.validPath( tmpDir )
         
-        if outDir != None:
+        if outDir != None and ga_param != None:
             # create details file for ga_results
             rName = '%s_%s' % ( ga_param.get('name', 'Testing'), gm.getFileFriendlyDateTime() )
             resultsLocBase = outDir + rName + '_'
@@ -418,10 +452,11 @@ def score_models_iter( tInfo, runArgs, newData, printProg = True ):
     
     worker = new_score_worker(tInfo, runArgs) 
     
+    if printProg:  print('Master: Starting %d models' % n ) 
     for i in range( n ):
         ir, score = worker.do_work( (i, newData[i,:]) )
         scores[ir] = score
-        if printProg:  print('Master: Received %d / %d - %s' % ( ir, n, str(score) ), end='\r' ) 
+        if printProg:  print('Master: Received %d / %d - %s' % ( ir+1, n, str(score) ), end='\r' ) 
     if printProg:  print("\nMaster: Complete")
         
     return scores
@@ -758,15 +793,6 @@ def target_initialize( cmdArg=gm.inArgClass(), tInfo = None ):
         tInfo.printParams()
     
     # Check if target needs to create a new image.
-    
-    if cmdArg.get( 'newTargetImage', False ):
-        if printBase:
-            print("SIMR.target_initialize: Creating new target image")
-        
-        # Loop through all params for creation
-        for key in scoreParams:
-            ic.adjustTargetImage( tInfo = tInfo, new_param = scoreParams[key], \
-                                 overWrite = cmdArg.get('overWrite'), printAll = printAll )
 
     return tInfo
 
@@ -777,6 +803,9 @@ def prep_score_parameters( cmdArg, tInfo ):
     ###################################
     ###  Validate Score Parameters  ###
     ###################################
+    
+    printBase = cmdArg.printBase
+    printAll  = cmdArg.printAll
     
     # Check if valid score parameters.
     scoreParams = cmdArg.get('scoreParams')
@@ -811,6 +840,19 @@ def prep_score_parameters( cmdArg, tInfo ):
         return None
     
     cmdArg.setArg('scoreParams', scoreParams)
+    
+    # If needing new target image
+    if cmdArg.get( 'newTargetImage', False ):
+        if printBase:
+            print("SIMR.target_initialize: Creating new target image")
+        
+        # Loop through all params for creation
+        for key in scoreParams:
+            new_param = ic.adjustTargetImage( tInfo = tInfo, new_param = scoreParams[key], \
+                                 overWrite = cmdArg.get('overWrite'), printAll = printAll )
+            if new_param != None:
+                scoreParams[key] = new_param
+
             
     return cmdArg.get('scoreParams',None)
 # End prep_score_parameters    
