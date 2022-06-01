@@ -116,7 +116,7 @@ def Genetic_Algorithm_Phase( pFit, start, scoreModels, ga_param, \
     cov     = np.diag(pWidth**2)
     cov2    = np.diag(pWidth**2)
     C       = np.diag(pWidth**2)
-    mean    = deepcopy(start)
+    mean    = deepcopy(start)[0:14]
 
     # get initial population
     popSol = getInitPop( nPop, start, pFit, ga_param)
@@ -712,7 +712,7 @@ def getHaarioCov( covInit, C, mean, step, burn, nPop, nParam, chainF2, popSol, p
     elif( step > burn ):
         for i in range(nPop):
             gamma = 1.0/(nPop*(step+1)+i)
-            dx   = popSol[i,0:14] - mean[0:14]
+            dx   = popSol - mean
             mean = mean + gamma*dx
             C    = C    + gamma*(np.outer(dx,dx) - C)
         # end
