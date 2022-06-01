@@ -39,12 +39,16 @@ def Genetic_Algorithm_Experiment( ga_param, scorerFunc, \
     pFit = ga_param['parameter_to_fit']
     pReal = ga_param['parameter_fixed_values']
     nPhase = ga_param['phase_number']
+    tGen   = ga_param['generation_total_number'] 
     phaseParams = ga_param['phase_parameter_to_fit']
     nFits = len( phaseParams )
+    
+    # Variable for printing progress
+    pVal = { 'phase':0, 'gen':0, 'tGen':tGen }
 
     # Fit all parameters once before entering phases.
-    print('Phase: %d / %d\n' % ( 0, nPhase ) )
-    chain, scores = Genetic_Algorithm_Phase( pFit, pReal, scorerFunc, ga_param, printProg = printProg )
+    print('Phase: %d / %d: Gen: %d\n' % ( pVal['phase'], nPhase, pVal['gen'] ) )
+    chain, scores, pVal = Genetic_Algorithm_Phase( pFit, pReal, scorerFunc, ga_param, printProg = printProg, pVal=pVal )
 
     # Save initial progress
     pickle.dump( chain,   open( writeLocBase + "models.pkl", "wb" ) )
@@ -53,7 +57,8 @@ def Genetic_Algorithm_Experiment( ga_param, scorerFunc, \
     # Loop through desired phases. 
     for phase in range( 1, nPhase ): 
 
-        print('Phase: %d / %d\n' % ( phase, nPhase ) )
+        pVal['phase'] += 1
+        print('Phase: %d / %d: Gen: %d\n' % ( pVal['phase'], nPhase, pVal['gen'] ) )
 
         # Get best solution from previous phase
         maxScoInd = np.unravel_index( np.argmax(scores, axis=None), scores.shape )
@@ -63,7 +68,7 @@ def Genetic_Algorithm_Experiment( ga_param, scorerFunc, \
         pFit = phaseParams[ (phase-1) % nFits ]
 
         # RUN GA, previous best model as target
-        chain1, scores1 = Genetic_Algorithm_Phase( pFit, pBest, scorerFunc, ga_param, printProg = printProg )
+        chain1, scores1, pVal = Genetic_Algorithm_Phase( pFit, pBest, scorerFunc, ga_param, printProg = printProg, pVal=pVal )
 
         # Add new data to previous data
         chain  = np.concatenate( ( chain,  chain1  ) )
@@ -73,10 +78,13 @@ def Genetic_Algorithm_Experiment( ga_param, scorerFunc, \
         pickle.dump( chain,   open( writeLocBase + "models.pkl", "wb" ) )
         pickle.dump( scores,  open( writeLocBase + "scores.pkl", "wb" ) )
 
-    print("GA.Genetic_Algorithm_Experiment: DONE!")    
+    print("**************************************")    
+    print("GA.Genetic_Algorithm_Experiment: DONE!")   
+    print("**************************************")  
 
 def Genetic_Algorithm_Phase( pFit, start, scoreModels, ga_param, \
-                            printProg = True, printAll = False):
+                            printProg = True, printAll = False, \
+                            pVal = { 'phase':0, 'gen':0 } ):
     
     # Grab needed values from parameter file 
     nGen   = ga_param['generation_number'] 
@@ -133,7 +141,10 @@ def Genetic_Algorithm_Phase( pFit, start, scoreModels, ga_param, \
     # Random walk
     for step in range(nGen):
         
-        if printProg: print("GA: step: %d / %d" % (step, nGen) )
+        if printProg: 
+            print("GA: Gen: %d Phase %d: Step: %d/ %d" % \
+                  (pVal['gen'], pVal['phase'], step, nGen) )
+            pVal['gen'] += 1
 
         if( step > 0 and reseed > 0):
             ind = max( 1, int(reseed*nPop) )
@@ -188,7 +199,7 @@ def Genetic_Algorithm_Phase( pFit, start, scoreModels, ga_param, \
 
     if printAll: print(" ")
 
-    return chain, fit
+    return chain, fit, pVal
 # End Generation_Phase
 
 
@@ -686,7 +697,7 @@ def getHaarioCov( covInit, C, mean, step, burn, nPop, nParam, chainF2, popSol, p
         cov2 = deepcopy(covInit)
     elif( step == burn ):
         mean = np.mean( np.array(chainF)[int(nPop*burn/2):,:], axis=0 )
-        C    = np.cov( np.transpose( np.array(chainF)[nPop*burn/2:,:] ) )
+        C    = np.cov( np.transpose( np.array(chainF)[int(nPop*burn/2):,:] ) )
 
         C2   = C[np.ix_(pFit,pFit)]
         w, v = LA.eig(C2)
@@ -701,7 +712,7 @@ def getHaarioCov( covInit, C, mean, step, burn, nPop, nParam, chainF2, popSol, p
     elif( step > burn ):
         for i in range(nPop):
             gamma = 1.0/(nPop*(step+1)+i)
-            dx   = popSol[i] - mean
+            dx   = popSol[i,0:14] - mean[0:14]
             mean = mean + gamma*dx
             C    = C    + gamma*(np.outer(dx,dx) - C)
         # end

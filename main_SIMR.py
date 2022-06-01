@@ -306,7 +306,7 @@ def GA_Experiment_Wrapper( cmdArgs, tInfo ):
     # Should only reach this point in code if Master (rank == 0)
     
     # Create wrapper class to use mpi queue and workers to score models
-    mpi_queue_wrapper = ga_mpi_score_wrapper( ga_param['parameter_psi'], True )
+    mpi_queue_wrapper = ga_mpi_score_wrapper( ga_param['parameter_psi'], printAll )
     
     # Call Genetic Algorithm Experiment
     ga.Genetic_Algorithm_Experiment( ga_param, mpi_queue_wrapper.score_models, resultsLocBase, True )
