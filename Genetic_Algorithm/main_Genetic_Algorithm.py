@@ -178,7 +178,7 @@ def Genetic_Algorithm_Phase( pFit, start, scoreModels, ga_param, \
         popSol = Mutate( step, nGen, nPop, nParam, popSol, cov2, xLim, pFit, nKeep )
 
         # calculate fits
-        if printProg: print("GA: Scoring Models\n")
+        if printAll: print("GA: Scoring Models\n")
         popFit = scoreModels( popSol )
         
         # get best solution
