@@ -119,6 +119,12 @@ def Genetic_Algorithm_Phase( pFit, start, scoreModels, ga_param, \
     mean    = deepcopy(start)[0:14]
 
     # get initial population
+    
+    if printProg: 
+        print("GA: Gen: %d Phase %d: Initial" % \
+              (pVal['gen'], pVal['phase'], ) )
+        pVal['gen'] += 1
+        
     popSol = getInitPop( nPop, start, pFit, ga_param)
     popFit = scoreModels( popSol )
 
