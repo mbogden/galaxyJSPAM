@@ -194,8 +194,8 @@ def GA_Experiment_Wrapper( cmdArgs, tInfo ):
     #####   Variable and Parameter Setup    ###### 
     ##############################################
     
-    printBase = tInfo.printBase
-    printAll = tInfo.printAll
+    printBase = cmdArgs.printBase
+    printAll = cmdArgs.printAll
     runArgs = None
     
     if mpi_rank == 0:
@@ -818,7 +818,7 @@ def prep_score_parameters( cmdArg, tInfo ):
     # If invalid, complain
     elif scoreParams == None and scoreParamLoc == None and scoreParamName == None:
         if printBase:
-            print("WARNING: target_initialize: params not valid")
+            print("WARNING: prep_score_parameters: params not valid")
             gm.tabprint('ParamType: %s'%type(scoreParams))
             gm.tabprint('scoreParamName: %s'%scoreParamName)
             gm.tabprint('scoreParamLoc : %s'%scoreParamLoc)
@@ -835,7 +835,7 @@ def prep_score_parameters( cmdArg, tInfo ):
     # Check for final parameter file is valid
     if scoreParams == None:
         if printBase:
-            print("WARNING: SIMR.target_initialize: Failed to load parameter class")
+            print("WARNING: SIMR.prep_score_parameters: Failed to load parameter class")
         return None
     
     cmdArg.setArg('scoreParams', scoreParams)
@@ -843,7 +843,7 @@ def prep_score_parameters( cmdArg, tInfo ):
     # If needing new target image
     if cmdArg.get( 'newTargetImage', False ):
         if printBase:
-            print("SIMR.target_initialize: Creating new target image")
+            print("SIMR.prep_score_parameters: Creating new target image")
         
         # Loop through all params for creation
         for key in scoreParams:
@@ -852,7 +852,7 @@ def prep_score_parameters( cmdArg, tInfo ):
             if new_param != None:
                 scoreParams[key] = new_param
             else:
-                print("WARNING: SIMR.target_initialize:")
+                print("WARNING: SIMR.prep_score_parameters:")
                 gm.tabprint("Bad new parameters")
 
             
