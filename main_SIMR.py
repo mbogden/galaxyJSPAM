@@ -36,7 +36,6 @@ from Machine_Score import main_machine_score as ms
 from Genetic_Algorithm import main_Genetic_Algorithm as ga
 import Score_Analysis.main_score_analysis as sa
 
-
 def test():
     print("SIMR: Hi!  You're in Matthew's main program for all things galaxy collisions")
 
@@ -85,7 +84,7 @@ def main(arg):
         Multi_Target( arg )
     
     elif mpi_rank == 0:
-        print("SIMR: main: Nothing selected!")
+        print("SIMR: main: Ntarget_initializeothing selected!")
         print("SIMR: main: Recommended options")
         print("\t - simple")
         print("\t - runDir /path/to/dir/")

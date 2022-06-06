@@ -278,7 +278,7 @@ def convert_spam_to_ga( in_param ):
     if len( in_param.shape ) == 1:
         in_param = np.expand_dims(in_param, axis=0)
     
-    out_param = deepcopy(in_param)
+    out_param = deepcopy(in_param[:,0:14])
     psi = []
     
     for i in range( out_param.shape[0]):
@@ -964,28 +964,30 @@ def initialize_ga_parameters( tInfo, ):
     # Read Orbital Paramters of Galaxy Zoo Merger Models
     #print( )
     n = len( tInfo.tDict['zoo_merger_models'].keys() )
-    spam_parameters = np.zeros((n,15))
+    spam_parameters = np.zeros((n,14))
     for i, rId in enumerate(tInfo.tDict['zoo_merger_models']):
         
         modelStr = tInfo.tDict['zoo_merger_models'][rId]['model_data']
-        for j,val in enumerate(modelStr.split(',')):
+        for j,val in enumerate( modelStr.split(',') ):
             spam_parameters[i,j] = float(val)
-            if j == 14: break
+            if j == 13: break
     
+    # Convert parameters to GA coordinate system
     ga_parameters, ga_psi = convert_spam_to_ga( spam_parameters )
+    print(ga_parameters.shape)
     
-    # Used top model for psi and fixed values
+    # Use top model for psi and fixed values
     ga_param['parameter_psi'] = ga_psi[0]
-    ga_param['parameter_fixed_values'] = ga_parameters[0]
+    ga_param['parameter_fixed_values'] = ga_parameters[0,:]
     
     # Calculate parameter limits
     ga_param['parameter_limits'] = np.zeros((14,2))
-    mins = np.min( ga_parameters, axis=0 )[0:-1]
-    maxs = np.max( ga_parameters, axis=0 )[0:-1]
+    mins = np.min( ga_parameters, axis=0 )
+    maxs = np.max( ga_parameters, axis=0 )
     
     # Deafult limits are the min/max found in galaxy zoo Mergers
     for i in range(14):
-        ga_param['parameter_limits'][i,:] = np.array([ mins[i], maxs[i] ])
+        ga_param['parameter_limits'][i,:] = np.array( [ mins[i], maxs[i] ] )
     
     # Hardcoded limits
     ga_param['parameter_limits'][2,0] = 0  # sym
@@ -993,7 +995,6 @@ def initialize_ga_parameters( tInfo, ):
     ga_param['parameter_limits'][11,:] = np.array([   0.0, 180.0 ])  # sym
     ga_param['parameter_limits'][12,:] = np.array([ -89.0,  89.0 ])
     ga_param['parameter_limits'][13,:] = np.array([ -89.0,  89.0 ])
-    
     
     return ga_param
 
