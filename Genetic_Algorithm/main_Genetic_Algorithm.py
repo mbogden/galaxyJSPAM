@@ -166,7 +166,7 @@ def Genetic_Algorithm_Phase( pFit, start, scoreModels, ga_param, \
         popSol = Crossover( nPop, nParam, parSol, parFit, cov, step, nGen )
 
         # get covariance matrix
-        cov, mean, C = getHaarioCov( covInit, C, mean, step, burn, nPop, nParam, chainF, popSol, pFit )
+        #cov, mean, C = getHaarioCov( covInit, C, mean, step, burn, nPop, nParam, chainF, popSol, pFit )
         
         # If mix matrix given
         if toMix:
