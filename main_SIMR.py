@@ -241,6 +241,7 @@ def GA_Experiment_Wrapper( cmdArgs, tInfo ):
             
             ga_details = {}
             ga_details['name'] = rName
+            ga_details['target_id'] = tInfo.get('target_id')
             ga_details['info'] = 'This file is the prototype for creating \
                 the Genetic Algorythm pipeline.'
             ga_details['score_parameters'] = cmdArgs.get('scoreParams')
