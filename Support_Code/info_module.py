@@ -131,6 +131,8 @@ class run_info_class:
             if self.printBase: 
                 print("WARNING: IM: Run_info_class: Directory not set up properly")
                 gm.tabprint('runDir: %s' % rArg.runDir )
+                gm.eprint("WARNING: IM: Run_info_class: Directory not set up properly")
+                gm.etabprint('runDir: %s' % rArg.runDir )
             self.status = False
             return
                  
@@ -159,6 +161,8 @@ class run_info_class:
             if self.printBase:
                 print("IM: WARNING: run_info_class.__init__: Invalid run dir")
                 tabprint('runDir: - %s' % rArg.runDir )
+                gm.eprint("IM: WARNING: run_info_class.__init__: Invalid run dir")
+                gm.etabprint('runDir: - %s' % rArg.runDir )
             return False
 
         # Print stuff
@@ -282,6 +286,8 @@ class run_info_class:
             if self.printBase: 
                 print("WARNING: IM.run_info_class.readParticles:")
                 gm.tabprint("zipped points not found: %s"%ptsZipLoc)
+                gm.eprint("WARNING: IM.run_info_class.readParticles:")
+                gm.etabprint("zipped points not found: %s"%ptsZipLoc)
             return None, None
 
 
@@ -538,9 +544,12 @@ class run_info_class:
 
         if name == None or score == None:
             if self.printAll:
-                print("IM: WARNING: run.addScore. name or score not given")
+                print("WARNING: IM: run.addScore. name or score not given")
                 print('\t - name: ', name)
                 print('\t - score: ', score)
+                gm.eprint("WARNING: IM: run.addScore. name or score not given")
+                gm.eprint('\t - name: ', name)
+                gm.eprint('\t - score: ', score)
             return None
 
         self.rDict['machine_scores'][name] = score
@@ -740,8 +749,10 @@ class target_info_class:
         # Complain if not
         if not dirGood:
             if self.printBase:
-                print("IM: Target.__init__(): ")
-                print("\t - WARNING: Something went wrong initializing directory.")
+                print("WARNING: IM.target_info_class.__init__(): ")
+                print("\t - Something went wrong initializing directory.")
+                gm.eprint("WARNING: IM.target_info_class.__init__(): ")
+                gm.eprint("\t - Something went wrong initializing directory.")
             return
 
 
@@ -776,6 +787,9 @@ class target_info_class:
             print("WARNING: IM.create_new_generation:")
             gm.tabprint("Expecting 'simr_models' of type: %s" % type( sampleDict ) )
             gm.tabprint("Received type: %s" % type( simr_models ) )
+            gm.eprint("WARNING: IM.create_new_generation:")
+            gm.etabprint("Expecting 'simr_models' of type: %s" % type( sampleDict ) )
+            gm.etabprint("Received type: %s" % type( simr_models ) )
             return
 
         if self.printAll:
@@ -787,11 +801,18 @@ class target_info_class:
 
         if type( gName ) == type( None ) \
         or type( mData ) == type( None ):
-            print("WARNING: IM.create_new_generation:")
+            
+            print("WARNING: IM.target_info_class.create_new_generation:")
             gm.tabprint("input variable 'simr_models' invalid")
             gm.tabprint("Expected Keys: %s" % str( ['evolution_method','generation_name','model_data']) )
             gm.tabprint("generation_name: %s" % type( simr_models.get('generation_name', None) ) )
             gm.tabprint("model_data: %s" % type( simr_models.get('model_data', None) ) )
+            
+            gm.eprint("WARNING: IM.target_info_class.create_new_generation:")
+            gm.etabprint("input variable 'simr_models' invalid")
+            gm.etabprint("Expected Keys: %s" % str( ['evolution_method','generation_name','model_data']) )
+            gm.etabprint("generation_name: %s" % type( simr_models.get('generation_name', None) ) )
+            gm.etabprint("model_data: %s" % type( simr_models.get('model_data', None) ) )
             return 
 
         # example numpy array. 
@@ -799,25 +820,43 @@ class target_info_class:
 
         # Expecting numpy array for parameter data 
         if type( mData ) != type( npArr ):
+            
             print("WARNING: IM.create_new_generation:")
             gm.tabprint("Expecting parameter array of type: %s" % type(npArr) )
             gm.tabprint("Received a type: %s" % type(mData) )
+            
+            gm.eprint("WARNING: IM.create_new_generation:")
+            gm.etabprint("Expecting parameter array of type: %s" % type(npArr) )
+            gm.etabprint("Received a type: %s" % type(mData) )
+            
             return
 
         # Expectin 2D array
         if mData.ndim != 2:
             if self.printBase: 
+                
                 print("WARNING: IM.create_new_generation:")
                 gm.tabprint("Expecting 2-D parameter array" )
                 gm.tabprint("Received shape: %s" % str(mData.shape) )
+                
+                gm.eprint("WARNING: IM.create_new_generation:")
+                gm.etabprint("Expecting 2-D parameter array" )
+                gm.etabprint("Received shape: %s" % str(mData.shape) )
+                
                 return
 
         # Expecting over 14 parameters for giving to SPAM
         if mData.shape[1] < 14:
             if self.printBase: 
+                
                 print("WARNING: IM.create_new_generation:")
                 gm.tabprint("Expecting at least 14 parameters per model for SPAM:" )
                 gm.tabprint("Received shape: %s" % str(mData.shape) )
+                
+                gm.eprint("WARNING: IM.create_new_generation:")
+                gm.etabprint("Expecting at least 14 parameters per model for SPAM:" )
+                gm.etabprint("Received shape: %s" % str(mData.shape) )
+                
                 return
 
         # Now Then, Create 
@@ -840,9 +879,15 @@ class target_info_class:
 
             else:
                 if self.printBase: 
+                    
                     print("WARNING: IM.create_new_generation:")
                     gm.tabprint("Please add overwrite command if you wish to overwrite")
                     gm.tabprint("Returning...")
+                    
+                    gm.eprint("WARNING: IM.create_new_generation:")
+                    gm.etabprint("Please add overwrite command if you wish to overwrite")
+                    gm.etabprint("Returning...")
+                    
                 return
 
 
@@ -959,7 +1004,9 @@ class target_info_class:
                 self.sFrame = pd.read_csv( self.scoreLoc )
                 
             else:
-                if self.printAll: print( "IM: WARNING: Target.getScores:" )
+                if self.printAll: 
+                    print( "WARNING: IM.target_info_class.getScores:" )
+                    gm.eprint( "WARNING: IM.target_info_class.getScores:" )
                 self.createBaseScore()
                 
         if reload:
@@ -1151,10 +1198,17 @@ class target_info_class:
         
         if int(endRun) > len(keys):
             if self.printBase: 
+                
                 print("WARNING: IM.target_info.class.iter_run_dicts: ")
                 tabprint("-endRun greater than number of runs")
                 tabprint("-endRun: ", endRun)
                 tabprint('-run count: ', len(keys))
+                
+                gm.eprint("WARNING: IM.target_info.class.iter_run_dicts: ")
+                gm.etabprint("-endRun greater than number of runs")
+                gm.etabprint("-endRun: ", endRun)
+                gm.etabprint('-run count: ', len(keys))
+                
             return None
         
         # Check if endRun not given
@@ -1255,16 +1309,27 @@ class target_info_class:
         # if Invalid, complain
         if type(self.targetDir) == type(None):
             if self.printBase:
+                
                 print("IM: WARNING: Invalid directory.")
                 gm.tabprint('Input: %s'%tArg.targetDir)
                 gm.tabprint('Full:  %s' % self.targetDir)
+                
+                gm.eprint("IM: WARNING: Invalid directory.")
+                gm.etabprint('Input: %s'%tArg.targetDir)
+                gm.etabprint('Full:  %s' % self.targetDir)
+                
             return False
 
         # If not directory, complain
         elif not path.isdir( self.targetDir ):
             if self.printBase:
+                
                 print("IM: WARNING: Target:")
                 print("\t - Target not a directory")
+                
+                gm.eprint("IM: WARNING: Target:")
+                gm.eprint("\t - Target not a directory")
+                
             return False
 
         # Define paths for all useful things in target structure
@@ -1387,17 +1452,28 @@ class target_info_class:
         if not path.exists( self.tmpDir ): mkdir( self.tmpDir )
 
         if not path.exists( self.zooMergerDir ):
+            
             print("WARNING: IM.target_info_class.newTargetSetup: This message should not be seen.")
             print("TO-DO: Create Directory of Galaxy Zoo: Merger model file.")
+            
+            gm.eprint("WARNING: IM.target_info_class.newTargetSetup: This message should not be seen.")
+            gm.eprint("TO-DO: Create Directory of Galaxy Zoo: Merger model file.")
+            
             return False
         
         # Check for base file
         newBase = tArg.get('newBase',False)
         if not path.exists( self.baseInfoLoc ) and not newBase:
             if self.printBase: 
+                
                 print("IM: WARNING: newTargetSetup:")
                 tabprint("No base info file!")
                 tabprint("Consider '-newBase' command")
+                
+                gm.eprint("IM: WARNING: newTargetSetup:")
+                gm.etabprint("No base info file!")
+                gm.etabprint("Consider '-newBase' command")
+                
             return False
         
         if newBase:
@@ -1474,8 +1550,13 @@ class target_info_class:
         # Check if valid directory, exit if not
         if inputDir == None:
             if self.printBase: 
+                
                 print("WARNING: IM: Input directory not found: %s"%tName)
                 gm.tabprint('Input Dir: %s'%inputDir)
+                
+                gm.eprint("WARNING: IM: Input directory not found: %s"%tName)
+                gm.etabprint('Input Dir: %s'%inputDir)
+                
             return False
         
         # Get folder contents
@@ -1513,7 +1594,9 @@ class target_info_class:
         elif metaLoc2 != None:
             mFile = open(metaLoc2,'r')
         else:
-            if self.printBase: print("WARNING: IM: Meta data not found:")
+            if self.printBase: 
+                print("WARNING: IM: Meta data not found:")
+                gm.eprint("WARNING: IM: Meta data not found:")
             return False
 
         # Copy starting target zoo image param
@@ -1522,6 +1605,7 @@ class target_info_class:
         if blank_param == None:        
             if self.printBase: 
                 print("WARNING: IM: Start zoo image param not found: %s"%pLoc)
+                gm.eprint("WARNING: IM: Start zoo image param not found: %s"%pLoc)
             return False
 
         # Copy blank parameter
@@ -1656,7 +1740,9 @@ class target_info_class:
             pairFile = open(pairPath2, 'r' )
             
         else:
-            if self.printBase: print( "WARNING: IM: Pair data not found: %s" % pairPath )
+            if self.printBase: 
+                print( "WARNING: IM: Pair data not found: %s" % pairPath )
+                gm.eprint( "WARNING: IM: Pair data not found: %s" % pairPath )
             return False
 
         # Create a basic mask that covers the target galaxy based on pair file. 
@@ -1723,7 +1809,9 @@ class target_info_class:
 
             modelFile = gm.readFile( modelLoc )
             if modelFile == None:
-                if self.printAll: print("WARNING: IM: target.createBaseInfo: Failed to open zoo model file.")
+                if self.printAll: 
+                    print("WARNING: IM: target.createBaseInfo: Failed to open zoo model file.")
+                    gm.eprint("WARNING: IM: target.createBaseInfo: Failed to open zoo model file.")
                 return False
             
             # Create a blank run info dict for copying

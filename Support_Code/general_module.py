@@ -9,7 +9,7 @@ import json
 import numpy as np
 import cv2
 from os import path
-from sys import path as sysPath
+from sys import path as sysPath, stderr
 from mpi4py import MPI
 from mpi_master_slave import Master, Slave
 from mpi_master_slave import WorkQueue
@@ -26,6 +26,8 @@ pprint = pp.pprint
 
 def test():
     print("GM: Hi!  You're in Matthew's module for generally useful functions and classes")
+    
+    
     
 def getFileFriendlyDateTime():
     
@@ -65,6 +67,7 @@ def validPath( inPath, printWarning = False, pathType = None ):
 def uint8_to_float32( in_img ):
     if in_img.dtype != np.uint8:
         print("WARNING: GM: uint8_to_float32: In image not type np.uint8.")
+        eprint("WARNING: GM: uint8_to_float32: In image not type np.uint8.")
         return None
     
     f_img = in_img.astype(np.float32)
@@ -75,6 +78,7 @@ def uint8_to_float32( in_img ):
 def float32_to_uint8( f_img ):
     if f_img.dtype != np.float32:
         print("WARNING: GM: float32_to_uint8: In image not type np.float32.")
+        eprint("WARNING: GM: float32_to_uint8: In image not type np.float32.")
         return None
     to_img = np.copy(f_img)
     to_img *= 255.
@@ -148,12 +152,16 @@ def saveImg( img, imgLoc, printAll = False ):
     if not path.exists( imgLoc ) and printAll:
         print("GM: WARNING: image not saved")
         print("\t - %s: " %imgLoc )
+        eprint("GM: WARNING: image not saved")
+        eprint("\t - %s: " %imgLoc )
         
     imgWrote = cv2.imwrite(imgLoc,img)
     
     if not imgWrote:
         print("WARNING: GM.saveImg: ")
         tabprint("Failed to write image: %s" % imgLoc)
+        eprint("WARNING: GM.saveImg: ")
+        etabprint("Failed to write image: %s" % imgLoc)
 
 
 def readFile( fileLoc, stripLine=False ):
@@ -264,6 +272,8 @@ class inArgClass:
         if argLoc == None:
             print("WARNING: GM.inArgClass.readArgFile: ")
             tabprint("Cannot find arg file: (%s) - %s" %( path.exists(self.argFile) , self.argFile) )
+            eprint("WARNING: GM.inArgClass.readArgFile: ")
+            etabprint("Cannot find arg file: (%s) - %s" %( path.exists(self.argFile) , self.argFile) )
             return
         
         args = readJson( argLoc )
@@ -271,6 +281,8 @@ class inArgClass:
         if args == None:
             print("WARNING: GM.inArgClass.readArgFile: ")
             tabprint("Cannot find arg file: (%s) - %s" %( path.exists(self.argFile) , self.argFile) )
+            eprint("WARNING: GM.inArgClass.readArgFile: ")
+            etabprint("Cannot find arg file: (%s) - %s" %( path.exists(self.argFile) , self.argFile) )
             return
         
         self.updateArgsFromDict( args )
@@ -339,6 +351,8 @@ def readImg( imgLoc, printAll = False, toSize=None, toType=np.float32 ):
         if printAll:
             print("MC: WARNING: image not found at path.")
             print("\t- %s" % imgLoc)
+            eprint("MC: WARNING: image not found at path.")
+            eprint("\t- %s" % imgLoc)
         return None
 
     # Read image from disk
@@ -368,9 +382,19 @@ def saveImg( imgLoc, img ):
 
 # End save image
 
+# For printing to standard Error
 
+# Because I like to print supplimentary info tabbed.
 def tabprint( inprint, begin = '\t - ', end = '\n' ):
     print('%s%s' % (begin,inprint), end=end )
+
+# For Standard Error Printing
+def eprint(*args, **kwargs):
+    print(*args, file=stderr, **kwargs)
+
+# For Tabbed Standard Error Printing
+def etabprint( inprint, begin = '\t - ' ):
+    eprint('%s%s' % (begin,inprint) )
 
 # Run main after declaring functions
 if __name__ == '__main__':

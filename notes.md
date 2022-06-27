@@ -12,7 +12,6 @@ Might* be good for others to view.
 
 ## NOW
 - Coding
-    - (Working) Add Graham's Machine Scoring Method.
     - Perform results on many systems. 
     
 - Disseration Proposal
