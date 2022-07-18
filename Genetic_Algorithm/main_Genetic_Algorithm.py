@@ -49,6 +49,10 @@ def Genetic_Algorithm_Experiment( ga_param, scorerFunc, \
     # Fit all parameters once before entering phases.
     print('Phase: %d / %d: Gen: %d\n' % ( pVal['phase'], nPhase, pVal['gen'] ) )
     chain, scores, pVal = Genetic_Algorithm_Phase( pFit, pReal, scorerFunc, ga_param, printProg = printProg, pVal=pVal )
+    
+    print("chain: ", chain.shape)
+    print("nPhase", nPhase)
+    print("genNumber", ga_param['generation_number'])
 
     # Save initial progress
     pickle.dump( chain,   open( writeLocBase + "models.pkl", "wb" ) )
@@ -68,23 +72,26 @@ def Genetic_Algorithm_Experiment( ga_param, scorerFunc, \
         pFit = phaseParams[ (phase-1) % nFits ]
 
         # RUN GA, previous best model as target
-        chain1, scores1, pVal = Genetic_Algorithm_Phase( pFit, pBest, scorerFunc, ga_param, printProg = printProg, pVal=pVal )
+        chain1, scores1, pVal = Genetic_Algorithm_Phase( pFit, pBest, scorerFunc, ga_param, chain, scores, printProg = printProg, pVal=pVal )
 
         # Add new data to previous data
         chain  = np.concatenate( ( chain,  chain1  ) )
         scores = np.concatenate( ( scores, scores1 ) )
+        
+        print(chain.shape)
 
         # Save models and scores obtained until now
         pickle.dump( chain,   open( writeLocBase + "models.pkl", "wb" ) )
         pickle.dump( scores,  open( writeLocBase + "scores.pkl", "wb" ) )
 
-    print("**************************************")    
-    print("GA.Genetic_Algorithm_Experiment: DONE!")   
-    print("**************************************")  
+    print("********************************************")    
+    print("*  GA.Genetic_Algorithm_Experiment: DONE!  *")   
+    print("********************************************")  
 
 def Genetic_Algorithm_Phase( pFit, start, scoreModels, ga_param, \
+                            old_chain = None, old_scores = None, \
                             printProg = True, printAll = False, \
-                            pVal = { 'phase':0, 'gen':0 } ):
+                            pVal = { 'phase':0, 'gen':0 } ) :
     
     # Grab needed values from parameter file 
     nGen   = ga_param['generation_number'] 
@@ -123,21 +130,44 @@ def Genetic_Algorithm_Phase( pFit, start, scoreModels, ga_param, \
     if printProg: 
         print("GA: Gen: %d Phase %d: Initial" % \
               (pVal['gen'], pVal['phase'], ) )
-        pVal['gen'] += 1
+    pVal['gen'] += 1
         
-    popSol = getInitPop( nPop, start, pFit, ga_param)
-    popFit = scoreModels( popSol )
-
+    popSol = getInitPop( nPop, start, pFit, ga_param )
+    
+    # Preserve top models from last phase.    
+    if type( old_chain ) != type( None ) and nKeep > 0:
+        
+        # Grab indices of top models
+        top_ind = np.argpartition( old_scores[-1,:], -nKeep)[-nKeep:]   
+        
+        # Copy top models
+        popSol[0:nKeep,:] = old_chain[-1,top_ind,:]
+        
+        # Copy scores
+        popFit = np.zeros(old_scores[-1,:].shape)
+        popFit[0:nKeep] = old_scores[-1,top_ind]
+        
+        # Score rest of models
+        popFit[nKeep + 1:] = scoreModels( popSol[nKeep+1:,:] )
+        
+        
+        # Print results
+        print('old scores: ', old_scores[-1,:])
+        print('new scores: ', popFit)
+              
+    else:
+        popFit = scoreModels( popSol ) 
+    # end
+    
     # get best solution from initalial population
     fBest   = np.max(popFit)
     bestInd = np.argmax(popFit)
     pBest   = popSol[bestInd,:]
-
-    adaCount = 0
-
-    # add init to all
+    
     chain = [ popSol ]
     fit   = [ popFit ]
+
+    adaCount = 0
 
     chainF = []
     for i in range(nPop):
@@ -145,7 +175,7 @@ def Genetic_Algorithm_Phase( pFit, start, scoreModels, ga_param, \
     # end
 
     # Random walk
-    for step in range(nGen):
+    for step in range(1, nGen):
         
         if printProg: 
             print("GA: Gen: %d Phase %d: Step: %d/ %d" % \
@@ -461,18 +491,6 @@ def Selection( nPop, popSol, popFit, nKeep ):
             ind1 = np.argmax( r1 <= popProb )
             ind2 = np.argmax( r2 <= popProb )
             
-            '''
-            print("r1",r1)
-            print("r2",r2)
-            
-            print("PopProb", popProb)
-            
-            print( r1 <= popProb )
-            print( r2 <= popProb )
-            
-            print("ind1",ind1)
-            print("ind2",ind2)
-            '''
             parSol.append( [ popSol[ind1], popSol[ind2] ] )
             parFit.append( [ popFit[ind1], popFit[ind2] ] )
         # end
@@ -494,12 +512,6 @@ def Selection( nPop, popSol, popFit, nKeep ):
             ind1 = np.argmax( r1 <= popProb )
             ind2 = np.argmax( r2 <= popProb )
             
-            '''
-            print("r1",r1)
-            print("r2",r2)
-            print("ind1",ind1)
-            print("ind2",ind2)
-            '''
             parents.append( [ popSol[ind1], popSol[ind2] ] )
         # end
 
