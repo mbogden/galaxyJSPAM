@@ -107,7 +107,6 @@ def Genetic_Algorithm_Phase( pFit, start, scoreModels, ga_param, \
     mixProb = ga_param['covariance_mix_probability']
     sigScale = ga_param['covariance_scale']
 
-
     # Initialize variables for convariance matrix
     stds = np.zeros(nParam)
     for i in range(nParam):
@@ -209,7 +208,13 @@ def Genetic_Algorithm_Phase( pFit, start, scoreModels, ga_param, \
 
         # calculate fits
         if printAll: print("GA: Scoring Models\n")
-        popFit = scoreModels( popSol )
+        
+        # Last "nKeep" values are best models from prev gen.
+        popFit = np.zeros(popFit.shape)
+        popFit[-nKeep:] = parFit[-nKeep:,0]
+    
+        # Score new models
+        popFit[:nPop-nKeep] = scoreModels( popSol[:nPop-nKeep] )
         
         # get best solution
         fTest = np.max(popFit)
