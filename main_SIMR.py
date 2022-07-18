@@ -1153,6 +1153,9 @@ def run_new_score( cmdArg = None, rInfo = None, rDir = None ):
     
     # Clean up temporary files from run directory.
     rInfo.delTmp()
+    
+    return rInfo
+    
 
 # end processing run
 

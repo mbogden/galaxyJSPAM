@@ -388,6 +388,9 @@ def saveImg( imgLoc, img ):
 def tabprint( inprint, begin = '\t - ', end = '\n' ):
     print('%s%s' % (begin,inprint), end=end )
 
+# For lazy me
+tprint = tabprint
+
 # For Standard Error Printing
 def eprint(*args, **kwargs):
     print(*args, file=stderr, **kwargs)
