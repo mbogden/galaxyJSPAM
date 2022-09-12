@@ -84,7 +84,7 @@ def main(arg):
         Multi_Target( arg )
     
     elif mpi_rank == 0:
-        print("SIMR: main: Ntarget_initializeothing selected!")
+        print("SIMR: main: Nothing selected!")
         print("SIMR: main: Recommended options")
         print("\t - simple")
         print("\t - runDir /path/to/dir/")
