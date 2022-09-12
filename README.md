@@ -12,6 +12,11 @@
 
 ### Installing<a id="installation">
 
+All of the following is based on an Ubuntu environment.
+
+
+#### Git Repository 
+
 Currently, active work is being done in a student's repository on GitHub and can be downloaded via git command.  Move into the directory and run the Makefile to install. 
 ```
 git clone https://github.com/mbogden/galaxyJSPAM.git
@@ -19,13 +24,21 @@ cd galaxyJSPAM
 make
 ```
 
+#### Dependencies
+The python packages below reliant of a few packages.
+```
+sudo apt install mpich
+sudo apt install libgl1-mesa-glx
+python3 -m pip install --upgrade pip
+
+``` 
+
 #### Python package install
-I am currently testing virtual environments with this package.  To initialize please run the following. This should create a new virtual environment name "simr_env", and install needed python packages. NOTE: Then name "simr_env" is arbitrary and you can name it however you please.
+This setup uses virtual environments to initialize and run the programs. The following commands will create a new virtual environment name "simr_env", and install needed python packages. NOTE: The name "simr_env" is arbitrary and you can name it however you please.
 
 ```
 python3 -m venv simr_env
 source simr_env/bin/activate
-python3 -m pip install --upgrade pip
 python3 -m pip install -r requirements.txt
 ```
 
@@ -50,7 +63,7 @@ The following is my, Matthew Ogden's, notes on installing WNDCHRM for the first 
     
 ### Activate environment 
     
-    Since the python packages were installed into a virtual environment, you must launch the virtual environment whenever you run code.
+Since the python packages were installed into a virtual environment, you must launch the virtual environment whenever you run code.
      
 ```
 source simr_env/bin/activate 
