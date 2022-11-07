@@ -36,7 +36,6 @@ from Machine_Score import main_machine_score as ms
 from Genetic_Algorithm import main_Genetic_Algorithm as ga
 import Score_Analysis.main_score_analysis as sa
 
-
 def test():
     print("SIMR: Hi!  You're in Matthew's main program for all things galaxy collisions")
 
@@ -82,8 +81,8 @@ def main(arg):
         target_main( arg )
 
     elif arg.dataDir != None:
-        simr_many_target( arg )
-
+        Multi_Target( arg )
+    
     elif mpi_rank == 0:
         print("SIMR: main: Nothing selected!")
         print("SIMR: main: Recommended options")
@@ -91,8 +90,43 @@ def main(arg):
         print("\t - runDir /path/to/dir/")
         print("\t - targetDir /path/to/dir/")
         print("\t - dataDir /path/to/dir/")
-
+    
 # End main
+
+def Multi_Target( cmdArg = gm.inArgClass() ):
+    
+    if mpi_rank == 0:
+        print("SIMR: Multi_Target:")
+    dDir = cmdArg.get( 'dataDir', None )
+    dataDir = gm.validPath( dDir )
+    
+    if dataDir == None:
+        if mpi_rank == 0:
+            print("WARNING: SIMR.Multi_Target:")
+        gm.tabprint("Invalid dataDir: %s" % dDir)
+        return None
+    
+    else:
+        if mpi_rank == 0:
+            gm.tabprint('dataDir: %s' % dataDir)
+    
+    tNames = listdir( dataDir )
+    tNames.sort()
+    
+    for n in tNames:    
+        
+        if mpi_rank == 0:  print('****************************')
+        
+        # Prep variables
+        tDir = dataDir + n
+        tArg = deepcopy(cmdArg)
+        tArg.setArg('targetDir', tDir)
+        
+        target_main( tArg )
+        
+    if mpi_rank == 0:  print('****************************')
+    
+# End Multi_Target
 
 
 # Process target directory
@@ -105,7 +139,7 @@ def target_main( cmdArg=gm.inArgClass(), tInfo = None ):
         print("SIMR: target_main:")
 
     # Initialize target_info from disk and cmd arguments
-    if mpi_rank == 0 and tInfo == None:        
+    if mpi_rank == 0 and tInfo == None:
         tInfo = target_initialize( cmdArg, tInfo )
         
     # If in mpi_env, send to others
@@ -154,16 +188,15 @@ def target_main( cmdArg=gm.inArgClass(), tInfo = None ):
         if printBase and mpi_rank == 0: 
             print("SIMR.simr_target:  Nothing Selected.")
     
-
-
 def GA_Experiment_Wrapper( cmdArgs, tInfo ):
     
     ##############################################
     #####   Variable and Parameter Setup    ###### 
     ##############################################
     
-    printBase = tInfo.printBase
-    printAll = tInfo.printAll
+    printBase = cmdArgs.printBase
+    printAll = cmdArgs.printAll
+    runArgs = None
     
     if mpi_rank == 0:
         
@@ -184,12 +217,12 @@ def GA_Experiment_Wrapper( cmdArgs, tInfo ):
         if cmdArgs.get('gaParam', None) == None and cmdArgs.get('gaParamLoc', None) == None:
             print("WARNING: SIMR.GA_Experiment_Wrapper:")
             gm.tabprint("Please provide Genetic Algorithm Parameters")
-            gm.tabprint("-gaParamLoc path/to/ga_param.json")
+            gm.tabprint("\"-gaParamLoc path/to/ga_param.json\"")
             runArgs = None
         
         elif cmdArgs.get('gaParam', None) == None and cmdArgs.get('gaParamLoc', None) != None:
             gaPLoc = cmdArgs.get('gaParamLoc', None)
-            ga_param = ga.Prep_GA_Input_Parameters( gaPLoc )
+            ga_param = ga.Prep_GA_Input_Parameters( tInfo, gaPLoc )
         
         # If invalid ga_param, modify runArgs so workers know to exit too.
         if ga_param == None:
@@ -199,7 +232,7 @@ def GA_Experiment_Wrapper( cmdArgs, tInfo ):
         tmpDir = tInfo.get('tmpDir')    # This might be changed later... 
         outDir = gm.validPath( tmpDir )
         
-        if outDir != None:
+        if outDir != None and ga_param != None:
             # create details file for ga_results
             rName = '%s_%s' % ( ga_param.get('name', 'Testing'), gm.getFileFriendlyDateTime() )
             resultsLocBase = outDir + rName + '_'
@@ -209,6 +242,7 @@ def GA_Experiment_Wrapper( cmdArgs, tInfo ):
             
             ga_details = {}
             ga_details['name'] = rName
+            ga_details['target_id'] = tInfo.get('target_id')
             ga_details['info'] = 'This file is the prototype for creating \
                 the Genetic Algorythm pipeline.'
             ga_details['score_parameters'] = cmdArgs.get('scoreParams')
@@ -273,7 +307,7 @@ def GA_Experiment_Wrapper( cmdArgs, tInfo ):
     # Should only reach this point in code if Master (rank == 0)
     
     # Create wrapper class to use mpi queue and workers to score models
-    mpi_queue_wrapper = ga_mpi_score_wrapper( ga_param['parameter_psi'], True )
+    mpi_queue_wrapper = ga_mpi_score_wrapper( ga_param['parameter_psi'], printAll )
     
     # Call Genetic Algorithm Experiment
     ga.Genetic_Algorithm_Experiment( ga_param, mpi_queue_wrapper.score_models, resultsLocBase, True )
@@ -418,10 +452,11 @@ def score_models_iter( tInfo, runArgs, newData, printProg = True ):
     
     worker = new_score_worker(tInfo, runArgs) 
     
+    if printProg:  print('Master: Starting %d models' % n ) 
     for i in range( n ):
         ir, score = worker.do_work( (i, newData[i,:]) )
         scores[ir] = score
-        if printProg:  print('Master: Received %d / %d - %s' % ( ir, n, str(score) ), end='\r' ) 
+        if printProg:  print('Master: Received %d / %d - %s' % ( ir+1, n, str(score) ), end='\r' ) 
     if printProg:  print("\nMaster: Complete")
         
     return scores
@@ -730,10 +765,12 @@ def target_initialize( cmdArg=gm.inArgClass(), tInfo = None ):
 
         # If creating a new base, create new images
         if cmdArg.get('newBase',False):
-            chime_0 = tInfo.readScoreParam( 'chime_0' )
-            chime_image = ic.adjustTargetImage( tInfo, chime_0['chime_0'], \
-                                               printAll = cmdArg.printAll )
-            tInfo.saveWndchrmImage( chime_image, chime_0['chime_0']['imgArg']['name'] )
+            try:
+                chime_0 = tInfo.readScoreParam( 'chime_0' )
+                chime_image = ic.adjustTargetImage( tInfo, chime_0['chime_0'], \
+                                                   printAll = cmdArg.printAll )
+                tInfo.saveWndchrmImage( chime_image, chime_0['chime_0']['imgArg']['name'] )
+            except: pass
 
         # Gather scores if called for
         if cmdArg.get('update',False):
@@ -758,15 +795,6 @@ def target_initialize( cmdArg=gm.inArgClass(), tInfo = None ):
         tInfo.printParams()
     
     # Check if target needs to create a new image.
-    
-    if cmdArg.get( 'newTargetImage', False ):
-        if printBase:
-            print("SIMR.target_initialize: Creating new target image")
-        
-        # Loop through all params for creation
-        for key in scoreParams:
-            ic.adjustTargetImage( tInfo = tInfo, new_param = scoreParams[key], \
-                                 overWrite = cmdArg.get('overWrite'), printAll = printAll )
 
     return tInfo
 
@@ -777,6 +805,9 @@ def prep_score_parameters( cmdArg, tInfo ):
     ###################################
     ###  Validate Score Parameters  ###
     ###################################
+    
+    printBase = cmdArg.printBase
+    printAll  = cmdArg.printAll
     
     # Check if valid score parameters.
     scoreParams = cmdArg.get('scoreParams')
@@ -790,7 +821,7 @@ def prep_score_parameters( cmdArg, tInfo ):
     # If invalid, complain
     elif scoreParams == None and scoreParamLoc == None and scoreParamName == None:
         if printBase:
-            print("WARNING: target_initialize: params not valid")
+            print("WARNING: prep_score_parameters: params not valid")
             gm.tabprint('ParamType: %s'%type(scoreParams))
             gm.tabprint('scoreParamName: %s'%scoreParamName)
             gm.tabprint('scoreParamLoc : %s'%scoreParamLoc)
@@ -798,7 +829,13 @@ def prep_score_parameters( cmdArg, tInfo ):
 
     # If given a param name, assume target knows where it is.
     elif scoreParams == None and scoreParamName != None:
-        scoreParams = tInfo.readScoreParam(scoreParamName)
+        
+        # Check if in target's score parameters
+        scoreParams = tInfo.getScoreParam( scoreParamName )
+        
+        # Else look for file by that name
+        if scoreParams == None:
+            scoreParams = tInfo.readScoreParam(scoreParamName)
     
     # If given param location, directly read file
     elif scoreParamLoc != None:
@@ -807,10 +844,26 @@ def prep_score_parameters( cmdArg, tInfo ):
     # Check for final parameter file is valid
     if scoreParams == None:
         if printBase:
-            print("WARNING: SIMR.target_initialize: Failed to load parameter class")
+            print("WARNING: SIMR.prep_score_parameters: Failed to load parameter class")
         return None
     
     cmdArg.setArg('scoreParams', scoreParams)
+    
+    # If needing new target image
+    if cmdArg.get( 'newTargetImage', False ):
+        if printBase:
+            print("SIMR.prep_score_parameters: Creating new target image")
+        
+        # Loop through all params for creation
+        for key in scoreParams:
+            new_param = ic.adjustTargetImage( tInfo = tInfo, new_param = scoreParams[key], \
+                                 overWrite = cmdArg.get('overWrite'), printAll = printAll )
+            if new_param != None:
+                scoreParams[key] = new_param
+            else:
+                print("WARNING: SIMR.prep_score_parameters:")
+                gm.tabprint("Bad new parameters")
+
             
     return cmdArg.get('scoreParams',None)
 # End prep_score_parameters    
@@ -880,6 +933,7 @@ def target_new_scores( tInfo, cmdArg ):
         # Have rank 0 prep args and broadcast
         if mpi_rank == 0:
             
+            prep_score_parameters( cmdArg, tInfo )
             runArgs = target_prep_cmd_params( tInfo, cmdArg )
             mpi_comm.bcast( runArgs, root=0 )
 
@@ -1109,6 +1163,9 @@ def run_new_score( cmdArg = None, rInfo = None, rDir = None ):
     
     # Clean up temporary files from run directory.
     rInfo.delTmp()
+    
+    return rInfo
+    
 
 # end processing run
 

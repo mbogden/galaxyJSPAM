@@ -39,11 +39,20 @@ def Genetic_Algorithm_Experiment( ga_param, scorerFunc, \
     pFit = ga_param['parameter_to_fit']
     pReal = ga_param['parameter_fixed_values']
     nPhase = ga_param['phase_number']
+    tGen   = ga_param['generation_total_number'] 
     phaseParams = ga_param['phase_parameter_to_fit']
     nFits = len( phaseParams )
+    
+    # Variable for printing progress
+    pVal = { 'phase':0, 'gen':0, 'tGen':tGen }
 
     # Fit all parameters once before entering phases.
-    chain, scores = Genetic_Algorithm_Phase( pFit, pReal, scorerFunc, ga_param, printProg = printProg )
+    print('Phase: %d / %d: Gen: %d\n' % ( pVal['phase'], nPhase, pVal['gen'] ) )
+    chain, scores, pVal = Genetic_Algorithm_Phase( pFit, pReal, scorerFunc, ga_param, printProg = printProg, pVal=pVal )
+    
+    print("chain: ", chain.shape)
+    print("nPhase", nPhase)
+    print("genNumber", ga_param['generation_number'])
 
     # Save initial progress
     pickle.dump( chain,   open( writeLocBase + "models.pkl", "wb" ) )
@@ -52,7 +61,8 @@ def Genetic_Algorithm_Experiment( ga_param, scorerFunc, \
     # Loop through desired phases. 
     for phase in range( 1, nPhase ): 
 
-        print('Phase: %d / %d' % ( phase, nPhase ) )
+        pVal['phase'] += 1
+        print('Phase: %d / %d: Gen: %d\n' % ( pVal['phase'], nPhase, pVal['gen'] ) )
 
         # Get best solution from previous phase
         maxScoInd = np.unravel_index( np.argmax(scores, axis=None), scores.shape )
@@ -62,20 +72,26 @@ def Genetic_Algorithm_Experiment( ga_param, scorerFunc, \
         pFit = phaseParams[ (phase-1) % nFits ]
 
         # RUN GA, previous best model as target
-        chain1, scores1 = Genetic_Algorithm_Phase( pFit, pBest, scorerFunc, ga_param, printProg = printProg )
+        chain1, scores1, pVal = Genetic_Algorithm_Phase( pFit, pBest, scorerFunc, ga_param, chain, scores, printProg = printProg, pVal=pVal )
 
         # Add new data to previous data
         chain  = np.concatenate( ( chain,  chain1  ) )
         scores = np.concatenate( ( scores, scores1 ) )
+        
+        print(chain.shape)
 
         # Save models and scores obtained until now
         pickle.dump( chain,   open( writeLocBase + "models.pkl", "wb" ) )
         pickle.dump( scores,  open( writeLocBase + "scores.pkl", "wb" ) )
 
-    print("GA.Genetic_Algorithm_Experiment: DONE!")    
+    print("********************************************")    
+    print("*  GA.Genetic_Algorithm_Experiment: DONE!  *")   
+    print("********************************************")  
 
 def Genetic_Algorithm_Phase( pFit, start, scoreModels, ga_param, \
-                            printProg = True, printAll = False):
+                            old_chain = None, old_scores = None, \
+                            printProg = True, printAll = False, \
+                            pVal = { 'phase':0, 'gen':0 } ) :
     
     # Grab needed values from parameter file 
     nGen   = ga_param['generation_number'] 
@@ -90,7 +106,6 @@ def Genetic_Algorithm_Phase( pFit, start, scoreModels, ga_param, \
     mixAmp = ga_param['covariance_mix_amplitude']
     mixProb = ga_param['covariance_mix_probability']
     sigScale = ga_param['covariance_scale']
-
 
     # Initialize variables for convariance matrix
     stds = np.zeros(nParam)
@@ -107,22 +122,51 @@ def Genetic_Algorithm_Phase( pFit, start, scoreModels, ga_param, \
     cov     = np.diag(pWidth**2)
     cov2    = np.diag(pWidth**2)
     C       = np.diag(pWidth**2)
-    mean    = deepcopy(start)
+    mean    = deepcopy(start)[0:14]
 
     # get initial population
-    popSol = getInitPop( nPop, start, pFit, ga_param)
-    popFit = scoreModels( popSol )
-
+    
+    if printProg: 
+        print("GA: Gen: %d Phase %d: Initial" % \
+              (pVal['gen'], pVal['phase'], ) )
+    pVal['gen'] += 1
+        
+    popSol = getInitPop( nPop, start, pFit, ga_param )
+    
+    # Preserve top models from last phase.    
+    if type( old_chain ) != type( None ) and nKeep > 0:
+        
+        # Grab indices of top models
+        top_ind = np.argpartition( old_scores[-1,:], -nKeep)[-nKeep:]   
+        
+        # Copy top models
+        popSol[0:nKeep,:] = old_chain[-1,top_ind,:]
+        
+        # Copy scores
+        popFit = np.zeros(old_scores[-1,:].shape)
+        popFit[0:nKeep] = old_scores[-1,top_ind]
+        
+        # Score rest of models
+        popFit[nKeep + 1:] = scoreModels( popSol[nKeep+1:,:] )
+        
+        
+        # Print results
+        print('old scores: ', old_scores[-1,:])
+        print('new scores: ', popFit)
+              
+    else:
+        popFit = scoreModels( popSol ) 
+    # end
+    
     # get best solution from initalial population
     fBest   = np.max(popFit)
     bestInd = np.argmax(popFit)
     pBest   = popSol[bestInd,:]
-
-    adaCount = 0
-
-    # add init to all
+    
     chain = [ popSol ]
     fit   = [ popFit ]
+
+    adaCount = 0
 
     chainF = []
     for i in range(nPop):
@@ -130,9 +174,12 @@ def Genetic_Algorithm_Phase( pFit, start, scoreModels, ga_param, \
     # end
 
     # Random walk
-    for step in range(nGen):
+    for step in range(1, nGen):
         
-        if printProg: print("GA: step: %d / %d" % (step, nGen) )
+        if printProg: 
+            print("GA: Gen: %d Phase %d: Step: %d/ %d" % \
+                  (pVal['gen'], pVal['phase'], step, nGen) )
+            pVal['gen'] += 1
 
         if( step > 0 and reseed > 0):
             ind = max( 1, int(reseed*nPop) )
@@ -148,7 +195,7 @@ def Genetic_Algorithm_Phase( pFit, start, scoreModels, ga_param, \
         popSol = Crossover( nPop, nParam, parSol, parFit, cov, step, nGen )
 
         # get covariance matrix
-        cov, mean, C = getHaarioCov( covInit, C, mean, step, burn, nPop, nParam, chainF, popSol, pFit )
+        #cov, mean, C = getHaarioCov( covInit, C, mean, step, burn, nPop, nParam, chainF, popSol, pFit )
         
         # If mix matrix given
         if toMix:
@@ -160,7 +207,14 @@ def Genetic_Algorithm_Phase( pFit, start, scoreModels, ga_param, \
         popSol = Mutate( step, nGen, nPop, nParam, popSol, cov2, xLim, pFit, nKeep )
 
         # calculate fits
-        popFit = scoreModels( popSol )
+        if printAll: print("GA: Scoring Models\n")
+        
+        # Last "nKeep" values are best models from prev gen.
+        popFit = np.zeros(popFit.shape)
+        popFit[-nKeep:] = parFit[-nKeep:,0]
+    
+        # Score new models
+        popFit[:nPop-nKeep] = scoreModels( popSol[:nPop-nKeep] )
         
         # get best solution
         fTest = np.max(popFit)
@@ -186,7 +240,7 @@ def Genetic_Algorithm_Phase( pFit, start, scoreModels, ga_param, \
 
     if printAll: print(" ")
 
-    return chain, fit
+    return chain, fit, pVal
 # End Generation_Phase
 
 
@@ -259,7 +313,7 @@ def convert_spam_to_ga( in_param ):
     if len( in_param.shape ) == 1:
         in_param = np.expand_dims(in_param, axis=0)
     
-    out_param = deepcopy(in_param)
+    out_param = deepcopy(in_param[:,0:14])
     psi = []
     
     for i in range( out_param.shape[0]):
@@ -442,18 +496,6 @@ def Selection( nPop, popSol, popFit, nKeep ):
             ind1 = np.argmax( r1 <= popProb )
             ind2 = np.argmax( r2 <= popProb )
             
-            '''
-            print("r1",r1)
-            print("r2",r2)
-            
-            print("PopProb", popProb)
-            
-            print( r1 <= popProb )
-            print( r2 <= popProb )
-            
-            print("ind1",ind1)
-            print("ind2",ind2)
-            '''
             parSol.append( [ popSol[ind1], popSol[ind2] ] )
             parFit.append( [ popFit[ind1], popFit[ind2] ] )
         # end
@@ -475,12 +517,6 @@ def Selection( nPop, popSol, popFit, nKeep ):
             ind1 = np.argmax( r1 <= popProb )
             ind2 = np.argmax( r2 <= popProb )
             
-            '''
-            print("r1",r1)
-            print("r2",r2)
-            print("ind1",ind1)
-            print("ind2",ind2)
-            '''
             parents.append( [ popSol[ind1], popSol[ind2] ] )
         # end
 
@@ -684,7 +720,7 @@ def getHaarioCov( covInit, C, mean, step, burn, nPop, nParam, chainF2, popSol, p
         cov2 = deepcopy(covInit)
     elif( step == burn ):
         mean = np.mean( np.array(chainF)[int(nPop*burn/2):,:], axis=0 )
-        C    = np.cov( np.transpose( np.array(chainF)[nPop*burn/2:,:] ) )
+        C    = np.cov( np.transpose( np.array(chainF)[int(nPop*burn/2):,:] ) )
 
         C2   = C[np.ix_(pFit,pFit)]
         w, v = LA.eig(C2)
@@ -699,7 +735,7 @@ def getHaarioCov( covInit, C, mean, step, burn, nPop, nParam, chainF2, popSol, p
     elif( step > burn ):
         for i in range(nPop):
             gamma = 1.0/(nPop*(step+1)+i)
-            dx   = popSol[i] - mean
+            dx   = popSol - mean
             mean = mean + gamma*dx
             C    = C    + gamma*(np.outer(dx,dx) - C)
         # end
@@ -900,7 +936,7 @@ def ReadAndCleanupData( filePath, thresh ):
 # end ReadandCleanUpData
 
 
-def Prep_GA_Input_Parameters( pLoc ):
+def Prep_GA_Input_Parameters( tInfo, pLoc ):
 
     # Check if file exists
     pLoc = gm.validPath( pLoc )
@@ -918,9 +954,68 @@ def Prep_GA_Input_Parameters( pLoc ):
     ga_param['covariance_burn'] = np.power( ga_param['generation_number']/2, -1 )
     ga_param['covariance_mix_probability'] = ga_param['covariance_mix_probability']/np.sum(ga_param['covariance_mix_probability'])
     
-    ga_param['parameter_limits'] = np.array( ga_param['parameter_limits'] )
+    # Get values based on models from Galaxy Zoo: Mergers
+    if ga_param.get('parameter_limits',None) == None:
+        
+        zoo_params = initialize_ga_parameters(tInfo)
+        
+        ga_param['parameter_fixed_values'] = zoo_params['parameter_fixed_values']
+        ga_param['parameter_psi']          = zoo_params['parameter_psi']
+        ga_param['parameter_limits']       = zoo_params['parameter_limits']
+    
+    else:
+        ga_param['parameter_limits'] = np.array( ga_param['parameter_limits'] )
 
     return ga_param
+
+
+def initialize_ga_parameters( tInfo, ):
+    
+    print('GA.initialize_ga_parameters')
+    
+    # Intialize parameter variable
+    ga_param = {}
+    ga_param['name'] = 'init'
+    ga_param['target_id'] = tInfo.get('target_id')
+    
+    # Read Orbital Paramters of Galaxy Zoo Merger Models
+    #print( )
+    n = len( tInfo.tDict['zoo_merger_models'].keys() )
+    spam_parameters = np.zeros((n,14))
+    for i, rId in enumerate(tInfo.tDict['zoo_merger_models']):
+        
+        modelStr = tInfo.tDict['zoo_merger_models'][rId]['model_data']
+        for j,val in enumerate( modelStr.split(',') ):
+            spam_parameters[i,j] = float(val)
+            if j == 13: break
+    
+    # Convert parameters to GA coordinate system
+    ga_parameters, ga_psi = convert_spam_to_ga( spam_parameters )
+    print(ga_parameters.shape)
+    
+    # Use top model for psi and fixed values
+    ga_param['parameter_psi'] = ga_psi[0]
+    ga_param['parameter_fixed_values'] = ga_parameters[0,:]
+    
+    # Calculate parameter limits
+    ga_param['parameter_limits'] = np.zeros((14,2))
+    mins = np.min( ga_parameters, axis=0 )
+    maxs = np.max( ga_parameters, axis=0 )
+    
+    # Deafult limits are the min/max found in galaxy zoo Mergers
+    for i in range(14):
+        ga_param['parameter_limits'][i,:] = np.array( [ mins[i], maxs[i] ] )
+    
+    # Hardcoded limits
+    ga_param['parameter_limits'][2,0] = 0  # sym
+    ga_param['parameter_limits'][10,:] = np.array([   0.0, 180.0 ])  # sym
+    ga_param['parameter_limits'][11,:] = np.array([   0.0, 180.0 ])  # sym
+    ga_param['parameter_limits'][12,:] = np.array([ -89.0,  89.0 ])
+    ga_param['parameter_limits'][13,:] = np.array([ -89.0,  89.0 ])
+    
+    return ga_param
+
+# end Create_Parameter_Limits
 
 
 # Run main after declaring functions

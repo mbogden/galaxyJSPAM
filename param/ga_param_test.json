@@ -1,7 +1,7 @@
 {
     "name": "Testing_Babbage",
-    "generation_total_number": 20,
-    "phase_number": 5,
+    "generation_total_number": 4,
+    "phase_number": 2,
     "parameter_number": 14,
     "parameter_to_fit": [
         2,
@@ -90,7 +90,7 @@
         -41.784698486328125,
         51.42856979370117
     ],
-    "population_size": 1000,
+    "population_size": 4,
     "phase_parameter_to_fit": [
         [
             4,
@@ -109,7 +109,7 @@
         ]
     ],
     "population_initialization_method": 1,
-    "population_sample_size": 1000,
+    "population_sample_size": 4,
     "parameter_psi": [
         1,
         1
@@ -125,7 +125,7 @@
         0.3333333333333333,
         0.3333333333333333
     ],
-    "population_keep": 100,
+    "population_keep": 3,
     "population_reseed_ratio": 0.125,
     "covariance_burn": 2.0
 }

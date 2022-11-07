@@ -1,0 +1,23 @@
+{
+    "sim2k_zoo100x100_mic": {
+        "name": "sim2k_zoo100x100_mic",
+        "simArg": {
+            "name": "2k",
+            "nPts": 2000
+        },
+        "imgArg": {
+            "name": "zoo_100x100",
+            "image_size": {
+                "width": 100,
+                "height": 100
+            },
+            "target_resize": true,
+            "target_base": "zoo_0"
+        },
+        "scoreType": "model_fitness_score",
+        "cmpArg": {
+            "type": "multi_image_compare",
+            "targetName": "zoo_100x100"
+        }
+    }
+}

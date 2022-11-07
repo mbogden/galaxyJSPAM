@@ -9,10 +9,11 @@ Might* be good for others to view.
     -  ``
 
 # Matt's Working To-Do
+- Test-2
+- Test-3
 
 ## NOW
 - Coding
-    - (Working) Add Graham's Machine Scoring Method.
     - Perform results on many systems. 
     
 - Disseration Proposal
