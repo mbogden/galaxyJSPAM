@@ -814,6 +814,13 @@ def prep_score_parameters( cmdArg, tInfo ):
     scoreParamName = cmdArg.get('scoreParamName',None)
     scoreParamLoc = gm.validPath( cmdArg.get('scoreParamLoc',None) )
     
+    if printAll:
+        print("SIMR: prep_score_parameters: ")
+        gm.tabprint('ParamType: %s'%type(scoreParams))
+        gm.tabprint('scoreParamName: %s'%scoreParamName)
+        gm.tabprint('scoreParamLoc : %s'%scoreParamLoc)
+        
+    
     # If params there, move on
     if scoreParams != None:
         pass

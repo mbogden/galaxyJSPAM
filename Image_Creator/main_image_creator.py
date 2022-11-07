@@ -824,6 +824,10 @@ def adjustTargetImage( tInfo, new_param, startingImg = 'zoo_0', printAll = False
     # Write image to location    
     gm.saveImg( newLoc, newImg )
     
+    # Save new parameters
+    tInfo.addScoreParameters( { newName : new_param } )
+    tInfo.saveInfoFile()
+    
     if wndchrm_image:
         wndImgLoc = tInfo.saveWndchrmImage( newImg, newName )
     
