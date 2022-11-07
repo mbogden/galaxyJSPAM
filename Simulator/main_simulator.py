@@ -177,8 +177,8 @@ def main_sm_run( rInfo, cmdArg = gm.inArgClass() ):
 
 def new_simulation( rInfo, simArg, cmdArg ):
     
-    printBase = rInfo.printBase
-    printAll = rInfo.printAll
+    printBase = cmdArg.printBase
+    printAll = cmdArg.printAll
         
     if printBase:
         print("\nSM.new_simulation:")
