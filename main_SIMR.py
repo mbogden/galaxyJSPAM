@@ -111,6 +111,7 @@ def Multi_Target( cmdArg = gm.inArgClass() ):
             gm.tabprint('dataDir: %s' % dataDir)
     
     tNames = listdir( dataDir )
+    tNames.sort()
     
     for n in tNames:    
         
@@ -764,10 +765,12 @@ def target_initialize( cmdArg=gm.inArgClass(), tInfo = None ):
 
         # If creating a new base, create new images
         if cmdArg.get('newBase',False):
-            chime_0 = tInfo.readScoreParam( 'chime_0' )
-            chime_image = ic.adjustTargetImage( tInfo, chime_0['chime_0'], \
-                                               printAll = cmdArg.printAll )
-            tInfo.saveWndchrmImage( chime_image, chime_0['chime_0']['imgArg']['name'] )
+            try:
+                chime_0 = tInfo.readScoreParam( 'chime_0' )
+                chime_image = ic.adjustTargetImage( tInfo, chime_0['chime_0'], \
+                                                   printAll = cmdArg.printAll )
+                tInfo.saveWndchrmImage( chime_image, chime_0['chime_0']['imgArg']['name'] )
+            except: pass
 
         # Gather scores if called for
         if cmdArg.get('update',False):
@@ -826,7 +829,13 @@ def prep_score_parameters( cmdArg, tInfo ):
 
     # If given a param name, assume target knows where it is.
     elif scoreParams == None and scoreParamName != None:
-        scoreParams = tInfo.readScoreParam(scoreParamName)
+        
+        # Check if in target's score parameters
+        scoreParams = tInfo.getScoreParam( scoreParamName )
+        
+        # Else look for file by that name
+        if scoreParams == None:
+            scoreParams = tInfo.readScoreParam(scoreParamName)
     
     # If given param location, directly read file
     elif scoreParamLoc != None:
@@ -924,6 +933,7 @@ def target_new_scores( tInfo, cmdArg ):
         # Have rank 0 prep args and broadcast
         if mpi_rank == 0:
             
+            prep_score_parameters( cmdArg, tInfo )
             runArgs = target_prep_cmd_params( tInfo, cmdArg )
             mpi_comm.bcast( runArgs, root=0 )
 

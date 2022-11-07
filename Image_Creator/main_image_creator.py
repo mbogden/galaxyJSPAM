@@ -833,7 +833,7 @@ def adjustTargetImage( tInfo, new_param, startingImg = 'zoo_0', printAll = False
     # Have tInfo load image
     tImg = tInfo.getTargetImage( newName, overwrite=True )
     
-    return new_param
+    return new_param, tImg
 # End creating/adjust Targets Image
 
 def plot_run_images( rInfo, group_param, nCol = 3 ):
