@@ -2004,7 +2004,7 @@ class target_info_class:
         gm.saveJson( score_params, paramLoc, pretty=True )
     
     def getScoreParam( self, param_name ):      
-        score_params = { paramself.tDict['score_parameters'].get(param_name,None) }
+        score_params = { self.tDict['score_parameters'].get(param_name,None) }
         return score_params
     
     def readScoreParam( self, param_file_name ):        
