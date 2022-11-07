@@ -123,7 +123,6 @@ class run_info_class:
             print("IM: run_info_class.__init__")
             print("\t - runDir: " , runDir )
 
-
         # initialize directory structure for run
         dirGood = self.initRunDir( rArg )
 
@@ -260,7 +259,7 @@ class run_info_class:
             elif path.isdir(fLoc):
                 rmtree(fLoc)
                 
-                
+            
     def readParticles( self, ptsName ):
         
         if self.printAll:
@@ -737,22 +736,33 @@ class target_info_class:
             
         if tArg.targetDir == None: tArg.targetDir = targetDir
                      
-            
         # To avoid future confusion
         if self.printAll:  self.printBase = True
 
-            
         # Check if directory has correct structure
-        newInfo = tArg.get('newInfo',False)
+        varGood = self.initVarNames( tArg )
+        
+        # Exit if bad
+        if not varGood: 
+            gm.eprint("WARNING: IM.target_info_class.__init__(): ")
+            gm.etabprint("Something went wrong initializing variables.")
+            return
+        
+        # Check if new target
+        if tArg.get('newTarget', None) != None:
+            setupGood = self.newTargetSetup( tArg )
+            if not setupGood: 
+                gm.eprint("WARNING: IM.target_info_class.__init__(): ")
+                gm.etabprint("Something went wrong initializing new target.")
+                return
+        
         dirGood = self.initTargetDir( tArg )
 
         # Complain if not
         if not dirGood:
             if self.printBase:
-                print("WARNING: IM.target_info_class.__init__(): ")
-                print("\t - Something went wrong initializing directory.")
                 gm.eprint("WARNING: IM.target_info_class.__init__(): ")
-                gm.eprint("\t - Something went wrong initializing directory.")
+                gm.etabprint("Something went wrong initializing directory.")
             return
 
 
@@ -1291,45 +1301,61 @@ class target_info_class:
             self.runDirs = self.runDirs[start:start+n]
 
         return self.runDirs
-
-
-
-    # initialize target directories
-    def initTargetDir( self, tArg ):
-        
-        from shutil import move
-        from os import mkdir
+    
+    
+    # Initialize variables
+    def initVarNames( self, tArg ):
+    
         
         if self.printAll:
-            print( 'IM: Target.initTargetDir():' )
+            print( 'IM: target_info_class.initVarNames:' )
             print( '\t - targetDir: %s' % tArg.targetDir )
 
         self.targetDir = gm.validPath( tArg.targetDir )
 
-        # if Invalid, complain
-        if type(self.targetDir) == type(None):
-            if self.printBase:
+        # Check if creating a new directory
+        if tArg.get('newTarget', None) != None and type(self.targetDir) == type(None):
+            
+            if tArg.printAll:
+                gm.tabprint("Creating new target directory")
+            
+            # Check if given no target location given
+            if tArg.get('targetDir',None) == None:
                 
-                print("IM: WARNING: Invalid directory.")
-                gm.tabprint('Input: %s'%tArg.targetDir)
-                gm.tabprint('Full:  %s' % self.targetDir)
-                
-                gm.eprint("IM: WARNING: Invalid directory.")
-                gm.etabprint('Input: %s'%tArg.targetDir)
-                gm.etabprint('Full:  %s' % self.targetDir)
-                
-            return False
+                # check for valid dataDir given
+                dataDir = gm.validPath( tArg.get('dataDir', None) )
+                if dataDir == None:
+                    gm.eprint("WARNING: IM: target_info_class.initVarNames:")
+                    gm.etabprint("Bad dataDir: %s" % tArg.get("dataDir") )
+                    return False
 
-        # If not directory, complain
-        elif not path.isdir( self.targetDir ):
-            if self.printBase:
+                elif tArg.printAll:
+                    gm.tabprint( "Saving in dataDir: %s" % dataDir )
                 
-                print("IM: WARNING: Target:")
-                print("\t - Target not a directory")
+                self.targetDir = dataDir + tArg.get('newTarget')
                 
-                gm.eprint("IM: WARNING: Target:")
-                gm.eprint("\t - Target not a directory")
+            else:
+                self.targetDir = tArg.get("targetDir")
                 
+            # Create new Target directory if not already created. 
+            from os import mkdir
+            if self.targetDir[-1] != '/': 
+                self.targetDir += '/'
+            if self.printBase: 
+                gm.tabprint( "Creating new Target: %s" % self.targetDir)
+            mkdir( self.targetDir )
+            
+            # Check targetDir was created.
+            tCheck = gm.validPath( self.targetDir )
+            if tCheck == None:
+                gm.etabprint( "Could not create directory: %s" % self.targetDir )
+                return False
+            else: self.targetDir = tCheck
+            
+        # See if valid target path
+        if self.targetDir == None:
+            gm.eprint("WARNING: IM: target_info_class.initVarNames:")
+            gm.etabprint("Bad targetDir: %s" % tArg.get('targetDir') )
             return False
 
         # Define paths for all useful things in target structure
@@ -1362,34 +1388,24 @@ class target_info_class:
         
         # Files inside misc directories
         self.imgParamLoc = self.imgDir + 'param_target_images.json'
-                 
-        # Create target subdirectories if not found
-        if not path.exists( self.infoDir ): mkdir( self.infoDir )
-        if not path.exists( self.imgDir ): mkdir( self.imgDir )
-        if not path.exists( self.maskDir ): mkdir( self.maskDir )
-        if not path.exists( self.plotDir ): mkdir( self.plotDir )
-        if not path.exists( self.wndDir ): mkdir( self.wndDir )
-        if not path.exists( self.scoreParamDir ): mkdir( self.scoreParamDir )
         
-        # Move old directories to new location if needed.
-        if gm.validPath( self.imgParamLocOld ) != None:
-            print("Hi")
-            print("OLD: %s"%gm.validPath(self.imgParamLocOld))
-            move( self.imgParamLocOld, self.imgParamLoc)
-            print("NEW: %s"%gm.validPath(self.imgParamLoc))
+        if tArg.printAll: print("initVarNames: Good")
+
+        return True
+    
+    # End init variables
+
+    # initialize target directories
+    def initTargetDir( self, tArg ):
         
-        # If using old folder layout, rename        
-        if gm.validPath( self.gen0 ):
-            from os import rename
-            print("Found old path   : %s" % self.gen0)
-            print("Propose new path : %s" % self.zooMergerDir)
-            rename(self.gen0,self.zooMergerDir)
-            print("New Path? : %s" % gm.validPath(self.zooMergerDir) )
+        from shutil import move
+        from os import mkdir
         
-        # Check if creating a new info file, run new Target Setup if so
-        if tArg.get('newInfo',False): 
-            status = self.newTargetSetup( tArg )
-            if status == False: return False
+        if self.printAll:
+            print( 'IM: target_info_class.initTargetDir:' )
+            print( '\t - targetDir: %s' % tArg.targetDir )
+        
+
 
         # Check if directories are found        
         if ( not path.exists( self.infoDir ) \
@@ -1397,11 +1413,11 @@ class target_info_class:
         or not path.exists( self.plotDir ) ):
             
             if self.printBase:
-                print("IM: Target_init: Some directories not found")
-                tabprint('Info: %s' % gm.validPath(self.infoDir))
-                tabprint('Plot: %s' % gm.validPath(self.plotDir))
-                tabprint('Zoo Merger: %s' % gm.validPath(self.zooMergerDir))
-                tabprint("Consider using -newInfo command")
+                gm.eprint("IM: Target_init: Some directories not found")
+                gm.etabprint('Info: %s' % gm.validPath(self.infoDir))
+                gm.etabprint('Plot: %s' % gm.validPath(self.plotDir))
+                gm.etabprint('Zoo Merger: %s' % gm.validPath(self.zooMergerDir))
+                gm.etabprint("Consider using -newInfo command")
                 
             return False
             
@@ -1412,12 +1428,12 @@ class target_info_class:
         or not path.exists( self.scoreLoc     ) \
         or not path.exists( self.baseScoreLoc ):
             if self.printBase:
-                print("IM: Target_init: Needed information files not found.")
-                tabprint('Main Info: %s' % gm.validPath(self.allInfoLoc))
-                tabprint('Base Info: %s' % gm.validPath(self.baseInfoLoc))
-                tabprint('Main Score: %s' % gm.validPath(self.scoreLoc))
-                tabprint('Base Score: %s' % gm.validPath(self.baseScoreLoc))
-                tabprint("Consider using -newInfo command")
+                gm.eprint("IM: Target_init: Needed information files not found.")
+                gm.etabprint('Main Info: %s' % gm.validPath(self.allInfoLoc))
+                gm.etabprint('Base Info: %s' % gm.validPath(self.baseInfoLoc))
+                gm.etabprint('Main Score: %s' % gm.validPath(self.scoreLoc))
+                gm.etabprint('Base Score: %s' % gm.validPath(self.baseScoreLoc))
+                gm.etabprint("Consider using -newInfo command")
             return False
 
         if self.printAll:
@@ -1442,28 +1458,47 @@ class target_info_class:
             
         # remove old files
         if path.exists( self.allInfoLoc ):  remove( self.allInfoLoc )
-        if path.exists( self.scoreLoc ):    remove( self.scoreLoc )         
+        if path.exists( self.scoreLoc ):    remove( self.scoreLoc )
             
         # Create directories
         if not path.exists( self.infoDir ): mkdir( self.infoDir )
         if not path.exists( self.plotDir ): mkdir( self.plotDir )
-        if not path.exists( self.imgDir ): mkdir( self.imgDir )
+        if not path.exists( self.imgDir ):  mkdir( self.imgDir )
         if not path.exists( self.maskDir ): mkdir( self.maskDir )
-        if not path.exists( self.tmpDir ): mkdir( self.tmpDir )
-
-        if not path.exists( self.zooMergerDir ):
-            
-            print("WARNING: IM.target_info_class.newTargetSetup: This message should not be seen.")
-            print("TO-DO: Create Directory of Galaxy Zoo: Merger model file.")
-            
-            gm.eprint("WARNING: IM.target_info_class.newTargetSetup: This message should not be seen.")
-            gm.eprint("TO-DO: Create Directory of Galaxy Zoo: Merger model file.")
-            
-            return False
+        if not path.exists( self.tmpDir ):  mkdir( self.tmpDir )
+        if not path.exists( self.wndDir ):  mkdir( self.wndDir )
+        if not path.exists( self.scoreParamDir ):  mkdir( self.scoreParamDir )
+        if not path.exists( self.zooMergerDir ):   mkdir( self.zooMergerDir )
+        
+        # If newTarget
+        
+                # Files inside misc directories
+        self.imgParamLoc = self.imgDir + 'param_target_images.json'
+        
+        # Move old directories to new location if needed.
+        if gm.validPath( self.imgParamLocOld ) != None:
+            print("Hi")
+            print("OLD: %s"%gm.validPath(self.imgParamLocOld))
+            move( self.imgParamLocOld, self.imgParamLoc)
+            print("NEW: %s"%gm.validPath(self.imgParamLoc))
+        
+        # If using old folder layout, rename        
+        if gm.validPath( self.gen0 ):
+            from os import rename
+            print("Found old path   : %s" % self.gen0)
+            print("Propose new path : %s" % self.zooMergerDir)
+            rename(self.gen0,self.zooMergerDir)
+            print("New Path? : %s" % gm.validPath(self.zooMergerDir) )
+        
         
         # Check for base file
         newBase = tArg.get('newBase',False)
-        if not path.exists( self.baseInfoLoc ) and not newBase:
+        
+        if newBase:
+            createGood = self.createBaseInfo( tArg )
+            if not createGood: return False
+            
+        elif not path.exists( self.baseInfoLoc ) and not newBase:
             if self.printBase: 
                 
                 print("IM: WARNING: newTargetSetup:")
@@ -1476,10 +1511,6 @@ class target_info_class:
                 
             return False
         
-        if newBase:
-            if self.printBase:
-                createGood = self.createBaseInfo( tArg )
-                if not createGood: return False
         
         # Copy files if they exist
         if path.exists( self.baseInfoLoc ): copyfile( self.baseInfoLoc, self.allInfoLoc )
@@ -1508,6 +1539,8 @@ class target_info_class:
         if newBase: self.createBaseScore(  )
         self.updateScores()
         self.saveInfoFile( )
+        
+        return True
 
     # End new target info dictionary
     
@@ -1591,8 +1624,10 @@ class target_info_class:
         # Open file for target galaxy zoo merger image information
         if metaLoc1 != None:
             mFile = open(metaLoc1,'r')
+            copyfile( metaLoc1, self.infoDir + 'target.meta' )
         elif metaLoc2 != None:
             mFile = open(metaLoc2,'r')
+            copyfile( metaLoc2, self.infoDir + 'target.meta' )
         else:
             if self.printBase: 
                 print("WARNING: IM: Meta data not found:")
@@ -1735,9 +1770,11 @@ class target_info_class:
             
         if pairPath1 != None:            
             pairFile = open(pairPath1, 'r' )
+            copyfile( pairPath1, self.infoDir + 'target.pair' )
             
         elif pairPath2 != None:            
             pairFile = open(pairPath2, 'r' )
+            copyfile( pairPath2, self.infoDir + 'target.pair' )
             
         else:
             if self.printBase: 
@@ -1804,9 +1841,9 @@ class target_info_class:
         if tArg.get("newRunBase",False):
             
             # Get directory with galaxy zoo merger files. 
-            modelLoc = gm.validPath( simrDir  + 'Input_Data/zoo_models/' + tName + '.txt')    
-            if self.printAll: gm.tabprint("Model File: %s - %s" % ( path.exists(modelLoc), modelLoc ) )
-
+            modelLoc = gm.validPath( simrDir  + 'Input_Data/zoo_models/' + tName + '.txt')
+            if self.printAll: gm.tabprint("Model File: %s - %s" % ( gm.validPath(modelLoc), modelLoc ) )
+            
             modelFile = gm.readFile( modelLoc )
             if modelFile == None:
                 if self.printAll: 
@@ -1966,7 +2003,11 @@ class target_info_class:
         paramLoc = self.scoreParamDir + '%s.json'%param_file_name
         gm.saveJson( score_params, paramLoc, pretty=True )
     
-    def readScoreParam( self, param_file_name ):
+    def getScoreParam( self, param_name ):      
+        score_params = { paramself.tDict['score_parameters'].get(param_name,None) }
+        return score_params
+    
+    def readScoreParam( self, param_file_name ):        
         paramLoc = self.scoreParamDir + '%s.json'%param_file_name
         score_params = gm.readJson(  paramLoc )
         return score_params

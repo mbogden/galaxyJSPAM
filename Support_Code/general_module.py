@@ -166,7 +166,7 @@ def saveImg( img, imgLoc, printAll = False ):
 
 def readFile( fileLoc, stripLine=False ):
 
-    if not path.isfile( fileLoc ):
+    if validPath( fileLoc ) == None:
         print("Error: GM: File does not exist: %s" % fileLoc)
         return None
 
