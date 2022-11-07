@@ -740,7 +740,7 @@ def adjustTargetImage( tInfo, new_param, startingImg = 'zoo_0', printAll = False
 
     # Check for target resize
     if new_param['imgArg'].get('target_resize',None) != None:
-        gm.tabprint('Creating new galaxy centers: ')
+        if printAll: gm.tabprint('Creating new galaxy centers: ')
         
         # Create new points based on resize
     
