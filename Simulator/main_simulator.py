@@ -33,6 +33,8 @@ def set_new_func( new_func_ptr ):
 # Expected SPAM files names and executable location
 
 spam_exe_loc = gm.validPath( __file__[0: __file__.rfind('/')] + "/bin/basic_run" )
+spam_orb_loc = gm.validPath( __file__[0: __file__.rfind('/')] + "/bin/orb_run" )
+
 siName = "a_0.000"
 sfName = "a_0.101"
 
@@ -109,22 +111,23 @@ def main_sm_run( rInfo, cmdArg = gm.inArgClass() ):
     
     # Check if run is valid
     if rInfo.status == False:
-        print("SM: WARNING:")
-        print("\t - Run directory not good.")
+        gm.eprint("WARNING: SIM.main_sm_run:")
+        gm.etabprint("Run directory not good.")
         return
 
-    elif printBase:
-        im.tabprint("Run ID: %s" % rInfo.get("run_id"))
-        im.tabprint( "rInfo status: %s" % rInfo.status )
+    if printBase:
+        gm.tabprint("Run ID: %s" % rInfo.get("run_id"))
+        gm.tabprint( "rInfo status: %s" % rInfo.status )
 
     # Get score parameter data for creating new files
     scoreParams = cmdArg.get('scoreParams',None)
     
     if scoreParams == None:
-        if printBase: print("SM: WARNING: Please provide score parameters")
+        gm.eprint("WARNING: SIM.main_rm_run: ")
+        gm.etabprint("Please provide score parameters")
         return
     
-    elif printAll:
+    if printAll:
         im.tabprint("Score parameters len: %d"%len(scoreParams))
     
     # Extract unique simulation scenerios
@@ -165,9 +168,9 @@ def main_sm_run( rInfo, cmdArg = gm.inArgClass() ):
         
     # Double check spam's executable is already built.
     if spam_exe == None:
-        print("WARNING: SM.main_sm_run")
-        im.tabprint("SPAM executable command not found")
-        im.tabprint("location expected: %s" % spam_exe_loc )
+        gm.eprint("WARNING: SM.main_sm_run")
+        gm.etabprint("SPAM executable command not found")
+        gm.etabprint("location expected: %s" % spam_exe_loc )
         return
         
     for simKey in todoList:
@@ -191,10 +194,10 @@ def new_simulation( rInfo, simArg, cmdArg ):
     nPts = str(simArg.get('nPts',None))
                 
     if printAll:
-        im.tabprint("n particles: %s" % nPts)
-        im.tabprint("model_data: %s" % model_data)
-        im.tabprint("ptsDir: %s" % ptsDir)
-        im.tabprint("tmpDir: %s" % tmpDir)
+        gm.tabprint("n particles: %s" % nPts)
+        gm.tabprint("model_data: %s" % model_data)
+        gm.tabprint("ptsDir: %s" % ptsDir)
+        gm.tabprint("tmpDir: %s" % tmpDir)
     
     # Check for valid number of particles
     if nPts != None:
@@ -208,24 +211,22 @@ def new_simulation( rInfo, simArg, cmdArg ):
         
         # Check if particle count is over max.
         if nPts > maxN:
-            if printBase: 
-                print("\nWARNING: SM.new_simulation:")
-                im.tabprint("Number of points is greater than max")
-                im.tabprint("n particles: %s" % nPts)
-                im.tabprint("n max: %s" % maxN)
+            gm.eprint("\nWARNING: SM.new_simulation:")
+            gm.etabprint("Number of points is greater than max")
+            gm.etabprint("n particles: %s" % nPts)
+            gm.etabprint("n max: %s" % maxN)
             return False
     # end if nPts
     
     # Check if needed info has been obtained
     if (model_data == None or ptsDir == None or tmpDir == None or nPts == None):
         
-        if printBase: 
-            print("\nWARNING: SM.new_simulation:")
-            im.tabprint("A required argument was invalid")
-            im.tabprint("n particles: %s" % nPts)
-            im.tabprint("model_data: %s" % model_data)
-            im.tabprint("ptsDir: %s" % ptsDir)
-            im.tabprint("tmpDir: %s" % tmpDir)
+        gm.eprint("\nWARNING: SM.new_simulation:")
+        gm.etabprint("A required argument was invalid")
+        gm.etabprint("n particles: %s" % nPts)
+        gm.etabprint("model_data: %s" % model_data)
+        gm.etabprint("ptsDir: %s" % ptsDir)
+        gm.etabprint("tmpDir: %s" % tmpDir)
         return False
     
     # Save current working directory and move to temp folder
@@ -239,10 +240,10 @@ def new_simulation( rInfo, simArg, cmdArg ):
     goodRun, retVal = spam_wrapper( nPts, model_data, printCmd = printAll )
     
     # Print results
-    if not goodRun and printBase:
-        print("WARNING: SM.new_simulation")
-        im.tabprint("New simulation failed.  Error given")
-        print(retVal)
+    if not goodRun:
+        gm.eprint("WARNING: SM.new_simulation")
+        gm.etabprint("New simulation failed.  Error given")
+        gm.eprint(retVal)
         return
     
     if goodRun and printAll:
