@@ -17,7 +17,7 @@ program orb_run
   integer :: nparticles1, nparticles2
 
 
-  real (kind=8) :: ttmin, rxmin, rrxmin(6)
+  real (kind=8) :: ttmin, rxmin, rrxmin(6), vmin
 
 !------------------------------------------------------
 !
@@ -72,6 +72,7 @@ program orb_run
     if (rrr < rxmin) then
        rxmin = rrr
        rrxmin = x0(n,:)
+       vmin = sqrt(x0(n,4)*x0(n,4)+x0(n,5)*x0(n,5) + x0(n,6)*x0(n,6))
        ttmin = istep
     endif
     write(unit,*) x0(n,:) 
@@ -85,7 +86,13 @@ program orb_run
 !  print*, rxmin
 !  print*, rrxmin
   
-  write(unit,*) (tend-t0)-ttmin*h, rxmin, rrxmin
+  write(unit,*) 'mass ratio: ', mass1/mass2
+  write(unit,*) 'tmin: ', (tend-t0)-ttmin*h
+  write(unit,*) 'rmin: ', rxmin
+  write(unit,*) 'vmin: ', vmin
+  write(unit,*) 'x0_min: ', rrxmin
+  write(unit,*) 'mass1: ', mass1
+  write(unit,*) 'mass2: ', mass2
   
   close(unit)
 

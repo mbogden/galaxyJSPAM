@@ -5,6 +5,7 @@ Description:    This program is the main function that prepares galaxy models,
                 runs them through the JSPAM software and stores particle files
 '''
 
+import os
 from os import system, remove, listdir, getcwd, chdir, path, rename
 from sys import path as sysPath
 from zipfile import (
@@ -67,6 +68,7 @@ spam_param_names = [ \
 
 # Will return None is not found
 spam_exe = gm.validPath( spam_exe_loc )
+spam_orb = gm.validPath( spam_orb_loc )
 
 nPart = 0
 maxN = 1e5  # Arbitrary limit in case of typo, can be changed if needed
@@ -100,8 +102,7 @@ def main(arg):
 # End main
 
 
-def main_sm_run( rInfo, cmdArg = gm.inArgClass() ):
-    
+def main_sim_run( rInfo, cmdArg = gm.inArgClass() ):
     
     printBase = rInfo.printBase
     printAll = rInfo.printAll
@@ -112,12 +113,18 @@ def main_sm_run( rInfo, cmdArg = gm.inArgClass() ):
     # Check if run is valid
     if rInfo.status == False:
         gm.eprint("WARNING: SIM.main_sm_run:")
-        gm.etabprint("Run directory not good.")
+        gm.etabprint("Run not good: %s" % rInfo.get('runDir'))
         return
 
     if printBase:
         gm.tabprint("Run ID: %s" % rInfo.get("run_id"))
-        gm.tabprint( "rInfo status: %s" % rInfo.status )
+    
+    # Check if orbit and min file are there, if not run.
+    orbLoc = gm.validPath( rInfo.get('orbLoc',None) )
+    minLoc = gm.validPath( rInfo.get('minLoc',None) )
+    
+    if orbLoc == None or minLoc == None:
+        orbit_simulation( rInfo, cmdArg )
 
     # Get score parameter data for creating new files
     scoreParams = cmdArg.get('scoreParams',None)
@@ -177,6 +184,71 @@ def main_sm_run( rInfo, cmdArg = gm.inArgClass() ):
         new_simulation( rInfo, simParams[simKey], cmdArg )
     
 # end processing run dir
+    
+
+def orbit_simulation( rInfo, cmdArg ):
+        
+    printBase = cmdArg.printBase
+    printAll = cmdArg.printAll
+        
+    if printBase:
+        print("SIM: orbit_simulation:")
+    
+    # Check if orbit exectued is created
+    if spam_orb == None:
+        gm.eprint("WARNING: SIM.orbit_simulation:")
+        gm.etabprint("SPAM Orbit Executable not found")
+        gm.etabprint("Considering running 'Make'")
+        gm.etabprint("Expected Location: %s\n" % spam_orb_loc )
+        return 
+    
+    # Change to tmpDir, save previous working dir
+    pDir = os.getcwd()
+    os.chdir( rInfo.get('tmpDir') )
+        
+    model_data = rInfo.get('model_data') 
+    
+    # Grab needed variables and directories.
+    model_data = rInfo.get('model_data', None)
+    runDir = rInfo.get('runDir',None)
+    ptsDir = rInfo.get('ptsDir', None)
+    tmpDir = rInfo.get('tmpDir', None)
+                
+    if printAll:
+        gm.tabprint("model_data: %s" % model_data)
+        gm.tabprint("runDir: %s" % runDir)
+        gm.tabprint("ptsDir: %s" % ptsDir)
+        gm.tabprint("tmpDir: %s" % tmpDir)
+        
+    # Call fortran orbital wrapper
+    retVal = orbit_wrapper( model_data, printAll )
+    
+    # From location
+    orbName = 'orbit.txt'
+    minName = 'rmin.txt'
+    
+    orbLocFrom = gm.validPath( tmpDir + orbName )
+    minLocFrom = gm.validPath( tmpDir + minName )
+    
+    # To locaiton
+    orbLocTo = rInfo.get("orbLoc", None)
+    minLocTo = rInfo.get('minLoc', None)
+    
+    # Print Warning if file note found
+    if orbLocFrom == None or minLocFrom == None:
+        gm.eprint( 'WARNING: SIM.orbit_simulation: %s' % rInfo.get("run_id") )
+        gm.etabprint("Orbit file or Min file not found")
+        gm.etabprint("(%s) - %s" % (os.path.exists( tmpDir + orbName ), tmpDir + orbName ) )
+        gm.etabprint("(%s) - %s" % (os.path.exists( tmpDir + minName ), tmpDir + minName ) )
+    
+    # If files found, move
+    if orbLocFrom != None: os.rename( orbLocFrom, orbLocTo )    
+    if minLocFrom != None: os.rename( minLocFrom, minLocTo )
+    
+    # Change back to previous directory
+    os.chdir( pDir )
+    
+# End orbit_simulation
 
 def new_simulation( rInfo, simArg, cmdArg ):
     
@@ -297,6 +369,27 @@ def new_simulation( rInfo, simArg, cmdArg ):
     chdir( prevDir )
 
 # End Def new_simulation
+
+
+def orbit_wrapper( model_data, printCmd ):
+    
+    sysCmd = '%s %s' % (spam_orb, model_data)
+    
+    if printCmd:
+        print( 'SIM: orbit_wrapper:')
+        gm.tabprint( 'cwd: %s' % os.getcwd() )
+        gm.tabprint( 'cmd: %s' % sysCmd )
+        gm.tabprint( 'Executing Orbit...' )
+        
+    retVal = os.system(sysCmd) 
+    
+    if printCmd:
+        print('SIM: orbit_wrapper: return: %s'%str(retVal))
+        print('')
+        
+    return retVal
+
+# End orbit_wrapper
 
 def spam_wrapper( nPts, model_data, printCmd ):
     
