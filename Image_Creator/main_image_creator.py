@@ -834,10 +834,8 @@ def adjustTargetImage( tInfo, new_param, startingImg = 'zoo_0', printAll = False
     if printAll:
         gm.tabprint("File should exist: %s"%gm.validPath(newLoc))
     
-    # Have tInfo load image
-    tImg = tInfo.getTargetImage( newName, overwrite=True )
     
-    return new_param, tImg
+    return new_param
 # End creating/adjust Targets Image
 
 def plot_run_images( rInfo, group_param, nCol = 3 ):

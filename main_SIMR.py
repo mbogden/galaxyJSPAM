@@ -174,10 +174,12 @@ def target_main( cmdArg=gm.inArgClass(), tInfo = None ):
     
     # For creating new orbits
     if cmdArg.get( 'newOrbit', False ):
-        target_new_orbits( tInfo, cmdArg )
+        pass
+        #target_new_orbits( tInfo, cmdArg )
     
     # Create new files/scores if called upon
-    elif cmdArg.get( 'newAll', False ) \
+    if cmdArg.get( 'newAll', False ) \
+    or cmdArg.get( 'newTargetImage', False ) \
     or cmdArg.get( 'newSim', False ) \
     or cmdArg.get( 'newImage', False ) \
     or cmdArg.get( 'newFeats', False ) \
@@ -869,11 +871,14 @@ def prep_score_parameters( cmdArg, tInfo ):
                                  overWrite = cmdArg.get('overWrite'), printAll = printAll )
             if new_param != None:
                 scoreParams[key] = new_param
+                
             else:
                 gm.eprint("WARNING: SIMR.prep_score_parameters:")
                 gm.etabprint("Bad new parameters")
                 
     # Print param stuff
+    cmdArg.setArg('scoreParams', scoreParams)
+    tInfo.addScoreParameters( scoreParams )
 
     if printAll:
         print("SIMR: prep_score_parameters: Finished Prepping ")
@@ -1275,9 +1280,10 @@ def run_new_score( cmdArg = None, rInfo = None, rDir = None ):
         for key in scoreParams:
             
             # Check for valid param
-            if scoreParams[key] == None:
+            if type( scoreParams[key] ) == type( None ) or type( scoreParams[key] ) != type( {'dict':'dict'} ) :
                 gm.etabprint("WARNING: SIMR.run_new_score: %s" % rInfo.get('run_id') )
                 gm.etabprint("Invalid Score Param: %s" % key )
+                gm.etabprint(scoreParams[key]) 
                 continue
                 
             score = rInfo.getScore( scoreParams[key]['name'] )
