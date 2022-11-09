@@ -91,6 +91,8 @@ class run_info_class:
     # Useful files in directory
     infoLoc = None
     baseLoc = None
+    orbLoc = None
+    minLoc = None
 
     wndFitLoc = None
     wndAllLoc = None
@@ -180,6 +182,8 @@ class run_info_class:
         self.tmpDir = self.runDir + 'tmp/'
         self.infoLoc = self.runDir + 'info.json'
         self.baseLoc = self.runDir + 'base_info.json'
+        self.minLoc = self.runDir + 'min.txt'
+        self.orbLoc = self.ptsDir + 'orbit.txt'
         self.wndFitLoc = self.wndDir + 'wndchrm_all.fit'
         self.wndAllLoc = self.wndDir + 'wndchrm_all.csv'
     
@@ -2006,6 +2010,7 @@ class target_info_class:
     def getScoreParam( self, param_name ):
         if self.tDict.get('score_parameters', None ) == None: return None
         param = self.tDict['score_parameters'].get(param_name,None)
+        if param == None: return None
         return { param_name : param }
     
     def readScoreParam( self, param_file_name ):        

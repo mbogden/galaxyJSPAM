@@ -54,7 +54,7 @@ def main(arg):
 # End main
 
 
-def main_ic_run( rInfo = None, arg = gm.inArgClass() ):
+def main_img_run( rInfo = None, arg = gm.inArgClass() ):
     
     # extract variables
     printBase = arg.printBase
