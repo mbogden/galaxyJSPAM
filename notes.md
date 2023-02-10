@@ -9,8 +9,14 @@ Might* be good for others to view.
     -  ``
 
 # Matt's Working To-Do
-- Test-2
+- Use Graham's stats
+- See if one particular target is really bad to test against.
+- Check model outlier's 
+- Hyperparameters. 
+- 
+
 - Test-3
+- Test 4dock
 
 ## NOW
 - Coding
