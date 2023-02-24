@@ -13,18 +13,38 @@ Might* be good for others to view.
 - See if one particular target is really bad to test against.
 - Check model outlier's 
 - Hyperparameters. 
-- 
+
+- Look into WandB for DL metrics
 
 - Test-3
 - Test 4dock
 
 ## NOW
 - Coding
-    - Perform results on many systems. 
+    - (done) Perform results on many systems. 
+    - Bigger Training set,
+      - Zoom in on image
+      - Good Models, with time offsets. 
+      - Different brightnesss
+
+    - Modify Images during Training.
+      - Affine Transform (Slant/stretch)
+      - overlaps slightly off
+      - Scaling
+      - Zoom in/out
+      - Reflectives. 
+      - Offsets in space. 
+    - Fortran
+      - Output Particles directly above and below "main integration loop"
+        - Add OUTPUT call in loop with flag. 
+      - Reading args.
+        - IARGC()
+        - GETARG()
     
 - Disseration Proposal
     - Literature Review
         - 30's ish papers to include.  About 1-2 per day
+      
         
 
 ## Later

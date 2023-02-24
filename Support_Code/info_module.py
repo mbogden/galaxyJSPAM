@@ -979,6 +979,21 @@ class target_info_class:
         
     # End getTargetImage()
 
+    def saveTargetImage( self, tImg, name ):
+
+        if self.printAll: print("IM: target_info_class: saveTargetImage:")
+
+        # Find location to save image
+        tLoc = self.findTargetImage( name, newImg = True)
+
+        # Save image
+        gm.saveImg( tLoc, tImg )
+
+        # Add to loaded images
+        self.targetImgs[name] = deepcopy( tImg )
+
+    # End saveTargetImage()
+
 
     def findTargetImage( self, tName = None, newImg = False ):
 
@@ -1983,6 +1998,7 @@ class target_info_class:
     def saveMaskImage( self, maskImage, maskName ):
         maskLoc = self.maskDir + '%s.png'%maskName
         gm.saveImg( maskImage, maskLoc)
+
     
     def getMaskImage( self, maskName ):
         

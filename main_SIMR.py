@@ -842,10 +842,12 @@ def prep_score_parameters( cmdArg, tInfo ):
         
         # Check if in target's score parameters
         scoreParams = tInfo.getScoreParam( scoreParamName )
+        gm.tabprint("From target_info: ", type(scoreParams)) if printAll else None
         
         # Else look for file by that name
         if scoreParams == None:
             scoreParams = tInfo.readScoreParam(scoreParamName)
+            gm.tabprint("From target file: ", type(scoreParams)) if printAll else None
     
     # If given param location, directly read file
     elif scoreParamLoc != None:
