@@ -4,7 +4,7 @@ pandas
 python-dateutil
 scikit-build
 scikit-image
-opencv-python
+opencv-python=4.6.0.66
 mpi4py
 sklearn
 mpi_master_slave
