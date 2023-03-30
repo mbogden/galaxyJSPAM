@@ -129,11 +129,8 @@ class run_info_class:
         dirGood = self.initRunDir( rArg )
 
         if not dirGood:
-            if self.printBase: 
-                print("WARNING: IM: Run_info_class: Directory not set up properly")
-                gm.tabprint('runDir: %s' % rArg.runDir )
-                gm.eprint("WARNING: IM: Run_info_class: Directory not set up properly")
-                gm.etabprint('runDir: %s' % rArg.runDir )
+            gm.eprint("WARNING: IM: Run_info_class: Directory not set up properly")
+            gm.etabprint('runDir: %s' % rArg.runDir )
             self.status = False
             return
                  
@@ -159,11 +156,8 @@ class run_info_class:
             
         # Double check if run directory is valid
         if self.runDir == None:
-            if self.printBase:
-                print("IM: WARNING: run_info_class.__init__: Invalid run dir")
-                tabprint('runDir: - %s' % rArg.runDir )
-                gm.eprint("IM: WARNING: run_info_class.__init__: Invalid run dir")
-                gm.etabprint('runDir: - %s' % rArg.runDir )
+            gm.eprint("IM: WARNING: run_info_class.__init__: Invalid run dir")
+            gm.etabprint('runDir: - %s' % rArg.runDir )
             return False
 
         # Print stuff
@@ -286,11 +280,8 @@ class run_info_class:
         if self.printAll: tabprint("Loading points from file: %s"%ptsZipLoc)
 
         if ptsZipLoc == None:
-            if self.printBase: 
-                print("WARNING: IM.run_info_class.readParticles:")
-                gm.tabprint("zipped points not found: %s"%ptsZipLoc)
-                gm.eprint("WARNING: IM.run_info_class.readParticles:")
-                gm.etabprint("zipped points not found: %s"%ptsZipLoc)
+            gm.eprint("WARNING: IM.run_info_class.readParticles:")
+            gm.etabprint("zipped points not found: %s"%ptsZipLoc)
             return None, None
 
 
@@ -411,7 +402,7 @@ class run_info_class:
                 pts = pd.read_csv( fLoc, header=None, delim_whitespace=True ).values
         
         return pts
-    # End readManyEndingsParticles
+    # 
     
     def findPtsLoc( self, ptsName ):
 
@@ -501,40 +492,53 @@ class run_info_class:
 
     
     def getModelImage( self, imgName = 'zoo_0', imgType = 'model', toType=np.float32, overWrite=False ):
+
+        if self.printAll:
+            print("IM.run_info_class.getModelImage:")
+            gm.tabprint('img name: %s' % imgName )
+            gm.tabprint('img type: %s' % imgType )
         
         # Create place to store images if needed.
         if self.get('img',None) == None: self.img = {}            
         if self.get('init',None) == None: self.init = {}
         
         # Return model image if already loaded.
-        if imgType == 'model' and not overWrite:
-            mImg = self.img.get(imgName,None)
-            if type(mImg) != type(None) and mImg.dtype == toType:
-                return deepcopy( mImg )
         
-        elif imgType == 'init' and not overWrite:            
+        if imgType == 'init' and not overWrite:            
             img = self.init.get(imgName,None)
-            if type(img) != type(None) and img.dtype == toType:
-                return deepcopy( img )
+            if type(img) != type(None): 
+                return img
+
+        elif not overWrite:
+            mImg = self.img.get(imgName,None)
+            if type(mImg) != type(None):
+                return mImg
         
         # Get image location
         imgLoc = self.findImgLoc( imgName = imgName, imgType = imgType )
+
         if self.printAll: 
             print("IM: Loading: %s:" % imgName)
-            gm.tabprint( 'imgType: %s' % imgType )
             gm.tabprint( 'imgLoc: %s' % imgLoc )
-            
-        if imgLoc == None: return None
+        
+        if imgLoc == None: 
+            # print warning if image not found
+            gm.eprint( "WARNING: IMG.getModelImage:")
+            gm.etabprint("Image not found: %s" % imgName,)
+            return None
         
         # Read image
-        img = gm.readImg(imgLoc, toType=toType)
+        if imgType == 'wndchrm' or imgType == 'model' or imgType == 'init':
+            img = gm.readImg(imgLoc, toType=toType)
+        elif imgType == 'many_endings':
+            img = np.load( imgLoc )['arr_0']
         
-        # Store image if called upon later
-        if imgType == 'model':  self.img[imgName] = img            
-        elif imgType == 'init': self.init[imgName] = img
+        # Store image if called upon later           
+        if imgType == 'init': self.init[imgName] = img
+        else:  self.img[imgName] = img
 
         # Return image
-        return deepcopy( img )
+        return img
     
     # End getting model, unperturbed image
 
@@ -550,6 +554,9 @@ class run_info_class:
             
         elif imgType == 'wndchrm':
             imgLoc = self.wndDir + imgName + '.tiff'
+
+        elif imgType == 'many_endings':
+            imgLoc = self.imgDir + imgName + '.npz'
             
         else:
             imgLoc = self.miscDir + imgName + '.png'
@@ -566,6 +573,16 @@ class run_info_class:
             return None
 
     # End findImgFile
+
+    def saveImage( self, imgName, img, imgType = 'model'):  
+
+        imgLoc = self.findImgLoc( imgName, imgType = imgType, newImg=True )          
+
+        if imgType == 'model' or imgType =='init' or imgType == 'wndchrm':
+            gm.saveImg( imgLoc, img )
+        
+        elif imgType == 'many_endings':
+            np.savez_compressed( imgLoc, img )
 
     def getAllImgLocs( self, miscImg=False ):
 
@@ -617,13 +634,9 @@ class run_info_class:
     def addScore( self, name=None, score=None ):
 
         if name == None or score == None:
-            if self.printAll:
-                print("WARNING: IM: run.addScore. name or score not given")
-                print('\t - name: ', name)
-                print('\t - score: ', score)
-                gm.eprint("WARNING: IM: run.addScore. name or score not given")
-                gm.eprint('\t - name: ', name)
-                gm.eprint('\t - score: ', score)
+            gm.eprint("WARNING: IM: run.addScore. name or score not given")
+            gm.eprint('\t - name: ', name)
+            gm.eprint('\t - score: ', score)
             return None
 
         self.rDict['machine_scores'][name] = score
@@ -835,9 +848,8 @@ class target_info_class:
 
         # Complain if not
         if not dirGood:
-            if self.printBase:
-                gm.eprint("WARNING: IM.target_info_class.__init__(): ")
-                gm.etabprint("Something went wrong initializing directory.")
+            gm.eprint("WARNING: IM.target_info_class.__init__(): ")
+            gm.etabprint("Something went wrong initializing directory.")
             return
 
 
@@ -886,13 +898,7 @@ class target_info_class:
 
         if type( gName ) == type( None ) \
         or type( mData ) == type( None ):
-            
-            print("WARNING: IM.target_info_class.create_new_generation:")
-            gm.tabprint("input variable 'simr_models' invalid")
-            gm.tabprint("Expected Keys: %s" % str( ['evolution_method','generation_name','model_data']) )
-            gm.tabprint("generation_name: %s" % type( simr_models.get('generation_name', None) ) )
-            gm.tabprint("model_data: %s" % type( simr_models.get('model_data', None) ) )
-            
+               
             gm.eprint("WARNING: IM.target_info_class.create_new_generation:")
             gm.etabprint("input variable 'simr_models' invalid")
             gm.etabprint("Expected Keys: %s" % str( ['evolution_method','generation_name','model_data']) )
@@ -906,10 +912,6 @@ class target_info_class:
         # Expecting numpy array for parameter data 
         if type( mData ) != type( npArr ):
             
-            print("WARNING: IM.create_new_generation:")
-            gm.tabprint("Expecting parameter array of type: %s" % type(npArr) )
-            gm.tabprint("Received a type: %s" % type(mData) )
-            
             gm.eprint("WARNING: IM.create_new_generation:")
             gm.etabprint("Expecting parameter array of type: %s" % type(npArr) )
             gm.etabprint("Received a type: %s" % type(mData) )
@@ -918,31 +920,20 @@ class target_info_class:
 
         # Expectin 2D array
         if mData.ndim != 2:
-            if self.printBase: 
+            gm.eprint("WARNING: IM.create_new_generation:")
+            gm.etabprint("Expecting 2-D parameter array" )
+            gm.etabprint("Received shape: %s" % str(mData.shape) )
                 
-                print("WARNING: IM.create_new_generation:")
-                gm.tabprint("Expecting 2-D parameter array" )
-                gm.tabprint("Received shape: %s" % str(mData.shape) )
-                
-                gm.eprint("WARNING: IM.create_new_generation:")
-                gm.etabprint("Expecting 2-D parameter array" )
-                gm.etabprint("Received shape: %s" % str(mData.shape) )
-                
-                return
+            return
 
         # Expecting over 14 parameters for giving to SPAM
         if mData.shape[1] < 14:
-            if self.printBase: 
                 
-                print("WARNING: IM.create_new_generation:")
-                gm.tabprint("Expecting at least 14 parameters per model for SPAM:" )
-                gm.tabprint("Received shape: %s" % str(mData.shape) )
-                
-                gm.eprint("WARNING: IM.create_new_generation:")
-                gm.etabprint("Expecting at least 14 parameters per model for SPAM:" )
-                gm.etabprint("Received shape: %s" % str(mData.shape) )
-                
-                return
+            gm.eprint("WARNING: IM.create_new_generation:")
+            gm.etabprint("Expecting at least 14 parameters per model for SPAM:" )
+            gm.etabprint("Received shape: %s" % str(mData.shape) )
+            
+            return
 
         # Now Then, Create 
         if not path.exists( self.simrDir ): mkdir( self.simrDir )
@@ -963,15 +954,10 @@ class target_info_class:
                 rmtree( genLoc )
 
             else:
-                if self.printBase: 
-                    
-                    print("WARNING: IM.create_new_generation:")
-                    gm.tabprint("Please add overwrite command if you wish to overwrite")
-                    gm.tabprint("Returning...")
-                    
-                    gm.eprint("WARNING: IM.create_new_generation:")
-                    gm.etabprint("Please add overwrite command if you wish to overwrite")
-                    gm.etabprint("Returning...")
+                
+                gm.eprint("WARNING: IM.create_new_generation:")
+                gm.etabprint("Please add overwrite command if you wish to overwrite")
+                gm.etabprint("Returning...")
                     
                 return
 
@@ -1104,9 +1090,8 @@ class target_info_class:
                 self.sFrame = pd.read_csv( self.scoreLoc )
                 
             else:
-                if self.printAll: 
-                    print( "WARNING: IM.target_info_class.getScores:" )
-                    gm.eprint( "WARNING: IM.target_info_class.getScores:" )
+                print( "WARNING: IM.target_info_class.getScores:" )
+                gm.eprint( "WARNING: IM.target_info_class.getScores:" )
                 self.createBaseScore()
                 
         if reload:
@@ -1297,17 +1282,11 @@ class target_info_class:
         # Check for invalid inputs
         
         if int(endRun) > len(keys):
-            if self.printBase: 
                 
-                print("WARNING: IM.target_info.class.iter_run_dicts: ")
-                tabprint("-endRun greater than number of runs")
-                tabprint("-endRun: ", endRun)
-                tabprint('-run count: ', len(keys))
-                
-                gm.eprint("WARNING: IM.target_info.class.iter_run_dicts: ")
-                gm.etabprint("-endRun greater than number of runs")
-                gm.etabprint("-endRun: ", endRun)
-                gm.etabprint('-run count: ', len(keys))
+            gm.eprint("WARNING: IM.target_info.class.iter_run_dicts: ")
+            gm.etabprint("-endRun greater than number of runs")
+            gm.etabprint("-endRun: ", endRun)
+            gm.etabprint('-run count: ', len(keys))
                 
             return None
         
@@ -1589,15 +1568,10 @@ class target_info_class:
             if not createGood: return False
             
         elif not path.exists( self.baseInfoLoc ) and not newBase:
-            if self.printBase: 
-                
-                print("IM: WARNING: newTargetSetup:")
-                tabprint("No base info file!")
-                tabprint("Consider '-newBase' command")
-                
-                gm.eprint("IM: WARNING: newTargetSetup:")
-                gm.etabprint("No base info file!")
-                gm.etabprint("Consider '-newBase' command")
+            
+            gm.eprint("IM: WARNING: newTargetSetup:")
+            gm.etabprint("No base info file!")
+            gm.etabprint("Consider '-newBase' command")
                 
             return False
         
@@ -1672,13 +1646,9 @@ class target_info_class:
             
         # Check if valid directory, exit if not
         if inputDir == None:
-            if self.printBase: 
                 
-                print("WARNING: IM: Input directory not found: %s"%tName)
-                gm.tabprint('Input Dir: %s'%inputDir)
-                
-                gm.eprint("WARNING: IM: Input directory not found: %s"%tName)
-                gm.etabprint('Input Dir: %s'%inputDir)
+            gm.eprint("WARNING: IM: Input directory not found: %s"%tName)
+            gm.etabprint('Input Dir: %s'%inputDir)
                 
             return False
         
@@ -1719,18 +1689,14 @@ class target_info_class:
             mFile = open(metaLoc2,'r')
             copyfile( metaLoc2, self.infoDir + 'target.meta' )
         else:
-            if self.printBase: 
-                print("WARNING: IM: Meta data not found:")
-                gm.eprint("WARNING: IM: Meta data not found:")
+            gm.eprint("WARNING: IM: Meta data not found:")
             return False
 
         # Copy starting target zoo image param
         pLoc = simrDir + 'param/zoo_blank.json'
         blank_param = gm.readJson(pLoc)
         if blank_param == None:        
-            if self.printBase: 
-                print("WARNING: IM: Start zoo image param not found: %s"%pLoc)
-                gm.eprint("WARNING: IM: Start zoo image param not found: %s"%pLoc)
+            gm.eprint("WARNING: IM: Start zoo image param not found: %s"%pLoc)
             return False
 
         # Copy blank parameter
@@ -1867,9 +1833,7 @@ class target_info_class:
             copyfile( pairPath2, self.infoDir + 'target.pair' )
             
         else:
-            if self.printBase: 
-                print( "WARNING: IM: Pair data not found: %s" % pairPath )
-                gm.eprint( "WARNING: IM: Pair data not found: %s" % pairPath )
+            gm.eprint( "WARNING: IM: Pair data not found: %s" % pairPath )
             return False
 
         # Create a basic mask that covers the target galaxy based on pair file. 
@@ -1936,9 +1900,7 @@ class target_info_class:
             
             modelFile = gm.readFile( modelLoc )
             if modelFile == None:
-                if self.printAll: 
-                    print("WARNING: IM: target.createBaseInfo: Failed to open zoo model file.")
-                    gm.eprint("WARNING: IM: target.createBaseInfo: Failed to open zoo model file.")
+                gm.eprint("WARNING: IM: target.createBaseInfo: Failed to open zoo model file.")
                 return False
             
             # Create a blank run info dict for copying

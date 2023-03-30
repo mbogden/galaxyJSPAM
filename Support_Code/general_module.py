@@ -413,3 +413,38 @@ if __name__ == '__main__':
     print( 'MPI: rank %d - size %d' %(rank, size) )
 
     
+def showImgList( imgList, titleList = None, col_count=4, cmap='gray', size = 12 ):
+
+    import matplotlib.pyplot as plt
+    
+    n = len( imgList )
+    from math import ceil
+    
+    row_count = ceil( n / col_count )
+    
+    # Assuming square images
+    width = size
+    height = int( width * ( row_count / col_count ) )
+    
+    # Create title list if not given
+    if titleList == None:
+        titleList = range( n )
+    
+    # Initialize figure
+    fig, ax = plt.subplots( row_count, col_count, figsize=(width,height) )
+    
+    ri, ci = 0, 0
+    for i, img in enumerate( imgList ):
+    
+        pass
+        ax[ri,ci].set_title( titleList[i] )
+        
+        # Only show if valid image
+        if type(img) != type(None): ax[ri,ci].imshow( imgList[i] , cmap=cmap )
+        
+        # Iterate indices
+        ci += 1
+        if ci >= col_count:
+            ci = 0
+            ri += 1
+

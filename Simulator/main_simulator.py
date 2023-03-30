@@ -210,7 +210,7 @@ def many_endings( rInfo, simArg, cmdArg ):
     model_data = rInfo.get('model_data', None)
     ptsDir = rInfo.get('ptsDir', None)
     tmpDir = rInfo.get('tmpDir', None)
-    nPts = str(simArg.get('nPts',None))
+    nPts = str( simArg.get('nPts',None) )
                 
     if printAll:
         gm.tabprint("n particles: %s" % nPts)
@@ -218,7 +218,116 @@ def many_endings( rInfo, simArg, cmdArg ):
         gm.tabprint("ptsDir: %s" % ptsDir)
         gm.tabprint("tmpDir: %s" % tmpDir)
     
-    print("SIM: many_endings: Not implemented yet")
+    # Check for valid number of particles
+    if nPts != None:
+        # Check if using "k" abbreviation in num_particles
+        if 'k' in nPts:
+            kLoc = nPts.index('k')
+            n = int( nPts[0:kLoc] ) * 1000
+            nPts = n
+        
+        nPts = int( nPts )
+        
+        # Check if particle count is over max.
+        if nPts > maxN:
+            gm.eprint("\nWARNING: SIM: many_endings:")
+            gm.etabprint("Number of points is greater than max")
+            gm.etabprint("n particles: %s" % nPts)
+            gm.etabprint("n max: %s" % maxN)
+            return False
+    # end if nPts
+    
+    # Check if needed info has been obtained
+    if (model_data == None or ptsDir == None or tmpDir == None or nPts == None):
+        
+        gm.eprint("\nWARNING: SIM: many_endings:")
+        gm.etabprint("A required argument was invalid")
+        gm.etabprint("n particles: %s" % nPts)
+        gm.etabprint("model_data: %s" % model_data)
+        gm.etabprint("ptsDir: %s" % ptsDir)
+        gm.etabprint("tmpDir: %s" % tmpDir)
+        return False
+    
+    # Save current working directory and move to temp folder
+    prevDir = getcwd()
+    chdir( tmpDir )
+    
+    if printAll:
+        im.tabprint(' Current Working Dir: %s' % getcwd() )
+    
+    # Call SPAM wrapper
+    goodRun, retVal = many_endings_wrapper( nPts, model_data, printCmd = printAll )
+    
+    # Print results
+    if not goodRun:
+        gm.eprint("WARNING: SIM: many_endings")
+        gm.etabprint("New simulation failed.  Error given: ")
+        gm.eprint(retVal)
+        return
+    
+    if goodRun and printAll:
+        print("SIM: many_endings: Good simulation, value returned")
+        print(retVal)
+    
+    # Generate file names and locations
+    
+    # Unique names
+    fName = '%s_pts.101' % simArg['name']
+    
+    # Particle location created by SPAM.
+    sfLoc = tmpDir + sfName
+    
+    # Unique Loc
+    fLoc = tmpDir + fName
+    
+    # Rename SPAM temp particle files to prevent overwriting
+    rename( sfLoc, fLoc )
+    
+    if printAll:
+        im.tabprint("Particles Generated")
+        im.tabprint("F: (%s) - %s" % ( path.isfile( fLoc ), fLoc ) )
+    
+    # Remove other files and outputs
+    remove(tmpDir + "fort.21")
+    remove(tmpDir + "fort.24")
+    remove(tmpDir + "fort.50")
+    remove(tmpDir + "gmon.out")
+    remove(tmpDir + "gscript")
+    
+    # Check if saving particles files is required.
+    if cmdArg.get("zipSim",False):
+        
+        zipName = '%s.zip' % simArg['name']
+        
+        if printAll: 
+            im.tabprint("Zipping Files to: %s" % (ptsDir + zipName ) )
+            
+        # Auto closed on with exit
+        with ZipFile( ptsDir + zipName, 'w') as myzip:
+            myzip.write(fLoc, fName, compress_type=ZIP_DEFLATED)
+    
+    # Return to previous working directory to prevent potential errors elsewhere in code.
+    chdir( prevDir )
+
+# End Def many_endings
+
+def many_endings_wrapper( nPts, model_data, printCmd ):
+    sysCmd = '%s -m %d -n1 %d -n2 %d %s' % ( spam_many_endings_exe, 0, nPts, nPts, model_data) 
+
+    if printCmd:
+        print(sysCmd)
+    
+    # return False, "Not Implemented"
+        
+    try:
+        retVal = system(sysCmd)        
+        return True, retVal
+            
+    except Exception as e:
+        return False, e
+
+# End Def many_endings_wrapper
+
 
 def orbit_simulation( rInfo, cmdArg ):
         
