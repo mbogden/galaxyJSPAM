@@ -17,7 +17,7 @@ Might* be good for others to view.
 - Look into WandB for DL metrics
 
 - Test-3
-- Test 4dock
+- Test dock
 
 ## NOW
 - Coding
@@ -40,6 +40,8 @@ Might* be good for others to view.
       - Reading args.
         - IARGC()
         - GETARG()
+      - MANY ENDINGS RUN
+        - Write 11 steps: from -20% to 20% at 4% step around final position.
     
 - Disseration Proposal
     - Literature Review
