@@ -340,7 +340,78 @@ class run_info_class:
                 pts2 = pd.read_csv( fLoc, header=None, delim_whitespace=True ).values
         
         return pts1, pts2
+    # End readParticles
     
+    def readManyEndingsParticles( self, ptsName ):
+
+        
+        if self.printAll:
+            print("IM.run_info_class.readManyEndingsParticles:")
+            gm.tabprint('pts name: %s' % ptsName )
+        
+        # See if particle files are in temp folder unzipped
+        iLoc, fLoc = self.findPtsLoc( ptsName = ptsName )
+
+        # If found, read and return
+        if fLoc != None:
+            pts = pd.read_csv( fLoc, header=None, delim_whitespace=True ).values
+            return pts
+        
+        
+        # Else need to unzip a file
+        ptsZipLoc = self.findZippedPtsLoc( ptsName = ptsName )
+
+        if self.printAll: tabprint("Loading points from file: %s"%ptsZipLoc)
+
+        if ptsZipLoc == None:
+            gm.eprint("WARNING: IM.run_info_class.readManyEndingsParticles:")
+            gm.etabprint("zipped points not found: %s"%ptsZipLoc)
+            return None, None
+
+
+        from zipfile import ZipFile
+
+        
+        zipLoc = self.findPtsLoc( ptsName )        
+        if zipLoc == None:
+            return None
+
+        # Check if zip files need rezipping
+        self.delTmp()
+        rezip = False
+
+        with ZipFile( ptsZipLoc ) as zip:
+
+            for zip_info in zip.infolist():
+
+                if zip_info.filename[-1] == '/':
+                    continue
+                if len( zip_info.filename.split('/') ) > 1:
+                    rezip = True
+
+                zip_info.filename = path.basename( zip_info.filename)
+                zip.extract(zip_info, self.tmpDir)
+
+        if rezip:
+            from os import remove
+            remove(zipLoc)
+
+            with ZipFile( zipLoc, 'w' ) as zip:
+                for f in listdir( self.tmpDir ):
+                    fLoc = self.tmpDir + f
+                    zip.write( fLoc, path.basename(fLoc) )
+
+        files = listdir( self.tmpDir )
+        pts = None
+
+        for f in files:
+            fLoc = self.tmpDir + f
+
+            if '.101' in f:
+                pts = pd.read_csv( fLoc, header=None, delim_whitespace=True ).values
+        
+        return pts
+    # End readManyEndingsParticles
     
     def findPtsLoc( self, ptsName ):
 
