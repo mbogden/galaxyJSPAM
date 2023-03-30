@@ -22,7 +22,7 @@ import info_module as im
 
 
 def test():
-    print("SM: Hi!  You're in Matthew's main code for all things simulation.")
+    print("SIM: Hi!  You're in Matthew's main code for all things simulation.")
 
 # For testing and developement from outside. 
 new_func = None
@@ -85,7 +85,7 @@ def main(arg):
     
     if arg.simple:
         if arg.printBase: 
-            print("SM: Simple!~")
+            print("SIM: Simple!~")
             print("\t- Nothing else to see here")
 
     elif arg.runDir != None:
