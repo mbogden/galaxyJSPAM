@@ -68,13 +68,13 @@ program basic_run
 
 
 !   Calculate steps to write MANY ENDINGS
-  write(*,*)'Beginning Loop!'
+  ! write(*,*)'Beginning Loop!'
   ! Define i_step to output images
   do i = 1, 11
     j = ((i - 6)*4)+100
     k = j * nstep_local / 100
     i_images(i) = k
-    print*, i, j, k, i_images(i)
+    ! print*, i, j, k, i_images(i)
   enddo
 
 
@@ -89,7 +89,7 @@ program basic_run
     ! Many Endings Print
     do i = 1,11
       if ( mod(istep, i_images(i))==0) then
-        write(*,*)istep, i_images(i), nstep_local
+        ! write(*,*)istep, i_images(i), nstep_local
         !      call CREATE_IMAGES
         call OUTPUT_PARTICLES(unit, x0, mass1, mass2, &
              eps1, eps2, &

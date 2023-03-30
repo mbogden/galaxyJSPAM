@@ -35,6 +35,7 @@ def set_new_func( new_func_ptr ):
 
 spam_exe_loc = gm.validPath( __file__[0: __file__.rfind('/')] + "/bin/basic_run" )
 spam_orb_loc = gm.validPath( __file__[0: __file__.rfind('/')] + "/bin/orb_run" )
+spam_many_endings_loc = gm.validPath( __file__[0: __file__.rfind('/')] + "/bin/many_endings_run" )
 
 siName = "a_0.000"
 sfName = "a_0.101"
@@ -69,6 +70,7 @@ spam_param_names = [ \
 # Will return None is not found
 spam_exe = gm.validPath( spam_exe_loc )
 spam_orb = gm.validPath( spam_orb_loc )
+spam_many_endings_exe = gm.validPath( spam_many_endings_loc )
 
 nPart = 0
 maxN = 1e5  # Arbitrary limit in case of typo, can be changed if needed
@@ -108,7 +110,7 @@ def main_sim_run( rInfo, cmdArg = gm.inArgClass() ):
     printAll = rInfo.printAll
 
     if printBase:
-        print( "SM.main_sm_run:" )
+        print( "SIM: main_sm_run:" )
     
     # Check if run is valid
     if rInfo.status == False:
@@ -175,16 +177,48 @@ def main_sim_run( rInfo, cmdArg = gm.inArgClass() ):
         
     # Double check spam's executable is already built.
     if spam_exe == None:
-        gm.eprint("WARNING: SM.main_sm_run")
+        gm.eprint("WARNING: SIM: main_sm_run")
         gm.etabprint("SPAM executable command not found")
         gm.etabprint("location expected: %s" % spam_exe_loc )
         return
         
     for simKey in todoList:
-        new_simulation( rInfo, simParams[simKey], cmdArg )
+        simType = simParams[simKey].get( 'type', 'basic_run' )
+
+        if printBase:
+            gm.tabprint("Sim Key/Type: %s/%s" % (simKey,simType) )
+
+        if simType == 'basic_run':
+            basic_run( rInfo, simParams[simKey], cmdArg )
+
+        if simType == 'many_endings':
+            many_endings( rInfo, simParams[simKey], cmdArg )
     
 # end processing run dir
     
+
+def many_endings( rInfo, simArg, cmdArg ):
+    
+    printBase = cmdArg.printBase
+    printAll = cmdArg.printAll
+        
+    if printBase:
+        print("\nSIM: many_endings:")
+        im.tabprint("New Simulation Name: %s" % simArg['name'])
+    
+    # Grab needed variables and directories.
+    model_data = rInfo.get('model_data', None)
+    ptsDir = rInfo.get('ptsDir', None)
+    tmpDir = rInfo.get('tmpDir', None)
+    nPts = str(simArg.get('nPts',None))
+                
+    if printAll:
+        gm.tabprint("n particles: %s" % nPts)
+        gm.tabprint("model_data: %s" % model_data)
+        gm.tabprint("ptsDir: %s" % ptsDir)
+        gm.tabprint("tmpDir: %s" % tmpDir)
+    
+    print("SIM: many_endings: Not implemented yet")
 
 def orbit_simulation( rInfo, cmdArg ):
         
@@ -250,13 +284,13 @@ def orbit_simulation( rInfo, cmdArg ):
     
 # End orbit_simulation
 
-def new_simulation( rInfo, simArg, cmdArg ):
+def basic_run( rInfo, simArg, cmdArg ):
     
     printBase = cmdArg.printBase
     printAll = cmdArg.printAll
         
     if printBase:
-        print("\nSM.new_simulation:")
+        print("\nSIM: basic_run:")
         im.tabprint("New Simulation Name: %s" % simArg['name'])
     
     # Grab needed variables and directories.
@@ -283,7 +317,7 @@ def new_simulation( rInfo, simArg, cmdArg ):
         
         # Check if particle count is over max.
         if nPts > maxN:
-            gm.eprint("\nWARNING: SM.new_simulation:")
+            gm.eprint("\nWARNING: SIM: basic_run:")
             gm.etabprint("Number of points is greater than max")
             gm.etabprint("n particles: %s" % nPts)
             gm.etabprint("n max: %s" % maxN)
@@ -293,7 +327,7 @@ def new_simulation( rInfo, simArg, cmdArg ):
     # Check if needed info has been obtained
     if (model_data == None or ptsDir == None or tmpDir == None or nPts == None):
         
-        gm.eprint("\nWARNING: SM.new_simulation:")
+        gm.eprint("\nWARNING: SIM: basic_run:")
         gm.etabprint("A required argument was invalid")
         gm.etabprint("n particles: %s" % nPts)
         gm.etabprint("model_data: %s" % model_data)
@@ -313,13 +347,13 @@ def new_simulation( rInfo, simArg, cmdArg ):
     
     # Print results
     if not goodRun:
-        gm.eprint("WARNING: SM.new_simulation")
+        gm.eprint("WARNING: SIM: basic_run")
         gm.etabprint("New simulation failed.  Error given")
         gm.eprint(retVal)
         return
     
     if goodRun and printAll:
-        print("SM.new_simulation: Good simulation, value returned")
+        print("SIM: basic_run: Good simulation, value returned")
         print(retVal)
     
     # Generate file names and locations
@@ -368,7 +402,7 @@ def new_simulation( rInfo, simArg, cmdArg ):
     # Return to previous working directory to prevent potential errors elsewhere in code.
     chdir( prevDir )
 
-# End Def new_simulation
+# End Def basic_run
 
 
 def orbit_wrapper( model_data, printCmd ):
@@ -397,7 +431,7 @@ def spam_wrapper( nPts, model_data, printCmd ):
     sysCmd = '%s -m %d -n1 %d -n2 %d %s' % (spam_exe, 0, nPts, nPts, model_data)
     
     if printCmd:
-        print("\nSM.spam_wrapper: ")
+        print("\nSIM: spam_wrapper: ")
         im.tabprint('Calling Shell cmd: %s' % sysCmd)
         
     try:
