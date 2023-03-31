@@ -523,8 +523,8 @@ class run_info_class:
         
         if imgLoc == None: 
             # print warning if image not found
-            gm.eprint( "WARNING: IMG.getModelImage:")
-            gm.etabprint("Image not found: %s" % imgName,)
+            if self.printAll:
+                gm.etabprint("Image not found: %s" % imgName,)
             return None
         
         # Read image
