@@ -134,10 +134,10 @@ def create_many_endings_images( rInfo, sParam, overwrite=False, printAll = False
     
     # Check if image exists on disk
     if not overwrite:
-        imgLoc = rInfo.getModelImage( imgName, imgType='many_endings' )
-        if type(imgLoc) != type(None):
+        img = rInfo.getModelImage( imgName, imgType='many_endings' )
+        if type(img) != type(None):
             if printAll: im.tabprint("Image already exists: %s"%imgName)
-            return rInfo.readImage( imgName, imgType='many_endings')
+            return img
 
     # If image does not exist, read Particles
     if printAll: im.tabprint("Creating image: %s"%imgName)
