@@ -161,8 +161,8 @@ def main_sim_run( rInfo, cmdArg = gm.inArgClass() ):
             continue
         
         # Find if points file exists, add if it doesn't
-        iLoc, fLoc = rInfo.findPtsLoc( simParams[simKey]['name'] )        
-        if iLoc == None or fLoc == None:
+        zLoc = rInfo.findZippedPtsLoc( simParams[simKey]['name'] )        
+        if zLoc == None:
             todoList.append(simKey)
         else:
             im.tabprint("Particles Found: %s" % simParams[simKey]['name'])
