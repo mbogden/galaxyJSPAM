@@ -233,7 +233,7 @@ def getManyParticles( rInfo, simName, printAll = False ):
     ptsList = []
 
     for i in range(nImgs):
-        
+            
         iPts = particle_class( None, raw_pts[i*nptsImg:i*nptsImg+nptsImg] )
 
         validPts = type(getattr(iPts,'g1f')) != type(None)
@@ -444,7 +444,7 @@ def blurImg( img, imgArg ):
 # End blur image
 
 
-def normImg( img, imgArg ):
+def normImg( img, imgArg, toType=cv2.CV_8U ):
     
     # Get arguments for normalizing    
     normArg = imgArg.get('normalization',None)
@@ -454,19 +454,32 @@ def normImg( img, imgArg ):
         normType = 'linear'
         normArg = {'type':'linear'}
         normArg = {'max_brightness':1.0}
-        
+
+    if toType == cv2.CV_8U:
+        maxVal = 255
+    elif toType == cv2.CV_32F:
+        maxVal = 1.0
     else:
-        normType = normArg.get('type')
+        maxVal = 1.0
+
+    normType = normArg.get('type')
     
+    
+    # Set highest value to 255, lowest to 0
+    if toType == cv2.CV_8U:
+        img = cv2.normalize( img, np.zeros( img.shape ), 0, 255, \
+                    cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+    elif toType == cv2.CV_32F:
+        img = cv2.normalize( img, np.zeros( img.shape ), 0, 1.0, \
+                    cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+                    
+        
     # If max brightness present, make all pixels brighter than max equal max  
     lMax = normArg.get('max_brightness',None)
     if lMax != None:      
-        img[img>lMax] = lMax      
-    
-    # Set highest value to 255, lowest to 0
+        img[img>lMax] = lMax
+        
     if normType == 'linear':
-        img = cv2.normalize( img, np.zeros( img.shape ), 0, 255, \
-                    cv2.NORM_MINMAX, dtype=cv2.CV_8U)
         return img    
     
     # exponential curve, dim pixels get much brighter
@@ -844,7 +857,7 @@ def addGalaxy( ptSet, imgArg, gNum=None ):
         
     else:
         rConst = rConst[gNum]
-        
+            
     x = ptSet[:,0]
     y = ptSet[:,1]
     r = ptSet[:,2]
