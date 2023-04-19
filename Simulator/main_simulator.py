@@ -164,7 +164,7 @@ def main_sim_run( rInfo, cmdArg = gm.inArgClass() ):
         zLoc = rInfo.findZippedPtsLoc( simParams[simKey]['name'] )        
         if zLoc == None:
             todoList.append(simKey)
-        else:
+        elif printAll:
             im.tabprint("Particles Found: %s" % simParams[simKey]['name'])
     # End simKey in simParams
     

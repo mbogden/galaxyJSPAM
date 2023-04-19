@@ -156,7 +156,6 @@ def create_many_endings_images( rInfo, sParam, overwrite=False, printAll = False
 
     # Create array to contain images
     manyImg = np.zeros( ( len(ptsList), imgArg['image_size']['height'], imgArg['image_size']['width'] )  )
-    print( 'manyImg shape: ', manyImg.shape )
     
     for i, pts in enumerate(ptsList):
 
