@@ -2,6 +2,8 @@
 These are written by Matthew Ogden for Matthew Ogden while creating and organizing code.  
 Might* be good for others to view.
 
+## Test edits
+- Test Beowulf
     
 - Commands to remember
     - `python3 main_SIMR.py -targetDir path/to/target -newInfo -newRunInfo -newBase -newRunBase` 
@@ -15,10 +17,6 @@ Might* be good for others to view.
 - Hyperparameters. 
 
 - Look into WandB for DL metrics
-
-- Test-3
-- Test dock
-- test 3/30/23 v2
 
 ## NOW
 - Coding
