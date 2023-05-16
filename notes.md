@@ -4,6 +4,7 @@ Might* be good for others to view.
 
 ## Test edits
 - Test Beowulf
+- beowulf beta-1
     
 - Commands to remember
     - `python3 main_SIMR.py -targetDir path/to/target -newInfo -newRunInfo -newBase -newRunBase` 
