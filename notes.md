@@ -2,6 +2,10 @@
 These are written by Matthew Ogden for Matthew Ogden while creating and organizing code.  
 Might* be good for others to view.
 
+## Test edits
+- Test Beowulf
+- beowulf beta-1
+- Babbage edit.  Please work....
     
 - Commands to remember
     - `python3 main_SIMR.py -targetDir path/to/target -newInfo -newRunInfo -newBase -newRunBase` 
@@ -9,16 +13,41 @@ Might* be good for others to view.
     -  ``
 
 # Matt's Working To-Do
-- Test-2
-- Test-3
+- Use Graham's stats
+- See if one particular target is really bad to test against.
+- Check model outlier's 
+- Hyperparameters. 
+
+- Look into WandB for DL metrics
 
 ## NOW
 - Coding
-    - Perform results on many systems. 
+    - (done) Perform results on many systems. 
+    - Bigger Training set,
+      - Zoom in on image
+      - Good Models, with time offsets. 
+      - Different brightnesss
+
+    - Modify Images during Training.
+      - Affine Transform (Slant/stretch)
+      - overlaps slightly off
+      - Scaling
+      - Zoom in/out
+      - Reflectives. 
+      - Offsets in space. 
+    - Fortran
+      - Output Particles directly above and below "main integration loop"
+        - Add OUTPUT call in loop with flag. 
+      - Reading args.
+        - IARGC()
+        - GETARG()
+      - MANY ENDINGS RUN
+        - Write 11 steps: from -20% to 20% at 4% step around final position.
     
 - Disseration Proposal
     - Literature Review
         - 30's ish papers to include.  About 1-2 per day
+      
         
 
 ## Later

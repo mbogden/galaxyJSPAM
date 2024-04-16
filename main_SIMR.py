@@ -27,8 +27,8 @@ mpi_size = mpi_comm.Get_size()
 # For loading in Matt's general purpose python libraries
 import Support_Code.general_module as gm
 import Support_Code.info_module as im
-import Simulator.main_simulator as sm
-from Image_Creator import main_image_creator as ic
+import Simulator.main_simulator as SIM
+import Image_Creator.main_image_creator as IMG
 import Feature_Extraction.main_feature_extraction as fe
 import Neural_Network.main_neural_networks as nn
 sysPath.append( path.abspath( 'Machine_Score/' ) )
@@ -61,8 +61,8 @@ def main(arg):
     if arg.printAll and mpi_rank == 0:
         arg.printArg()
         gm.test()
-        sm.test()
-        im.test()
+        SIM.test()
+        IMG.test()
         fe.test()
         nn.test()
         ms.test()
@@ -172,16 +172,19 @@ def target_main( cmdArg=gm.inArgClass(), tInfo = None ):
         else:
             target_test_new_gen_scores_single( cmdArg, tInfo )
     
+    # For creating new orbits
+    if cmdArg.get( 'newOrbit', False ):
+        pass
+        #target_new_orbits( tInfo, cmdArg )
+    
     # Create new files/scores if called upon
-    elif cmdArg.get( 'newAll', False ) \
+    if cmdArg.get( 'newAll', False ) \
+    or cmdArg.get( 'newTargetImage', False ) \
     or cmdArg.get( 'newSim', False ) \
     or cmdArg.get( 'newImage', False ) \
     or cmdArg.get( 'newFeats', False ) \
     or cmdArg.get( 'newScore', False ) \
-    or cmdArg.get( 'normFeats', False ):
-        if printBase and mpi_rank == 0: 
-            print("SIMR.simr_target:  Creating new scores")
-            
+    or cmdArg.get( 'normFeats', False ):            
         target_new_scores( tInfo, cmdArg )
     
     else:
@@ -216,7 +219,7 @@ def GA_Experiment_Wrapper( cmdArgs, tInfo ):
         ga_param = cmdArgs.get('gaParam', None)
         if cmdArgs.get('gaParam', None) == None and cmdArgs.get('gaParamLoc', None) == None:
             print("WARNING: SIMR.GA_Experiment_Wrapper:")
-            gm.tabprint("Please provide Genetic Algorithm Parameters")
+            gm.tabprint("Please provide Genet. Algorithm Parameters")
             gm.tabprint("\"-gaParamLoc path/to/ga_param.json\"")
             runArgs = None
         
@@ -748,14 +751,14 @@ def target_initialize( cmdArg=gm.inArgClass(), tInfo = None ):
         cmdArg.printBase = True
 
     if printBase:
-        print("SIMR.target_initialize:")
-        print("\t - tDir: %s" % tDir )
-        print("\t - tInfo: %s" % type(tInfo) )
+        print("SIMR: target_initialize:")
+        gm.tabprint("tDir: %s" % tDir )
+        gm.tabprint("tInfo: %s" % type(tInfo) )
 
     # Check if given a target
     if tInfo == None and tDir == None and cmdArg.get('tInfo') == None:
-        print("WARNING: SIMR.target_initialize:")
-        print("\t - Please provide either target directory or target_info_class")
+        gm.eprint("WARNING: SIMR.target_initialize:")
+        gm.etabprint("Please provide either target directory or target_info_class")
         return
 
     # Read target directory if location given. 
@@ -767,7 +770,7 @@ def target_initialize( cmdArg=gm.inArgClass(), tInfo = None ):
         if cmdArg.get('newBase',False):
             try:
                 chime_0 = tInfo.readScoreParam( 'chime_0' )
-                chime_image = ic.adjustTargetImage( tInfo, chime_0['chime_0'], \
+                chime_image = IMG.adjustTargetImage( tInfo, chime_0['chime_0'], \
                                                    printAll = cmdArg.printAll )
                 tInfo.saveWndchrmImage( chime_image, chime_0['chime_0']['imgArg']['name'] )
             except: pass
@@ -788,7 +791,7 @@ def target_initialize( cmdArg=gm.inArgClass(), tInfo = None ):
 
     # Check if valid directory
     if tInfo.status == False:
-        print("WARNING: SIMR.target_initialize:  Target Info status bad")
+        gm.eprint("WARNING: SIMR.target_initialize:  Target Info status bad")
         return None
             
     if cmdArg.get('printParam', False):
@@ -814,6 +817,13 @@ def prep_score_parameters( cmdArg, tInfo ):
     scoreParamName = cmdArg.get('scoreParamName',None)
     scoreParamLoc = gm.validPath( cmdArg.get('scoreParamLoc',None) )
     
+    if printAll:
+        print("SIMR: prep_score_parameters: ")
+        gm.tabprint('ParamType: %s'%type(scoreParams))
+        gm.tabprint('scoreParamName: %s'%scoreParamName)
+        gm.tabprint('scoreParamLoc : %s'%scoreParamLoc)
+        
+    
     # If params there, move on
     if scoreParams != None:
         pass
@@ -821,10 +831,10 @@ def prep_score_parameters( cmdArg, tInfo ):
     # If invalid, complain
     elif scoreParams == None and scoreParamLoc == None and scoreParamName == None:
         if printBase:
-            print("WARNING: prep_score_parameters: params not valid")
-            gm.tabprint('ParamType: %s'%type(scoreParams))
-            gm.tabprint('scoreParamName: %s'%scoreParamName)
-            gm.tabprint('scoreParamLoc : %s'%scoreParamLoc)
+            gm.eprint("WARNING: prep_score_parameters: params not valid")
+            gm.etabprint('ParamType: %s'%type(scoreParams))
+            gm.etabprint('scoreParamName: %s'%scoreParamName)
+            gm.etabprint('scoreParamLoc : %s'%scoreParamLoc)
         return None
 
     # If given a param name, assume target knows where it is.
@@ -832,10 +842,12 @@ def prep_score_parameters( cmdArg, tInfo ):
         
         # Check if in target's score parameters
         scoreParams = tInfo.getScoreParam( scoreParamName )
+        gm.tabprint("From target_info: ", type(scoreParams)) if printAll else None
         
         # Else look for file by that name
         if scoreParams == None:
             scoreParams = tInfo.readScoreParam(scoreParamName)
+            gm.tabprint("From target file: ", type(scoreParams)) if printAll else None
     
     # If given param location, directly read file
     elif scoreParamLoc != None:
@@ -844,7 +856,8 @@ def prep_score_parameters( cmdArg, tInfo ):
     # Check for final parameter file is valid
     if scoreParams == None:
         if printBase:
-            print("WARNING: SIMR.prep_score_parameters: Failed to load parameter class")
+            gm.eprint("WARNING: SIMR.prep_score_parameters:")
+            gm.etabprint("Failed to load parameter class")
         return None
     
     cmdArg.setArg('scoreParams', scoreParams)
@@ -856,14 +869,24 @@ def prep_score_parameters( cmdArg, tInfo ):
         
         # Loop through all params for creation
         for key in scoreParams:
-            new_param = ic.adjustTargetImage( tInfo = tInfo, new_param = scoreParams[key], \
+            new_param = IMG.adjustTargetImage( tInfo = tInfo, new_param = scoreParams[key], \
                                  overWrite = cmdArg.get('overWrite'), printAll = printAll )
             if new_param != None:
                 scoreParams[key] = new_param
+                
             else:
-                print("WARNING: SIMR.prep_score_parameters:")
-                gm.tabprint("Bad new parameters")
+                gm.eprint("WARNING: SIMR.prep_score_parameters:")
+                gm.etabprint("Bad new parameters")
+                
+    # Print param stuff
+    cmdArg.setArg('scoreParams', scoreParams)
+    tInfo.addScoreParameters( scoreParams )
 
+    if printAll:
+        print("SIMR: prep_score_parameters: Finished Prepping ")
+        gm.tabprint('scoreParams: %s'%type(scoreParams))
+        gm.tabprint('scoreParamName: %s'%scoreParamName)
+        gm.tabprint('scoreParamLoc : %s'%scoreParamLoc)
             
     return cmdArg.get('scoreParams',None)
 # End prep_score_parameters    
@@ -906,12 +929,144 @@ def target_prep_cmd_params( tInfo, tArg ):
         print('')
     
     return runArgs
+
+def target_new_orbits( tInfo, cmdArg ):
+    
+    printBase = cmdArg.printBase
+    printAll = cmdArg.printAll
+    
+    if printAll:
+        print( "SIMR: target_new_orbits:" ) 
+        
+    # If not in MPI Env
+    if mpi_size == 1:
+        
+        runArgs = target_prep_cmd_params( tInfo, cmdArg )
+        
+    
+    # In MPI_Env
+    else:
+                
+        # Have rank 0 prep args and broadcast
+        if mpi_rank == 0:
+            runArgs = target_prep_cmd_params( tInfo, cmdArg )
+            
+        else:
+            runArgs = None
+            
+        runArgs = mpi_comm.bcast( runArgs, root=0 )
+        mpi_comm.Barrier()
+    
+    if type(runArgs) == type(None):
+        print("WARNING: SIMR.target_new_scores: Invalid run arguments")
+        return None
+    
+    
+    # Rank 0 has argList and will distribute
+    argList = None    
+    scatter_lists = []
+    
+    if mpi_rank == 0:
+        
+        
+        # Check if grabbing subset of runs.  If not, presume all
+        if cmdArg.get('startRun',None) != None \
+        and cmdArg.get('nRun',None) != None \
+        and cmdArg.get('endRun',None) != None:
+         
+            runDicts = tInfo.iter_run_dicts()
+        
+        else:            
+            runDicts = tInfo.iter_run_dicts( \
+               startRun = cmdArg.get('startRun',0), \
+               endRun   = cmdArg.get('endRun',-1), \
+               stepRun  = cmdArg.get('stepRun',1),)
+        
+        argList = []
+        
+        for i,rKey in enumerate(runDicts):
+
+            rDir = tInfo.getRunDir(rID=rKey)
+            if rDir == None:
+                if printBase: 
+                    gm.eprint("WARNING: SIMR.target_new_orbits: Run invalid: %s" % rKey)
+                    
+            argList.append( dict( cmdArg = runArgs, rDir=rDir, ) )
+
+        # Print how many scores expecting to be completed.
+        if tInfo.printBase:      
+            gm.tabprint("Runs needing orbits: %d"%len(argList))
+
+        # Divide up the big list into many lists for distributing
+        if len( argList ) > 0:
+            scatter_lists = [ argList[i::mpi_size] for i in range(mpi_size) ]
+
+        # If nothing to do, create a list of empty lists so others know
+        else: 
+            for i in range(mpi_size):
+                scatter_lists.append([])
+
+        if tInfo.printAll:
+            print("SIMR: target_new_scores: MPI Scatter argList")
+            gm.tabprint("Rank 0 argList: %d"%len(argList))
+            gm.tabprint("Rank 0 scatter_lists: %d"%len(scatter_lists))
+            for i,lst in enumerate(scatter_lists):
+                gm.tabprint("Rank 0 list %d: %d"%(i,len(lst)))
+
+    # Scatter argument lists to everyone
+    argList = mpi_comm.scatter(scatter_lists,root=0)
+    if tInfo.printAll:
+        gm.tabprint("Rank %d received: %d"%(mpi_rank,len(argList)))
+        
+        
+    ############################
+    ###  Execute Model Runs  ###
+    ############################
+
+    # Everyone go through their list and execute runs    
+    for i,args in enumerate(argList):
+        run_new_score( **args )
+
+        if mpi_rank == 0:
+            gm.tabprint("Rank 0: Progress: %d / %d " % (i+1,len(argList)), end='\r')
+
+    if mpi_rank == 0: print('')
+
+    # Everyone wait for everyone else to finish
+    mpi_comm.Barrier()
+
+    # Have rank 0 collect files and update scores
+    if mpi_rank == 0:
+
+        # Check if target needs to create feature values
+        if cmdArg.get('newFeats',False):
+            fe.wndchrm_target_all( cmdArg, tInfo )
+            fe.reorganize_wndchrm_target_data( cmdArg, tInfo )
+        
+        # Normalize feature values after created for runs
+        if cmdArg.get('normFeats',False):
+            fe.target_collect_wndchrm_all_raw( cmdArg, tInfo = tInfo )
+            fe.target_wndchrm_create_norm_scaler( cmdArg, tInfo, )
+            
+        # Create new neural network model if called for
+        if cmdArg.get('newNN',False):
+            nn.target_new_neural_network( cmdArg, tInfo )
+
+        tInfo.gatherRunInfoFiles()
+        tInfo.updateScores()
+
+    
+# End target_new_orbit
+    
         
 
 def target_new_scores( tInfo, cmdArg ):
     
-    printBase = tInfo.printBase
-    printAll = tInfo.printAll
+    printBase = cmdArg.printBase
+    printAll = cmdArg.printAll
+    
+    if printAll:
+        print( "SIMR: target_new_scores:" )
     
     
     ###############################
@@ -1095,6 +1250,10 @@ def run_new_score( cmdArg = None, rInfo = None, rDir = None ):
     if printBase:
         gm.tabprint('runID: %s' % rInfo.get('run_id'))
     
+    # Check if asking for new orbit
+    if cmdArg.get('newOrbit'):
+        SIM.orbit_simulation( rInfo = rInfo, cmdArg=tmpArg )
+    
     # Check if score parameters were given
     if cmdArg.get('scoreParamLoc') != None and cmdArg.get('scoreParams') == None:
         sParams = gm.readJson( cmdArg.scoreParamLoc )
@@ -1121,6 +1280,14 @@ def run_new_score( cmdArg = None, rInfo = None, rDir = None ):
     # Loop through score parameters and grab unique simulation scenarios. 
     else:
         for key in scoreParams:
+            
+            # Check for valid param
+            if type( scoreParams[key] ) == type( None ) or type( scoreParams[key] ) != type( {'dict':'dict'} ) :
+                gm.etabprint("WARNING: SIMR.run_new_score: %s" % rInfo.get('run_id') )
+                gm.etabprint("Invalid Score Param: %s" % key )
+                gm.etabprint(scoreParams[key]) 
+                continue
+                
             score = rInfo.getScore( scoreParams[key]['name'] )
             if score == None:
                 newParams[key] = scoreParams[key]
@@ -1136,21 +1303,21 @@ def run_new_score( cmdArg = None, rInfo = None, rDir = None ):
     else:  
         if rInfo.printAll:  gm.tabprint("Creating new scores")
         
-    
     tmpArg = deepcopy( cmdArg )
     tmpArg.scoreParams = newParams
 
     # Check if new files should be created/altered    
     
     newAll = cmdArg.get('newAll',False)
+    
     # Asking for new simulation data?
     if cmdArg.get('newSim') or newAll:
-        sm.main_sm_run( rInfo = rInfo, cmdArg=tmpArg )
+        SIM.main_sim_run( rInfo = rInfo, cmdArg=tmpArg )
 
     # Asking for new image creation?
     if cmdArg.get('newImage') or newAll:
-        ic.main_ic_run( rInfo = rInfo, arg=tmpArg )
-        ''
+        IMG.main_img_run( rInfo = rInfo, arg=tmpArg )
+        
     # Asking for new feature extraction from images? 
     if cmdArg.get('newFeats') or newAll:
         fe.main_fe_run( rInfo = rInfo, arg=tmpArg )

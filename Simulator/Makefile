@@ -23,17 +23,17 @@ F90SRCDIR 	:= fortran/src
 F90INCLUDE 	:= fortran/includes
 F90OBJDIR 	:= fortran/obj
 F90OBJS 	:= parameters_module.o io_module.o df_module.o setup_module.o \
-			   integrator.o init_module.o basic_run.o
+			   integrator.o init_module.o
 F90BUILDDIR := fortran/build
 #F90LIBS =
 
-F90MAINTARGETS := $(addprefix $(F90BIN)/,basic_run mod_run)
+F90MAINTARGETS := $(addprefix $(F90BIN)/,basic_run mod_run orb_run many_endings_run)
 
 # --------------------------------------------------------------------------- #
 # Main targets
 # --------------------------------------------------------------------------- #
 all: setup standard
-standard: basic_run
+standard: basic_run orb_run many_endings_run
 
 # --------------------------------------------------------------------------- #
 # Utilities and PHONY
@@ -47,7 +47,7 @@ setup:
 .PHONY: setup
 
 clean:
-	@$(RM) basic_run *.o *.mod mod_run
+	@$(RM) basic_run *.o *.mod mod_run orb_run many_endings_run
 	@$(RM) $(F90MAINTARGETS)
 	@$(RM) $(F90OBJDIR)
 	@$(RM) $(F90BUILDDIR)
@@ -60,7 +60,15 @@ clean:
 # --------------------------------------------------------------------------- #
 # Main Targets
 # ------------------------------------ #
-basic_run: $(F90OBJS)
+basic_run: $(F90OBJS) basic_run.o
+	$(ALERT)
+	$(F90) -o $(BIN)/$@ $(F90LIBS) $(addprefix $(F90OBJDIR)/,$^)
+    
+orb_run: $(F90OBJS) orb_run.o
+	$(ALERT)
+	$(F90) -o $(BIN)/$@ $(F90LIBS) $(addprefix $(F90OBJDIR)/,$^)
+
+many_endings_run: $(F90OBJS) many_endings_run.o
 	$(ALERT)
 	$(F90) -o $(BIN)/$@ $(F90LIBS) $(addprefix $(F90OBJDIR)/,$^)
 
@@ -106,4 +114,10 @@ mod_run.o: $(F90SRCDIR)/mod_run.f90 parameters_module.o
 	$(ALERT)
 	$(F90) -c -J$(F90BUILDDIR) $(F90SRCDIR)/$*.f90 -o $(F90OBJDIR)/$@
 
+many_endings_run.o: $(F90SRCDIR)/many_endings_run.f90 parameters_module.o
+	$(ALERT)
+	$(F90) -c -J$(F90BUILDDIR) $(F90SRCDIR)/$*.f90 -o $(F90OBJDIR)/$@
 
+orb_run.o: $(F90SRCDIR)/orb_run.f90 parameters_module.o
+	$(ALERT)
+	$(F90) -c -J$(F90BUILDDIR) $(F90SRCDIR)/$*.f90 -o $(F90OBJDIR)/$@

@@ -18,7 +18,7 @@ import general_module as gm
 import info_module as im
 
 def test():
-    print("IC: Hi!  You're in Matthew's main code for all things image creation.")
+    print("IMG: Hi!  You're in Matthew's main code for all things image creation.")
     
 # For testing and developement
 new_func = None
@@ -54,7 +54,7 @@ def main(arg):
 # End main
 
 
-def main_ic_run( rInfo = None, arg = gm.inArgClass() ):
+def main_img_run( rInfo = None, arg = gm.inArgClass() ):
     
     # extract variables
     printBase = arg.printBase
@@ -67,19 +67,19 @@ def main_ic_run( rInfo = None, arg = gm.inArgClass() ):
     scoreParams = arg.get('scoreParams',None)
 
     if printBase:
-        print("IC: image_creator_run")
+        print("IMG: image_creator_run")
         if printAll: gm.tabprint("printAll")
 
     if rInfo.status == False:
-        if printBase: print('IC: WARNGING:\n\t - rInfo status not good. Exiting...' )
+        if printBase: print('IMG: WARNGING:\n\t - rInfo status not good. Exiting...' )
         return
     
     if scoreParams == None:
-        if printBase: print("IC: WARNING: Please provide score parameters")
+        if printBase: print("IMG: WARNING: Please provide score parameters")
         return
     
     elif printAll:
-        print("IC: given parameters: %d"%len(scoreParams))
+        print("IMG: given parameters: %d"%len(scoreParams))
     
     # Extract types of images being created
     imgParams = {}
@@ -92,21 +92,173 @@ def main_ic_run( rInfo = None, arg = gm.inArgClass() ):
     # Loop through files
     n = len(scoreParams)
     for i, pKey in enumerate(imgParams):
-        if printAll: print( "IC: ",pKey )
+        if printAll: print( "IMG: ",pKey )
                     
         sParam = imgParams[pKey]
-        create_image_from_parameters( rInfo, sParam, printAll = printAll, overwrite=overWrite, )
+
+        imgType = sParam['imgArg'].get('type','model')
+        if imgType == 'model':
+            create_basic_run_image( rInfo, sParam, printAll = printAll, overwrite=overWrite, )
+        elif imgType == 'many_endings':
+            create_many_endings_images( rInfo, sParam, printAll = printAll, overwrite=overWrite, )
+
         
         if printBase:
-            print( 'IC_LOOP: %4d / %4d' % (i+1,n), end='\r' )
-    if printBase: print( 'IC_LOOP: %4d / %4d: COMPLETE' % (n,n) )
+            print( 'IMG_LOOP: %4d / %4d' % (i+1,n), end='\r' )
+    if printBase: print( 'IMG_LOOP: %4d / %4d: COMPLETE' % (n,n) )
             
 # End main image creator run
-        
-def create_image_from_parameters( rInfo, sParam, overwrite=False, printAll = False, ):
+
+def create_many_endings_images( rInfo, sParam, overwrite=False, printAll = False, ):
     
     if printAll: 
-        print("IC: Creating image:")
+        print("IMG: create_many_endings_images:")
+        gm.tabprint('runId: %s'%rInfo.get('run_id'))
+        gm.tabprint('score: %s'%sParam.get('name'))
+        
+    # Add place to keep points and images in memory
+    if rInfo.get('img',None) == None:
+        rInfo.img = {}
+        
+    if rInfo.get('pts',None) == None:
+        rInfo.pts = {}
+    
+    # Grab idenitfying names
+    imgName = sParam['imgArg'].get('name',None)
+    simName = sParam['simArg'].get('name',None)
+
+    # If Image is already created
+    if imgName in rInfo.img and not overwrite:
+        if printAll: im.tabprint("Image already in runInfo: %s"%imgName)
+        return rInfo.img[imgName]
+    
+    # Check if image exists on disk
+    if not overwrite:
+        img = rInfo.getModelImage( imgName, imgType='many_endings' )
+        if type(img) != type(None):
+            if printAll: im.tabprint("Image already exists: %s"%imgName)
+            return img
+
+    # If image does not exist, read Particles
+    if printAll: im.tabprint("Creating image: %s"%imgName)
+
+    # Get particles
+    ptsList = getManyParticles( rInfo, simName, printAll=printAll )
+
+    # If no particles found, print error and return
+    if type(ptsList) == type(None):
+        gm.eprint("ERROR: IMG.create_many_endings_images:")
+        gm.etabprint("Could not find particles: %s"%simName)
+        return
+
+    # Get args
+    imgArg = sParam['imgArg']
+
+    # Create array to contain images
+    manyImg = np.zeros( ( len(ptsList), imgArg['image_size']['height'], imgArg['image_size']['width'] )  )
+    
+    for i, pts in enumerate(ptsList):
+
+        # Add particles to image
+        mImg = pts2image( pts,  imgArg )
+        mImg = blurImg( mImg, imgArg )
+        mImg = normImg( mImg, imgArg )
+
+        # Use image as float32 type for scoring
+        if mImg.dtype == np.uint8:
+            mImg = gm.uint8_to_float32( mImg )
+            rInfo.img[imgName] = mImg
+
+        # Check for valid image
+        if type(mImg) == type(None):
+            gm.eprint("ERROR: IMG.create_many_endings_images:")
+            gm.etabprint("Could not create image: %s"%imgName)
+            return
+        
+        manyImg[i] = mImg
+    
+    # Save image to runInfo
+    rInfo.img[imgName] = manyImg
+    
+    # Check if manyImg is all zeros
+    if np.sum(manyImg) == 0:
+        gm.eprint("ERROR: IMG.create_many_endings_images:")
+        gm.etabprint("No Image was created: %s"%imgName)
+        return
+    
+    # Get new image from rInfo
+    
+    rInfo.saveImage( imgName, manyImg, imgType = 'many_endings' )
+    
+
+# End create_many_endings_images
+
+def getManyParticles( rInfo, simName, printAll = False ):
+
+    if printAll: 
+        print("IMG: getManyParticles: ")
+        gm.tabprint( "simArg: %s" % type(simName ) )
+
+    # Check if rInfo has pts dictionary
+    if rInfo.get('pts',None) == None:
+        rInfo.pts = {}
+    
+    # Check if files are loaded in run info class
+    pts = rInfo.pts.get(simName,None)
+
+    # Return points if  found
+    if type(pts) != type(None):
+        return pts
+
+    raw_pts = rInfo.readManyEndingsParticles( simName )
+
+    if type(raw_pts) == type(None):
+        gm.eprint("ERROR: IMG.getManyParticles:")
+        gm.etabprint("Could not read particles: %s"%simName)
+        return None
+
+    # Count images by modding by 100, There is an extra point per 2nd galaxy center
+    nImgs = raw_pts.shape[0] % 100
+
+    # Count particles per galaxy by dividing by NImgs
+    nptsImg = int( ( raw_pts.shape[0] - nImgs) / (nImgs) ) + 1
+
+    if printAll: 
+        gm.tabprint("Read Many Particles: %s"%str(raw_pts.shape))
+        gm.tabprint("Number of images: %s"%nImgs)
+        gm.tabprint("Number of particles per image: %s"%nptsImg)
+
+    # Create list of images
+    ptsList = []
+
+    for i in range(nImgs):
+            
+        iPts = particle_class( None, raw_pts[i*nptsImg:i*nptsImg+nptsImg] )
+
+        validPts = type(getattr(iPts,'g1f')) != type(None)
+        
+        if validPts: 
+            if printAll: gm.tabprint("Points shape: %s"%str(getattr(iPts,'g1f').shape))
+            ptsList.append( iPts )
+
+    if len(ptsList) == 0:
+        gm.eprint("ERROR: IMG.getManyParticles:")
+        gm.etabprint("No valid particles found: %s"%simName)
+        return None
+        
+    # Add List to runInfo
+    rInfo.pts[simName] = ptsList
+    
+    return ptsList
+
+# End getManyParticles
+
+
+        
+def create_basic_run_image( rInfo, sParam, overwrite=False, printAll = False, ):
+    
+    if printAll: 
+        print("IMG: create_basic_run_image:")
         im.tabprint('runId: %s'%rInfo.get('run_id'))
         im.tabprint('score: %s'%sParam.get('name'))
         
@@ -133,7 +285,7 @@ def create_image_from_parameters( rInfo, sParam, overwrite=False, printAll = Fal
 
         # Check if images already created
         if mImgLoc != None and iImgLoc != None:        
-            if printAll: print("IC: Image '%s' already made for %s"%(imgName,rInfo.get('run_id')))
+            if printAll: print("IMG: Image '%s' already made for %s"%(imgName,rInfo.get('run_id')))
 
             # Unless overwriting images, load images and return
             if not overwrite: 
@@ -147,13 +299,13 @@ def create_image_from_parameters( rInfo, sParam, overwrite=False, printAll = Fal
     
         # Check if images already created
         if wImgLoc != None and mImgLoc != None and not overwrite:        
-            if printAll: print("IC: Image '%s' already made for %s"%(imgName,rInfo.get('run_id')))
+            if printAll: print("IMG: Image '%s' already made for %s"%(imgName,rInfo.get('run_id')))
             return
             
     # Get particles
-    pts = getParticles( rInfo, simName, printAll=printAll )    
+    pts = getBasicRunParticles( rInfo, sParam['simArg'], printAll=printAll )    
     if type( pts ) == type( None ):
-        if rInfo.printBase: print("WARNING: IC: Exiting Image Creation")
+        if rInfo.printBase: print("WARNING: IMG: Exiting Image Creation")
         return None
     
     if printAll: im.tabprint("Creating image from points")
@@ -207,22 +359,33 @@ def create_image_from_parameters( rInfo, sParam, overwrite=False, printAll = Fal
 # End image from score parameter file
 
 
-def getParticles( rInfo, simName, printAll=False ):
+def getBasicRunParticles( rInfo, simArg, printAll=False ):
+
+    if printAll: 
+        print("IMG: getBasicRunParticles: ")
+        gm.tabprint( "simArg: %s" % type(simArg ) )
+
+
+    # Check if rInfo has pts dictionary
+    if rInfo.get('pts',None) == None:
+        rInfo.pts = {}
+
+    # Get simName
+    simName = simArg.get('name',None)
     
     # Check if files are loaded in run info class
     pts = rInfo.pts.get(simName,None)
 
-    # Load points if not found
+    # Return points if found
     if pts != None:
         return pts
-    
 
     # Read particles using rInfo
     pts_i, pts_f = rInfo.readParticles( simName )
     
     if type(pts_i) == type(None) or type( pts_f ) == type(None): 
         if rInfo.printBase: 
-            print("WARNING: IC.getParticles:")
+            print("WARNING: IMG.getBasicRunParticles:")
             gm.tabprint("Failed to read particles: %s" % simName)
         return None
     
@@ -274,13 +437,13 @@ def blurImg( img, imgArg ):
         return img
     
     else: 
-        print("IC: blurImg WARNING: blur type not found %s:"%bType)
+        print("IMG: blurImg WARNING: blur type not found %s:"%bType)
         
     return img
 # End blur image
 
 
-def normImg( img, imgArg ):
+def normImg( img, imgArg, toType=cv2.CV_8U ):
     
     # Get arguments for normalizing    
     normArg = imgArg.get('normalization',None)
@@ -290,19 +453,32 @@ def normImg( img, imgArg ):
         normType = 'linear'
         normArg = {'type':'linear'}
         normArg = {'max_brightness':1.0}
-        
+
+    if toType == cv2.CV_8U:
+        maxVal = 255
+    elif toType == cv2.CV_32F:
+        maxVal = 1.0
     else:
-        normType = normArg.get('type')
+        maxVal = 1.0
+
+    normType = normArg.get('type')
     
+    
+    # Set highest value to 255, lowest to 0
+    if toType == cv2.CV_8U:
+        img = cv2.normalize( img, np.zeros( img.shape ), 0, 255, \
+                    cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+    elif toType == cv2.CV_32F:
+        img = cv2.normalize( img, np.zeros( img.shape ), 0, 1.0, \
+                    cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+                    
+        
     # If max brightness present, make all pixels brighter than max equal max  
     lMax = normArg.get('max_brightness',None)
     if lMax != None:      
-        img[img>lMax] = lMax      
-    
-    # Set highest value to 255, lowest to 0
+        img[img>lMax] = lMax
+        
     if normType == 'linear':
-        img = cv2.normalize( img, np.zeros( img.shape ), 0, 255, \
-                    cv2.NORM_MINMAX, dtype=cv2.CV_8U)
         return img    
     
     # exponential curve, dim pixels get much brighter
@@ -338,14 +514,22 @@ def normImg( img, imgArg ):
 class particle_class:
     
     status = False
+    g1f=None
+    g2f=None
+    fCenters=None
+    g1i=None
+    g2i=None
+    iCenters=None
     
     def __init__( self, pts_i, pts_f, printAll = False ):
                 
         self.printAll = printAll
         
         # Read from txt files
-        self.g1i, self.g2i, self.iCenters = self.extractPts( pts_i )
         self.g1f, self.g2f, self.fCenters = self.extractPts( pts_f )
+
+        if type(pts_i) != type(None):
+            self.g1i, self.g2i, self.iCenters = self.extractPts( pts_i )
         
         if printAll:
             print(self.g1i.shape, self.g2i.shape, self.iCenters.shape)
@@ -672,7 +856,7 @@ def addGalaxy( ptSet, imgArg, gNum=None ):
         
     else:
         rConst = rConst[gNum]
-        
+            
     x = ptSet[:,0]
     y = ptSet[:,1]
     r = ptSet[:,2]
@@ -712,7 +896,7 @@ def addCircles(img, imgParam, cSize = 7):
 def adjustTargetImage( tInfo, new_param, startingImg = 'zoo_0', printAll = False, overWrite=False, wndchrm_image=False ):
     
     if printAll:
-        print("\nIC.adjustTargetImage:")
+        print("\nIMG.adjustTargetImage:")
         
     tImg = tInfo.getTargetImage( startingImg )
     tParams = tInfo.getImageParams()
@@ -720,7 +904,7 @@ def adjustTargetImage( tInfo, new_param, startingImg = 'zoo_0', printAll = False
     
     # Check if starting img is valid
     if type(tImg) == type(None) or old_param == None:
-        print("WARNING: IC: adjustTargetImage:")
+        print("WARNING: IMG: adjustTargetImage:")
         gm.tabprint("Previous image and/or params invalid")
         gm.tabprint("Image: %s"%type(tImg))
         gm.tabprint("Param: %s"%type(old_param))
@@ -824,16 +1008,18 @@ def adjustTargetImage( tInfo, new_param, startingImg = 'zoo_0', printAll = False
     # Write image to location    
     gm.saveImg( newLoc, newImg )
     
+    # Save new parameters
+    tInfo.addScoreParameters( { newName : new_param } )
+    tInfo.saveInfoFile()
+    
     if wndchrm_image:
         wndImgLoc = tInfo.saveWndchrmImage( newImg, newName )
     
     if printAll:
         gm.tabprint("File should exist: %s"%gm.validPath(newLoc))
     
-    # Have tInfo load image
-    tImg = tInfo.getTargetImage( newName, overwrite=True )
     
-    return new_param, tImg
+    return new_param
 # End creating/adjust Targets Image
 
 def plot_run_images( rInfo, group_param, nCol = 3 ):
