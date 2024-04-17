@@ -531,7 +531,7 @@ class run_info_class:
         if imgType == 'wndchrm' or imgType == 'model' or imgType == 'init':
             img = gm.readImg(imgLoc, toType=toType)
         elif imgType == 'many_endings':
-            img = np.load( imgLoc )['arr_0']
+            img = np.load( imgLoc, allow_pickle=True )['arr_0']
         
         # Store image if called upon later           
         if imgType == 'init': self.init[imgName] = img

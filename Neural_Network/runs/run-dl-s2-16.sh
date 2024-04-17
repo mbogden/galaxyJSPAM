@@ -1,1 +1,1 @@
-python3 train-fitness-score.py -runName tuner-test -keras_tuner True -stop 20 -num_epochs 20 -data_loc data/dl-s2/dl-s2-16 -runName dl-s2-run-tuner-16
+python3 train-fitness-score.py -runName tuner-test -keras_tuner True -stop 20 -num_epochs 20 -data_loc ~/galStuff/data/dl-s2/dl-s2-16 -runName dl-s2-tuner-16

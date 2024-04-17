@@ -11,8 +11,7 @@ import cv2
 from os import path
 from sys import path as sysPath, stderr
 from mpi4py import MPI
-from mpi_master_slave import Master, Slave
-from mpi_master_slave import WorkQueue
+from mpi_master_slave import Master, Slave, WorkQueue
 import time
 from datetime import datetime
 from copy import deepcopy

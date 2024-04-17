@@ -4,7 +4,7 @@
 '''
     Author:	 Matthew Ogden
     Created:	01 Sep 2020
-Description:	Hopefully my primary code for calling all things SPAM Simulation, Modeling, and Analysis.
+Description:	Hopefully my primary code for calling all things SPAM Simulation, Imaging, and Genetic Algorithm.
 '''
 
 # Python module imports
