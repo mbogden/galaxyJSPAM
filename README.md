@@ -1,6 +1,6 @@
 # galaxyJSPAM
 
-## Table of Contents
+# Table of Contents
 - [Getting Started](#gettingstarted)
     - [Installation](#installation)
 - [Instructions](#Instructions)
@@ -8,14 +8,28 @@
 - [References](#references)
 
 
-## Getting Started<a id="gettingstarted">
+# Getting Started<a id="gettingstarted">
 
-### Installing<a id="installation">
+## Installing<a id="installation">
 
 All of the following is based on an Ubuntu environment.
 
+### System Pre-requisites
+GalacticConstrains is reliant on the below packages and assumes you are using Python 3.11.
+```
+sudo apt install mpich
+sudo apt install libgl1-mesa-glx
+python3.11 -m pip install --upgrade pip
+``` 
 
-#### Git Repository 
+For my local cluster, misc modules can be loaded in the following way.  Must be called before installation of mpi4py and running. 
+```
+module load gnu12
+module load openmpi4
+module load py3-mpi4py
+```
+
+### Git Repository 
 
 Currently, active work is being done in a student's repository on GitHub and can be downloaded via git command.  Move into the directory and run the Makefile to install. 
 ```
@@ -24,16 +38,8 @@ cd galaxyJSPAM
 make
 ```
 
-#### Dependencies
-The python packages below reliant of a few packages.
-```
-sudo apt install mpich
-sudo apt install libgl1-mesa-glx
-python3 -m pip install --upgrade pip
 
-``` 
-
-#### Python package install
+### Python package install
 This setup uses virtual environments to initialize and run the programs. The following commands will create a new virtual environment name "simr_env", and install needed python packages. NOTE: The name "simr_env" is arbitrary and you can name it however you please.
 
 ```
@@ -42,11 +48,12 @@ source simr_env/bin/activate
 python3 -m pip install -r requirements.txt
 ```
 
-##### WNDCHARM Install
-Much of the Image Feature Extraction used in this Project utilizes the open-source software WNDCHRM. [Pub][1] [Repo][2].
-    
-    
-The following is my, Matthew Ogden's, notes on installing WNDCHRM for the first time on a personal machine. I cannot guarantee they will work in all scenarios.
+### DOCKER IMAGE (BETA)
+Currently, a docker image is being created and tested to work with this project.  If you are familiar with docker images then consider the following.  Our current image is under construction and can be found in a DockerHub [repo](https://hub.docker.com/repository/docker/ogdenm12/beta-2/general). 
+
+
+### WNDCHARM Install (Deprecated)
+At one point, WNDCHRM was being considerd for feature extraction.  Though it is not being used at this time. [Pub][1] [Repo][2].  The following notes are how I (Matthew) installed WNDCHRM for the first time on a personal machine. 
     
 ``` 
     sudo apt-get install build-essential 
@@ -59,27 +66,42 @@ The following is my, Matthew Ogden's, notes on installing WNDCHRM for the first 
     
 ``` 
 
-## Instructions<a id="Instructions"> 
+# Daily Instructions<a id="Instructions"> 
     
-### Activate environment 
+## Activate environment 
     
 Since the python packages were installed into a virtual environment, you must launch the virtual environment whenever you run code.
      
 ```
 source simr_env/bin/activate 
 ```
-    
-### Python Notebook 
-    
-There are several notebooks in the Notebook folder (Ex. Template.ipynb) that show how to import and use several functions located in this suite. 
 
-### Terminal Instructions 
+## Docker + Singularity
+Alternatively, you can use the docker image. The following commands are how to use the image with my local cluster using singularity. 
+```
+module load singularity
 
+# For Command Line Interface
+singularity shell /home/mbo2d/images/babbage-beta-2.sif
+
+# For Jupyter Notebook
+singularity exec  --nv /home/mbo2d/images/babbage-beta-2.sif jupyter lab --no-browser
+```
+
+    
+## Python Notebook 
+    
+There are several notebooks in the Notebooks folder that show how to import and use several functions located in this suite.  
+
+WARNING:   Given how frequently the code is changed, updated and added onto, many of these notebook will likely be outdated and not function as is.  However, they may be useful for understanding how to use the code, and would likely work with minor modifications.
+
+
+# Terminal Instructions 
 The primary program can be launched in two different methods! 
     - `python3 main_simr.py` 
     - `mpirun -n 4 python3 main_SIMR.py` 
 
-#### Input Arguments
+## Input Arguments
 
 The main program allows for several arguments. Note all arguments start with a single dash "-".  
     - For arguments without a following value, the default value is set to a booleon "True".  You can type a "true" or "FALSE" (Case-insensitive) to set the bool value to True or False. 
@@ -128,27 +150,28 @@ ___
 - `-wndchrmAnalysis`   Performs wndchrm analysis
 ___
 
-### Common Commands
+## Common Commands
     
-#### Initialize a target and generate basic direct image comparison scores 
+### Initialize a target and generate basic direct image comparison scores 
 `python3 main_SIMR.py -dataDir path/to/all/targets/ -newInfo -newBase -newRunInfo -newRunBase -newScore -newImage -scoreParamName zoo_0_direct_scores` 
-    
-#### Generate basic WNDCHRM images, features values, and normalize them.
+  
+### Generate basic WNDCHRM images, features values, and normalize them.
 `python3 main_SIMR.py -targetDir path/to/target/ -newImage -scoreParamName chime_0 -newFeats -normFeats -normName norm_chime_0` 
     
-#### Tell program to point at a target directory and generate new machine scores from a parameter file you've created.
+### Generate new machine scores for a specific targets using a parameter file you've created. 
 `python3 main_SIMR.py -targetDir path/to/target/ -newScore -scoreParamLoc path/to/param.json` 
     
-#### Tell program to focus on a single model, create a new image, overwrite existing images and print all progress.  Useful for testing new image creation.
+### For a single model, create a new image, overwrite existing images and print all progress.  Useful for testing new image creation.
 `python3 main_SIMR.py -printAll -runDir path/to/run/ -newImage -overWrite -scoreParamLoc path/to/new_param.json` 
     
-#### Tell program to go through many targets creating new simulations, images, and score as needed.  Use 24 processors on current machine. 
+### Go through many targets creating new simulations, images, and score as needed.  Use 24 processors on current machine. 
 `mpirun -n 24 python3 main_SIMR.py -dataDir path/to/all/targets/ -newAll -scoreParamLoc path/to/param.json`  
     
-#### Test Genetic Algorithm Experiment using testing parameters
+### Test Genetic Algorithm Experiment using testing parameters
     `mpirun -n 8 python3 main_SIMR.py -targetDir path/to/target -scoreParamLoc path/to/exp_score.json -printAll -gaExp -gaParamLoc param/exp_ga.json`
-    
-## Project Overview<a id="overview">
+
+
+# Project Overview<a id="overview">
     
 This GitHub repository was developed to maintain code for Creating and Analyzing Models of Galactic Collision Simulations.  It is currently broken down into 5 primary Subsections.
 
@@ -158,7 +181,7 @@ This GitHub repository was developed to maintain code for Creating and Analyzing
 - Score Analysis
 - Support Code
 
-### Simulation
+## Simulation
 
 As of now, this software suite is designed to work with modeling data gathered during the citizen scientist project, Galaxy Zoo: Mergers.  [https://data.galaxyzoo.org/mergers.html](https://data.galaxyzoo.org/mergers.html).
     
@@ -167,17 +190,17 @@ It takes model data and simulates a galactic collision.
 Once completed, it creates particle files of the model.
 These are automatically archived and stored in a zip file.
 
-### Image_Creator<a id="image_creator">
+## Image_Creator<a id="image_creator">
 The image creator takes the particle files created by the JSPAM simulator and creates an image out of them.
 This image is modified to try and recreate a realistic looking image to compare to target galactic images. 
 
-### Machine_Score<a id="comparison_code">
+## Machine_Score<a id="comparison_code">
 The machine score code takes the created model images and target image and compares them.
     
-### Score Analysis<a id="score_analysis">
+## Score Analysis<a id="score_analysis">
 This is primarily for analysis how affective various machine scoring methods behave.  The goal it to develop a process from simulation model to image to machine score that correlates with the human fitness scores from Galaxy Zoo Mergers. 
     
-### Support Code<a id="score_analysis">
+## Support Code<a id="score_analysis">
 Support code features two programs as of now.
 - `general_module.py`: Contains two classes and a handful of useful functions.  
     - Parallel processing class that exectutes a single given function with a queue of different argements.
@@ -221,7 +244,7 @@ Support code features two programs as of now.
            'targetName': 'zoo_2'}
 ```
     
-## References<a id="references">
+# References<a id="references">
 A. Holincheck. *A Pipeline for Constructing a Catalog of Multi-method Models
 of Interacting Galaxies*. PhD thesis, George Mason University, 2013.
 
