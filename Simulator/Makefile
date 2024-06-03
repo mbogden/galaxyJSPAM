@@ -17,7 +17,7 @@ ALERT  = @echo "\n--------------------------------------------\nBuilding target 
 # --------------------------------------------------------------------------- #
 # SPAM settings
 # --------------------------------------------------------------------------- #
-F90 		:= gfortran -pg -fbounds-check -fimplicit-none -pedantic
+F90 		:= gfortran -pg -fbounds-check -fimplicit-none -pedantic -fPIC
 BIN      	:= bin
 F90SRCDIR 	:= fortran/src
 F90INCLUDE 	:= fortran/includes
@@ -33,7 +33,7 @@ F90MAINTARGETS := $(addprefix $(F90BIN)/,basic_run mod_run orb_run many_endings_
 # Main targets
 # --------------------------------------------------------------------------- #
 all: setup standard
-standard: basic_run orb_run many_endings_run
+standard: basic_run orb_run many_endings_run disk_now
 
 # --------------------------------------------------------------------------- #
 # Utilities and PHONY
@@ -47,7 +47,7 @@ setup:
 .PHONY: setup
 
 clean:
-	@$(RM) basic_run *.o *.mod mod_run orb_run many_endings_run
+	@$(RM) basic_run *.o *.mod mod_run orb_run many_endings_run disk_now
 	@$(RM) $(F90MAINTARGETS)
 	@$(RM) $(F90OBJDIR)
 	@$(RM) $(F90BUILDDIR)

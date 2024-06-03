@@ -40,11 +40,11 @@ make
 
 
 ### Python package install
-This setup uses virtual environments to initialize and run the programs. The following commands will create a new virtual environment name "simr_env", and install needed python packages. NOTE: The name "simr_env" is arbitrary and you can name it however you please.
+This setup uses virtual environments to initialize and run the programs. The following commands will create a new virtual environment name "venv", and install needed python packages. NOTE: The name "venv" is arbitrary and you can name it however you please.
 
 ```
-python3 -m venv simr_env
-source simr_env/bin/activate
+python3 -m venv venv
+source venv/bin/activate
 python3 -m pip install -r requirements.txt
 ```
 
@@ -73,7 +73,7 @@ At one point, WNDCHRM was being considerd for feature extraction.  Though it is 
 Since the python packages were installed into a virtual environment, you must launch the virtual environment whenever you run code.
      
 ```
-source simr_env/bin/activate 
+source venv/bin/activate 
 ```
 
 ## Docker + Singularity
