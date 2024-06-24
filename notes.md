@@ -3,8 +3,6 @@ These are written by Matthew Ogden for Matthew Ogden while creating and organizi
 Might* be good for others to view.
 
 ## Test edits
-- Test Beowulf
-- beowulf beta-1
     
 - Commands to remember
     - `python3 main_SIMR.py -targetDir path/to/target -newInfo -newRunInfo -newBase -newRunBase` 
@@ -12,6 +10,36 @@ Might* be good for others to view.
     -  ``
 
 # Matt's Working To-Do
+
+- Simulator
+  - (x) Custom_runs: Working draft 
+    - note: both init and final particles are off by what appears to be a single timestep
+  - () Figure out why off by single timestep for init and final particles
+    - this happens before the init particles are returned, look there.
+  - () Rewrite main_simulator.py to use custom_runs with new SIMR pipeline
+  - Add many runs.
+  - Encorporate into SIMR pipeline
+
+- Illustris TNG
+  - (x) Find targets
+  - (x) Get collision parameters
+  - (x) Get images
+  - (x) draft tng -> spam unit covnersion
+  - (x) init SPAM runs of TNG targets
+    - note: images do not look correct.
+  - (w) testing tng2spam unit conversion
+    - Test with a single particle? Laws of gravity? 
+    - () position
+    - () velocity
+    - () mass (How can I test this?)
+    - () time (How do I test this)
+
+- Reorganization
+  - (X) utilites
+  - (w) model manager
+  - (w) target manager
+
+- Custom_runs is off by a single timestep, why? 
 - Use Graham's stats
 - See if one particular target is really bad to test against.
 - Check model outlier's 
@@ -19,53 +47,6 @@ Might* be good for others to view.
 
 - Look into WandB for DL metrics
 
-## NOW
-- Coding
-    - (done) Perform results on many systems. 
-    - Bigger Training set,
-      - Zoom in on image
-      - Good Models, with time offsets. 
-      - Different brightnesss
-
-    - Modify Images during Training.
-      - Affine Transform (Slant/stretch)
-      - overlaps slightly off
-      - Scaling
-      - Zoom in/out
-      - Reflectives. 
-      - Offsets in space. 
-    - Fortran
-      - Output Particles directly above and below "main integration loop"
-        - Add OUTPUT call in loop with flag. 
-      - Reading args.
-        - IARGC()
-        - GETARG()
-      - MANY ENDINGS RUN
-        - Write 11 steps: from -20% to 20% at 4% step around final position.
-    
-- Disseration Proposal
-    - Literature Review
-        - 30's ish papers to include.  About 1-2 per day
-      
-        
-
-## Later
-
-- Reimplemnet WNDCHRM in Galaxy Code.
-    - Install WNDCHRM on needed machine. 
-    - normalize entire systems.
-    - implement mask (Only extract these x out of 1000's of features)
-    
-- Implement feature selection on WNDCHRM.
-    - You did this in Data Mining.  Do it now. 
-        
-- Get a single-layer neural network going
-    - Gather and pickle images into a temp file/folder.
-    - Use GPU to make the creation faster.
-    - Generalize it to all targets.
-    - Create custom equation and weights in neural network. 
-
-- Create Analysis Different Scoring methods and Evolution Methods. 
 
 ## Big picture
 - Create automatic pipeline for evolution

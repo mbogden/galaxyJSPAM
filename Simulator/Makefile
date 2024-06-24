@@ -129,10 +129,10 @@ F2PY := python -m numpy.f2py
 FORTRAN_SRC := custom_runs.f90
 MODULE_NAME := custom_runs
 
-# Compile my_module.f90 and link with other modules
-my_module.o: myroutines.f90 $(F90OBJDIR)/init_module.o $(F90OBJDIR)/parameters_module.o $(F90OBJDIR)/setup_module.o $(F90OBJDIR)/io_module.o $(F90OBJDIR)/integrator.o $(F90OBJDIR)/df_module.o
-	$(ALERT)
-	$(F90) -c -J$(F90BUILDDIR) -I$(F90BUILDDIR) myroutines.f90 -o $(F90OBJDIR)/$@
+# # Compile my_module.f90 and link with other modules
+# my_module.o: myroutines.f90 $(F90OBJDIR)/init_module.o $(F90OBJDIR)/parameters_module.o $(F90OBJDIR)/setup_module.o $(F90OBJDIR)/io_module.o $(F90OBJDIR)/integrator.o $(F90OBJDIR)/df_module.o
+# 	$(ALERT)
+# 	$(F90) -c -J$(F90BUILDDIR) -I$(F90BUILDDIR) myroutines.f90 -o $(F90OBJDIR)/$@
 
 # Rule to compile the Fortran code into a Python module using f2py
 $(MODULE_NAME).so: $(FORTRAN_SRC) $(F90OBJDIR)/init_module.o $(F90OBJDIR)/parameters_module.o $(F90OBJDIR)/setup_module.o $(F90OBJDIR)/io_module.o $(F90OBJDIR)/integrator.o $(F90OBJDIR)/df_module.o

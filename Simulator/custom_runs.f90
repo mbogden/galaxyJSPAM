@@ -13,9 +13,12 @@ module custom_runs_module
     
     contains
 
-    subroutine basic_run(collision_param, npts1, npts2, init_pts, final_pts)
-        integer, intent(in) :: npts1, npts2
+    subroutine basic_run(collision_param, npts1, npts2, h1, h2, init_pts, final_pts)
+        
         real(kind=8), intent(in), dimension(22) :: collision_param
+        integer, intent(in) :: npts1, npts2
+        real(kind=8), intent(in) :: h1, h2
+        
         real(kind=8), intent(out), dimension(npts1+npts2+1,6) :: init_pts, final_pts
 
         real (kind=8) :: t0, time_interval
@@ -23,7 +26,7 @@ module custom_runs_module
         real (kind=8) :: rrr
         integer :: nparticles1, nparticles2
 
-        print *, "FR: Basic Run!"
+        ! print *, "FR: Basic Run!"
 
         ! if pre_setup is 0, do the setup
         if (pre_setup == 0) then
@@ -32,9 +35,9 @@ module custom_runs_module
         endif
         
         ! Define collision parameters
-        call SETUP_CUSTOM_COLLISION(collision_param, npts1, npts2)
+        call SETUP_CUSTOM_COLLISION(collision_param, npts1, npts2, h1, h2)
     
-        print *, "FR: Creating disk!"
+        ! print *, "FR: Creating disk!"
         call CREATE_COLLISION
             
         ! ! Saving initial particles
@@ -53,8 +56,10 @@ module custom_runs_module
         time_interval = (tend - t0) * 2
 
         nunit = 50
-        call OCTAVE_PARAMETERS_OUT(mass1, theta1, phi1, rout1, mass2, &
-            theta2, phi2, rout2, original_rv(1:3), original_rv(4:6), time_interval, x0(n,:), n, nunit)
+
+        ! This writes parameters to disk "fort.50"
+        ! call OCTAVE_PARAMETERS_OUT(mass1, theta1, phi1, rout1, mass2, &
+        !     theta2, phi2, rout2, original_rv(1:3), original_rv(4:6), time_interval, x0(n,:), n, nunit)
 
         ! main integration loop
         iout = 0
@@ -85,12 +90,108 @@ module custom_runs_module
         
     end subroutine basic_run
 
-    subroutine basic_disk(collision_param, npts1, npts2, init_pts)
+    subroutine orbit_run(collision_param, in_n_steps, orbit_path)
+        
+        real(kind=8), intent(in), dimension(22) :: collision_param
+        integer, intent(in) :: in_n_steps
+        real(kind=8), intent(out), dimension(in_n_steps,6) :: orbit_path
+
+        real (kind=8) :: t0, time_interval
+        integer (kind=4) :: nstep_local
+        real (kind=8) :: rrr
+        integer :: nparticles1, nparticles2
+
+        ! if pre_setup is 0, do the setup
+        if (pre_setup == 0) then
+            call my_init()
+            pre_setup = 1
+        endif
+        
+        ! Define collision parameters
+        call SETUP_CUSTOM_COLLISION(collision_param, 10, 5, 0.0d0, 0.0d0)
+    
+        ! print *, "FR: Creating disk!"
+        call CREATE_COLLISION
+            
+        ! initialize rk routine for particle integration/perturbation
+        call INIT_RKVAR(x0, mass1, mass2, epsilon1, epsilon2, theta1, phi1, &
+            theta2, phi2, rscale1, rscale2, rout1, rout2, n, n1, n2)
+
+        t0 = tstart
+        nstep = int( (tend - t0) / h) + 2
+        nstep_local = nstep 
+        nunit = 50
+
+        ! main integration loop
+        iout = 0
+
+        do istep = 1, nstep_local
+            call TAKE_A_STEP
+            rrr = sqrt(x0(n,1)*x0(n,1)+x0(n,2)*x0(n,2) + x0(n,3)*x0(n,3))
+
+            orbit_path(istep,:) = x0(n,:)
+
+        enddo
+
+        ! Deallocate the memory
+        deallocate(x0)
+        deallocate(xout)
+        deallocate(projected)
+        call deallocate_rkvar()
+        call more_cleanup()
+
+        return
+        
+    end subroutine orbit_run
+
+    subroutine calc_nsteps( collision_param, out_n_steps )
+        real(kind=8), intent(in), dimension(22) :: collision_param
+        integer, intent(out) :: out_n_steps
+
+        real (kind=8) :: t0, time_interval
+        integer (kind=4) :: nstep_local
+        real (kind=8) :: rrr
+
+        ! if pre_setup is 0, do the setup
+        if (pre_setup == 0) then
+            call my_init()
+            pre_setup = 1
+        endif
+        
+        ! Define collision parameters
+        call SETUP_CUSTOM_COLLISION(collision_param, 10, 5, 0.0d0, 0.0d0)
+    
+        ! print *, "FR: Creating disk!"
+        call CREATE_COLLISION
+            
+        ! initialize rk routine for particle integration/perturbation
+        call INIT_RKVAR(x0, mass1, mass2, epsilon1, epsilon2, theta1, phi1, &
+            theta2, phi2, rscale1, rscale2, rout1, rout2, n, n1, n2)
+
+        t0 = tstart
+
+        nstep = int( (tend - t0) / h) + 2
+
+        out_n_steps = nstep
+        
+        deallocate(x0)
+        deallocate(xout)
+        deallocate(projected)
+        call deallocate_rkvar()
+        call more_cleanup()
+
+        return
+
+    end subroutine calc_nsteps
+
+
+    subroutine basic_disk(collision_param, npts1, npts2, h1, h2, init_pts)
         integer, intent(in) :: npts1, npts2
+        real(kind=8), intent(in) :: h1, h2
         real(kind=8), intent(in), dimension(22) :: collision_param
         real(kind=8), intent(out), dimension(npts1+npts2+1,6) :: init_pts
 
-        print *, "FR: basic_disk!"
+        ! print *, "FR: basic_disk!"
 
         ! if pre_setup is 0, do the setup
         if (pre_setup == 0) then
@@ -99,13 +200,13 @@ module custom_runs_module
         endif
 
         ! Define collision parameters
-        call SETUP_CUSTOM_COLLISION(collision_param, npts1, npts2)
+        call SETUP_CUSTOM_COLLISION(collision_param, npts1, npts2, h1, h2)
     
-        print *, "FR: Creating disk!"
+        ! print *, "FR: Creating disk!"
         call CREATE_COLLISION
             
         ! ! Output particles to disk
-        print *, "FR: Returning particles to disk!"
+        ! print *, "FR: Returning particles to disk!"
         init_pts = x0
 
         ! Deallocate the memory
@@ -116,18 +217,18 @@ module custom_runs_module
         
     end subroutine basic_disk
 
-    
-    subroutine SETUP_CUSTOM_COLLISION(collision_param, npts1, npts2)
+
+    subroutine SETUP_CUSTOM_COLLISION(collision_param, npts1, npts2, h1, h2)
 
         implicit none
 
         ! Variable declarations
         integer, intent(in) :: npts1, npts2
-        ! real(kind=8), intent(in) :: h1, h2
+        real(kind=8), intent(in) :: h1, h2
         real(kind=8), intent(in), dimension(22) :: collision_param
 
         ! Just saying hi!
-        print *, "FR: SETUP_CUSTOM_COLLISION!"
+        ! print *, "FR: SETUP_CUSTOM_COLLISION!"
 
         ! Setup custom collision
         ! ! call CREATE_COLLISION
@@ -178,21 +279,25 @@ module custom_runs_module
         ! print *, "FR: n1, n2, n", n1, n2, n
         ! print *, "FR: Points allocated!"
 
-        heat1 = 0.0
-        heat2 = 0.0
+        heat1 = h1
+        heat2 = h2
 
+        ! WORKING comment to see if this fixes pts offset
+        ! Well, it didn't fix it, nor did it break anything.  Leave commented? 
+        ! Nope, something definitely broke.  Uncommenting
         tIsSet = .false.
         tStart = -5
         time = tStart
 
-        ! ! No integration backwards? 
-        ! case ( tStart == 0 )
-        !     time = 0.0d0
-        !     tIsSet = .true.
+        ! No integration backwards? 
+        if ( tStart == 0 ) then
+            time = 0.0d0
+            tIsSet = .true.
 
-        ! else=
-        !     time = tStart
-        !     tIsSet = .false.
+        else
+            time = tStart
+            tIsSet = .false.
+        endif
     
             
     ! set the default collision  - testing only
