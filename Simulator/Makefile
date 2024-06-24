@@ -33,7 +33,7 @@ F90MAINTARGETS := $(addprefix $(F90BIN)/,basic_run mod_run orb_run many_endings_
 # Main targets
 # --------------------------------------------------------------------------- #
 all: setup standard
-standard: basic_run orb_run many_endings_run disk_now
+standard: basic_run orb_run many_endings_run
 
 # --------------------------------------------------------------------------- #
 # Utilities and PHONY
@@ -65,10 +65,6 @@ basic_run: $(F90OBJS) basic_run.o
 	$(F90) -o $(BIN)/$@ $(F90LIBS) $(addprefix $(F90OBJDIR)/,$^)
     
 orb_run: $(F90OBJS) orb_run.o
-	$(ALERT)
-	$(F90) -o $(BIN)/$@ $(F90LIBS) $(addprefix $(F90OBJDIR)/,$^)
-    
-disk_now: $(F90OBJS) disk_now.o
 	$(ALERT)
 	$(F90) -o $(BIN)/$@ $(F90LIBS) $(addprefix $(F90OBJDIR)/,$^)
 
@@ -123,10 +119,6 @@ many_endings_run.o: $(F90SRCDIR)/many_endings_run.f90 parameters_module.o
 	$(F90) -c -J$(F90BUILDDIR) $(F90SRCDIR)/$*.f90 -o $(F90OBJDIR)/$@
 
 orb_run.o: $(F90SRCDIR)/orb_run.f90 parameters_module.o
-	$(ALERT)
-	$(F90) -c -J$(F90BUILDDIR) $(F90SRCDIR)/$*.f90 -o $(F90OBJDIR)/$@
-
-disk_now.o: $(F90SRCDIR)/disk_now.f90 parameters_module.o
 	$(ALERT)
 	$(F90) -c -J$(F90BUILDDIR) $(F90SRCDIR)/$*.f90 -o $(F90OBJDIR)/$@
 
