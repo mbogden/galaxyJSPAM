@@ -78,14 +78,15 @@ print( collision_param.shape )
 collision_param = np.asfortranarray(collision_param)
 
 # Define other parameters
-npts1 = 1000
-npts2 = 1000
+npts1 = 500
+npts2 = 500
 heat1 = 0.1
 heat2 = 0.2
 
 # Call the Fortran function
 print("PY: Calling Basic Disk:")
-ipts = custom_runs.custom_runs_module.basic_disk( np.copy(collision_param), npts1, npts2, )
+dyn_friction_var = 10.0
+ipts = custom_runs.custom_runs_module.basic_disk( np.copy(collision_param), npts1, npts2, 0.0 )
 
 # create tmp scatter
 n=npts1
@@ -109,14 +110,15 @@ plt.savefig('tmp_init.png')
 
 
 print("PY: Calling Orbit Run!")
-nsteps = custom_runs.custom_runs_module.calc_orbit_time_steps( np.copy(collision_param) )
+nsteps = custom_runs.custom_runs_module.calc_orbit_integration_steps( np.copy(collision_param), dyn_friction_var )
 print(f"Calculate N steps: {nsteps}")
-orbit_path = custom_runs.custom_runs_module.orbit_run( np.copy(collision_param), nsteps)
+orbit_path = custom_runs.custom_runs_module.orbit_run( np.copy(collision_param), nsteps, dyn_friction_var)
 print("PY: Orbit path: ", orbit_path.shape)
+print("PY: Start/Stop Time: ", orbit_path[0:6,6], orbit_path[-6:-1,6])
 
 
 print("PY: Calling basic run Once!")
-ipts, fpts = custom_runs.custom_runs_module.basic_run( np.copy(collision_param), npts1, npts2, 0.0, 0.0 )
+ipts, fpts = custom_runs.custom_runs_module.basic_run( np.copy(collision_param), npts1, npts2, 0.0, 0.0, 0.0)
 print("PY: tmp pts: ", ipts.shape)
 
 # clear figure
