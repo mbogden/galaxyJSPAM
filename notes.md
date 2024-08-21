@@ -48,6 +48,7 @@ These are written by Matthew Ogden for Matthew Ogden while creating and organizi
     - [x] Verify dynamical friction is working correctly.
 
 - Illustris TNG
+  - [w] Git access of TNG server.
   - [w] Find potential targets
     - [x] Preliminary Filters
       - [x] TNG-50 (most detailed simulation)
