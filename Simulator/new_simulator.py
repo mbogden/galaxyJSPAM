@@ -67,6 +67,35 @@ LOGGER = logging.getLogger(__name__)
 
 # ================================= CORE FUNCTIONS ================================= #
 
+def set_galaxy_mass_distribution( lnl = 0.1, r_scale = 10.0, mhalo = 5.8, mbulge = 0.3333, hbulge = 2.0, hdisk = 1.0 ):
+    """
+    This function defines the base mass distribution of the galaxy.   Custom collisions scale this distribution.
+    The default values are derived from empirical data of the Milky Way and M31.  
+    See https://ui.adsabs.harvard.edu/abs/1993ApJS...86..389H/abstract
+
+    Parameters:
+        lnl (float): Variable to adjust the strength of the dynamic friction
+        r_scale (float): Radial scaling factor for mass distribution of galaxy
+        mhalo (float): Mass of the halo
+        mbulge (float): Mass of the bulge
+        hbulge (float): Exp. decay rate of bulge density profile
+        hdisk (float): Exp. decay rate of disk density profile
+
+    Returns:
+        None
+    """
+
+    # Call the Fortran function
+    LOGGER.debug(f"Calling custom_runs.simr_init_distribution: ")
+    try:
+        custom_runs.custom_runs_module.simr_init_distribution(lnl, r_scale, mhalo, hdisk, hbulge, mbulge)
+
+    except:
+        LOGGER.error(f"Failed to call 'custom_runs.simr_init_distribution'")
+        raise ValueError(f"Failed to call 'custom_runs.simr_init_distribution'")
+
+    return 
+
 def basic_disk_wrapper( collision_param, npts1 = 100, npts2 = 50, dynamic_friction_lnl = 0.001):
     """
     This function is a wrapper for the custom_runs_module.basic_disk function.
@@ -89,6 +118,7 @@ def basic_disk_wrapper( collision_param, npts1 = 100, npts2 = 50, dynamic_fricti
     LOGGER.debug(f"Calling custom_runs.basic_disk: {collision_param}")
     try:
         disk_pts = custom_runs.custom_runs_module.basic_disk( f_ar, npts1, npts2, dynamic_friction_lnl )
+
     except:
         LOGGER.error(f"Failed to call custom_runs.basic_disk")
         LOGGER.error(f"Collision Param: {collision_param}")
@@ -101,7 +131,7 @@ def basic_disk_wrapper( collision_param, npts1 = 100, npts2 = 50, dynamic_fricti
 
 def orbit_run_wrapper( collision_param, dynamic_friction_lnl = 0.001 ):
     """
-    This functins is a warpper for the custom_runs_module.orbit_run function.
+    This function is a warpper for the custom_runs_module.orbit_run function.
 
     Parameters:
         collision_param (np.ndarray): Array of collision parameters
@@ -138,6 +168,38 @@ def orbit_run_wrapper( collision_param, dynamic_friction_lnl = 0.001 ):
     LOGGER.debug(f"Returned Orbit Path: {orbit_path.shape}")
 
     return orbit_path
+
+def testing_pos_vel_wrapper( collision_param, n_steps = 5000 ):
+    """
+    This function is a wrapper for the custom_runs_module.testing_position_velocity function.
+
+    Parameters:
+        collision_param (np.ndarray): Array of collision parameters
+        n_steps (int): Number of steps to calculate backwards in time
+
+    Returns:
+        orbit_path (np.ndarray): Array of particles indicating the path of the secondary galaxy
+                        NOTE: The primary galaxy is fixed at origin throughout the simulation.
+    """
+
+    # ensure array is in the correct value format
+    in_ar = np.array(collision_param).astype(np.float64)
+
+    # Convert the array to Fortran contiguous
+    in_ar = np.asfortranarray(in_ar)
+
+    # We need to know how large the final orbit path will be before calling the function
+    LOGGER.debug(f"Calling custom_runs.testing_position_velocity: {collision_param}")
+    try:
+        orbit_path = custom_runs.custom_runs_module.testing_position_velocity( in_ar, n_steps )
+    except:
+        LOGGER.error(f"Failed to call 'custom_runs.testing_position_velocity'")
+        raise ValueError(f"Failed to call 'custom_runs.testing_position_velocity'")
+
+    LOGGER.debug(f"Returned Orbit Path: {orbit_path.shape}")
+
+    # Reverse order of orbit path to go from initial to final
+    return orbit_path[::-1]
 
 def basic_run_wrapper( collision_param, npts1 = 100, npts2 = 50, heat1 = 0.0, heat2 = 0.0, dynamic_friction_lnl = 0.001):
     """

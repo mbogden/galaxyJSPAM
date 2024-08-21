@@ -104,7 +104,7 @@ module custom_runs_module
         real (kind=8) :: rrr
         integer :: nparticles1, nparticles2
 
-        print *, "FR: Orbit Run!", " lnl: ", lnl_in
+        ! print *, "FR: Orbit Run!", " lnl: ", lnl_in
 
         ! if pre_setup is 0, do the setup
         if (pre_setup == 0) then
@@ -118,7 +118,7 @@ module custom_runs_module
         ! Initialize the collision
         call SIMR_CREATE_COLLISION(lnl_in)
             
-        ! initialize rk routine for particle integration/perturbation
+        ! initialize rk routine for orbit prediction
         call INIT_RKVAR(x0, mass1, mass2, epsilon1, epsilon2, theta1, phi1, &
             theta2, phi2, rscale1, rscale2, rout1, rout2, n, n1, n2)
 
@@ -226,6 +226,60 @@ module custom_runs_module
 
     end subroutine basic_disk
 
+    subroutine testing_position_velocity(collision_param, nsteps, orbit_path)
+        
+        integer, intent(in) :: nsteps
+        real(kind=8), intent(in), dimension(22) :: collision_param
+        real(kind=8), intent(out), dimension(nsteps,7) :: orbit_path
+
+        real (kind=8) :: t0, time_interval, current_time
+        real(kind=8), dimension(3) :: current_pos, current_vel
+        integer (kind=4) :: nstep_local
+        real (kind=8) :: rrr
+        integer :: nparticles1, nparticles2
+
+        print *, "FR: Testing Position and Velocity!"
+
+        ! if pre_setup is 0, do the setup
+        if (pre_setup == 0) then
+            call SIMR_INIT()
+            pre_setup = 1
+        endif
+        
+        ! Define collision parameters
+        ! call SIMR_SETUP_CUSTOM_COLLISION(collision_param, 10, 5, 0.0d0, 0.0d0)
+    
+        t0 = 0
+        time_interval = nsteps
+        nstep = nsteps
+        nstep_local = nsteps
+
+        current_pos = collision_param(1:3)
+        current_vel = collision_param(4:6)
+        current_time = 0.0d0
+
+        ! Going backwards in time
+        iout = 0
+        current_time = 0.0d0
+        do istep = 1, nstep_local
+            orbit_path(istep,1:3) = current_pos
+            orbit_path(istep,4:6) = current_vel
+            orbit_path(istep,7) = current_time
+
+            current_pos = current_pos - current_vel * h
+            current_time = current_time - h
+        enddo
+
+        ! Deallocate the memory
+        ! deallocate(x0)
+        ! deallocate(xout)
+        ! deallocate(projected)
+        ! call deallocate_rkvar()
+        ! call SIMR_CLEANUP()
+
+        return
+        
+    end subroutine testing_position_velocity
 
     subroutine SIMR_SETUP_CUSTOM_COLLISION(collision_param, npts1, npts2, h1, h2)
 
@@ -320,7 +374,8 @@ module custom_runs_module
         ! print function and lnl_in value
         ! print *, "FR: create_collision.lnl_in: ", lnl_in
       
-        call SIMR_INIT_DISTRIBUTION(lnl_in)
+      ! Matt O.   testing if I can call this once at setup.
+        ! call SIMR_INIT_DISTRIBUTION(lnl_in)
       
         ! create the disks
       !  call SET_DIFFQ2_PARAMETERS(phi1, theta1, phi2, theta2, rscale1, rscale2, rout1, rout2)
@@ -362,15 +417,40 @@ module custom_runs_module
       
       end subroutine SIMR_CREATE_COLLISION
 
+    subroutine SIMR_INIT()
+
+        implicit none
+
+        integer :: nparticles1, nparticles2
+
+        ! Setup default parameters for a quick test
+        nparticles1 = 100
+        nparticles2 = 50
+        call RANDOM_SEED()
+        call STANDARD_GALAXY1(mass1, epsilon1, rin1, rout1, rscale1, theta1, phi1, opt1, heat1 )
+        call STANDARD_GALAXY2(mass2, epsilon2, rin2, rout2, rscale2, theta2, phi2, opt2, heat2)
+
+        ! Default values based on Milky Way and M31.
+        call SIMR_INIT_DISTRIBUTION( 0.01d0, 10.0d0, 5.8d0, 0.3333d0, 2.0d0, 1.0d0)
+        
+        n1 = nparticles1
+        n2 = nparticles2
+        n = n1 + n2 
+
+        call TEST_COLLISION(n, n1, n2, time, inclination_degree, omega_degree, &
+          rmin, velocity_factor, h, nstep, nout) 
+
+    end subroutine SIMR_INIT
+
       
-  subroutine SIMR_INIT_DISTRIBUTION(lnl_in)
+  subroutine SIMR_INIT_DISTRIBUTION(lnl_in, rchalo_in, mhalo_in, mbulge_in, hbulge_in, hdisk_in)
     !     -----Description: initializes the distribution 
     !          on input:  
     !          on output:
     !     ----------------------------------------------------------------
         implicit none
     !     ----- Variable declarations ---------------------
-        real (kind=8) :: lnl_in
+        real (kind=8) :: lnl_in, rchalo_in, mhalo_in, mbulge_in, hbulge_in, hdisk_in
         real (kind=8) :: rmax
         real (kind=8) :: mold, dmold, mtot
         real (kind=8) :: rscale
@@ -400,8 +480,6 @@ module custom_runs_module
         lnl = 0.00d0
     ! default for Merger Zoo
         lnl = 0.001d0
-    ! Matt O. defining it as a callable variable
-        lnl = lnl_in
     
     !!!!!
     ! set up the parameters for the halo
@@ -411,6 +489,14 @@ module custom_runs_module
         gammahalo = 1.0d0
         epsilon_halo = 0.4d0 
         SqrtPI = sqrt(pi)
+
+    ! Matt O.  Redefining Varibles as inputs
+        lnl = lnl_in
+        rchalo = rchalo_in
+        mhalo = mhalo_in
+        mbulge = mbulge_in
+        hbulge = hbulge_in
+        hdisk = hdisk_in
     
     !!!!!
     ! derive additional constants
@@ -778,27 +864,5 @@ module custom_runs_module
         deallocate(c3n)
 
     end subroutine SIMR_CLEANUP
-
-    subroutine SIMR_INIT()
-
-        implicit none
-
-        integer :: nparticles1, nparticles2
-
-        ! Setup default parameters for a quick test
-        nparticles1 = 100
-        nparticles2 = 50
-        call RANDOM_SEED()
-        call STANDARD_GALAXY1(mass1, epsilon1, rin1, rout1, rscale1, theta1, phi1, opt1, heat1 )
-        call STANDARD_GALAXY2(mass2, epsilon2, rin2, rout2, rscale2, theta2, phi2, opt2, heat2)
-        
-        n1 = nparticles1
-        n2 = nparticles2
-        n = n1 + n2 
-
-        call TEST_COLLISION(n, n1, n2, time, inclination_degree, omega_degree, &
-          rmin, velocity_factor, h, nstep, nout) 
-
-    end subroutine SIMR_INIT
 
 end module custom_runs_module

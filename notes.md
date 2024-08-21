@@ -22,7 +22,7 @@ These are written by Matthew Ogden for Matthew Ogden while creating and organizi
   - [ ] Add many endings.
   - [ ] Encorporate into SIMR pipeline
   - [ ] Look up Allen Harvey Dissertation: A Pipeline for Constructing Optimized N-Body Models of Interacting Galaxies
-  - [s] Modify Dynamical Friction in SPAM
+  - [ ] Modify Dynamical Friction in SPAM
       - Wiki Explanation: https://en.wikipedia.org/wiki/Dynamical_friction
       - Maxwell's Distribution
       - lnl is typically between 1 and 10.
@@ -48,7 +48,13 @@ These are written by Matthew Ogden for Matthew Ogden while creating and organizi
     - [x] Verify dynamical friction is working correctly.
 
 - Illustris TNG
-  - [x] Find targets
+  - [w] Find potential targets
+    - [x] Preliminary Filters
+      - [x] TNG-50 (most detailed simulation)
+      - [x] Mass
+      - [x] Morphology (Disk, Elliptical, etc)
+      - [x] Merger History
+      - [w] Cosmological Jellyfish
   - [x] Get collision parameters
   - [x] Get images
     - [ ] Automate image generation
@@ -86,12 +92,26 @@ These are written by Matthew Ogden for Matthew Ogden while creating and organizi
   - [d] Simulator
 
 - Comparing SPAM to TNG
-  - [d] Unit conversion between simulations
-    - [ ] Verify unit conversion is working correctly.  
-  - [w] Viewing particles Together
-    - [ ] Unit conversion
-  - [w] View TNG pts over time
-    - [d] Pull star pts at set snapshots
+  - [x] Unit conversion between simulations
+    - [x] Verify unit conversion is working correctly.  
+    - [x] Do simple velocity projection of 2nd galaxy
+  - [x] Viewing particles Together
+  - [x] View TNG pts over time
+    - [x] Pull star pts at set snapshots
+  - Orbits are OFF!
+    - play with mass profiles of galaxies
+      - df_module -> ( mhalo, rhalo, rchalo )
+      - Make rhalo smaller
+      - Look up this: 
+        Lars Hernquist. N-body realizations of compound galaxies. The Astrophysical Journal Supplement Series, 86:389{400, June 1993.
+  
+  - Ideas
+    - Have function set the bulge/disk/halo scales/mass ratios.  
+      - These values are hardcoded based on Milky Way and M31.
+      - Analyze TNG targets to see if they're similar or drastically different.
+        - 3 - 5
+      - If many targets have very different ratios, then we may need to add these as variables to optimize upon
+      - If they're semi consistent, then perhaps we can optimize them now using TNG targets.  
 
 - Look into WandB for DL metrics
 

@@ -116,68 +116,90 @@ orbit_path = custom_runs.custom_runs_module.orbit_run( np.copy(collision_param),
 print("PY: Orbit path: ", orbit_path.shape)
 print("PY: Start/Stop Time: ", orbit_path[0:6,6], orbit_path[-6:-1,6])
 
+print("PY: Calling Testing Position and Velocity")
+pos_vel_path = custom_runs.custom_runs_module.testing_position_velocity( np.copy(collision_param), nsteps)
+print("PY: Pos/Vel path: ", pos_vel_path.shape)
 
 print("PY: Calling basic run Once!")
 ipts, fpts = custom_runs.custom_runs_module.basic_run( np.copy(collision_param), npts1, npts2, 0.0, 0.0, 0.0)
 print("PY: tmp pts: ", ipts.shape)
 
-# clear figure
-plt.clf()
 
-# plots final particles
-plt.scatter(fpts_4k[:,0], fpts_4k[:,1], s=1, c='r', label='CMD Line')
-plt.scatter(fpts[:,0], fpts[:,1], s=1, c='b', label='F2PY Module')
-#plt.plot( orbit_path[:,0], orbit_path[:,1], c='k', label='Orbit Path')
-plt.legend()
-plt.savefig('tmp_final.png')
-plt.clf()
+print("PY:  DO IT ALL AGAIN WITH A NEW LNL VALUE!")
+
+custom_runs.custom_runs_module.simr_init_distribution(5.0, 1.0, 1.0, 1.0, 1.0, 1.0)
+print("PY: Calling Orbit Run!")
+nsteps = custom_runs.custom_runs_module.calc_orbit_integration_steps( np.copy(collision_param), dyn_friction_var )
+print(f"Calculate N steps: {nsteps}")
+orbit_path = custom_runs.custom_runs_module.orbit_run( np.copy(collision_param), nsteps, dyn_friction_var)
+print("PY: Orbit path: ", orbit_path.shape)
+print("PY: Start/Stop Time: ", orbit_path[0:6,6], orbit_path[-6:-1,6])
+
+print("PY: Calling Testing Position and Velocity")
+pos_vel_path = custom_runs.custom_runs_module.testing_position_velocity( np.copy(collision_param), nsteps)
+print("PY: Pos/Vel path: ", pos_vel_path.shape)
+
+print("PY: Calling basic run Once!")
+ipts, fpts = custom_runs.custom_runs_module.basic_run( np.copy(collision_param), npts1, npts2, 0.0, 0.0, 0.0)
+print("PY: tmp pts: ", ipts.shape)
+
+# # clear figure
+# plt.clf()
+
+# # plots final particles
+# plt.scatter(fpts_4k[:,0], fpts_4k[:,1], s=1, c='r', label='CMD Line')
+# plt.scatter(fpts[:,0], fpts[:,1], s=1, c='b', label='F2PY Module')
+# #plt.plot( orbit_path[:,0], orbit_path[:,1], c='k', label='Orbit Path')
+# plt.legend()
+# plt.savefig('tmp_final.png')
+# plt.clf()
 
 
-# Plot final and intial with path
-plt.scatter(ipts[:,0], ipts[:,1], s=1, c='r', label='Initial')
-plt.scatter(fpts[:,0], fpts[:,1], s=1, c='b', label='Final')
-plt.plot( orbit_path[:,0], orbit_path[:,1], c='k', label='Orbit Path')
-plt.legend()
-plt.title('Initial, Final, and Orbit Path')
-plt.savefig('tmp_orbit.png')
+# # Plot final and intial with path
+# plt.scatter(ipts[:,0], ipts[:,1], s=1, c='r', label='Initial')
+# plt.scatter(fpts[:,0], fpts[:,1], s=1, c='b', label='Final')
+# plt.plot( orbit_path[:,0], orbit_path[:,1], c='k', label='Orbit Path')
+# plt.legend()
+# plt.title('Initial, Final, and Orbit Path')
+# plt.savefig('tmp_orbit.png')
 
-# Calculate index of minium radius to origin
-min_r_idx = np.argmin( np.linalg.norm(orbit_path, axis=1) )
+# # Calculate index of minium radius to origin
+# min_r_idx = np.argmin( np.linalg.norm(orbit_path, axis=1) )
 
-# Function to calculate the normal vector of the orbit plane
-def plane_normal(points):
-    # Calculate the covariance matrix of the points
-    cov_matrix = np.cov(points.T)
-    # Eigenvalues and eigenvectors of the covariance matrix
-    eigvals, eigvecs = np.linalg.eig(cov_matrix)
-    # The eigenvector with the smallest eigenvalue is the normal vector of the plane
-    normal_vector = eigvecs[:, np.argmin(eigvals)]
-    return normal_vector
+# # Function to calculate the normal vector of the orbit plane
+# def plane_normal(points):
+#     # Calculate the covariance matrix of the points
+#     cov_matrix = np.cov(points.T)
+#     # Eigenvalues and eigenvectors of the covariance matrix
+#     eigvals, eigvecs = np.linalg.eig(cov_matrix)
+#     # The eigenvector with the smallest eigenvalue is the normal vector of the plane
+#     normal_vector = eigvecs[:, np.argmin(eigvals)]
+#     return normal_vector
 
-# Calculate the normal vector of the orbit path
-normal_vector = plane_normal(orbit_path)
+# # Calculate the normal vector of the orbit path
+# normal_vector = plane_normal(orbit_path)
 
-# Convert the normal vector to spherical coordinates for setting the viewing angle
-r = np.linalg.norm(normal_vector)
-elev = np.degrees(np.arccos(normal_vector[2] / r))
-azim = np.degrees(np.arctan2(normal_vector[1], normal_vector[0]))
+# # Convert the normal vector to spherical coordinates for setting the viewing angle
+# r = np.linalg.norm(normal_vector)
+# elev = np.degrees(np.arccos(normal_vector[2] / r))
+# azim = np.degrees(np.arctan2(normal_vector[1], normal_vector[0]))
 
-# Plot and save points and orbit path in 3D
-plt.clf()
-fig = plt.figure(figsize=(9,9)) # make figure bigger
-ax = fig.add_subplot(111, projection='3d')
-ax.plot(orbit_path[:,0], orbit_path[:,1], orbit_path[:,2], c='g', label='Orbit Path')
-ax.quiver(0,0,0, orbit_path[min_r_idx,0], orbit_path[min_r_idx,1], orbit_path[min_r_idx,2], color='k', label='Min Radius Vector')
-ax.scatter(ipts[:,0], ipts[:,1], ipts[:,2], c='r', label='Initial')
-ax.scatter(fpts[:,0], fpts[:,1], fpts[:,2], c='b', label='Final')
+# # Plot and save points and orbit path in 3D
+# plt.clf()
+# fig = plt.figure(figsize=(9,9)) # make figure bigger
+# ax = fig.add_subplot(111, projection='3d')
+# ax.plot(orbit_path[:,0], orbit_path[:,1], orbit_path[:,2], c='g', label='Orbit Path')
+# ax.quiver(0,0,0, orbit_path[min_r_idx,0], orbit_path[min_r_idx,1], orbit_path[min_r_idx,2], color='k', label='Min Radius Vector')
+# ax.scatter(ipts[:,0], ipts[:,1], ipts[:,2], c='r', label='Initial')
+# ax.scatter(fpts[:,0], fpts[:,1], fpts[:,2], c='b', label='Final')
 
-ax.set_xlabel('X')
-ax.set_ylabel('Y')
-ax.set_zlabel('Z')
-plt.title('Orbit Path')
-plt.legend()
+# ax.set_xlabel('X')
+# ax.set_ylabel('Y')
+# ax.set_zlabel('Z')
+# plt.title('Orbit Path')
+# plt.legend()
 
-# Adjust camera angle to be pendendicular to orbit path
-ax.view_init(elev=elev, azim=azim)
+# # Adjust camera angle to be pendendicular to orbit path
+# ax.view_init(elev=elev, azim=azim)
 
-plt.savefig('tmp_orbit3d.png')
+# plt.savefig('tmp_orbit3d.png')
