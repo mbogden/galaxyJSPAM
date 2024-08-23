@@ -2,6 +2,20 @@ import numpy as np
 import matplotlib.pyplot as plt
 from astropy.cosmology import Planck18 as cosmo  # Planck 2018 parameters
 
+# Read simulation header file for misc info
+def get_header_info( snap_num, get_info='dark_matter_particle_mass' ):
+    
+    # Read header to find standardized mass of dark matter particles
+    with h5py.File(il.snapshot.snapPath(SIM_DIR, snap_num),'r') as f:
+        header = dict(f['Header'].attrs)
+        
+        if get_info == 'dark_matter_particle_mass':            
+            return header['MassTable'][1]
+        elif get_info == 'redshift':
+            return header['Redshift']
+        else:
+            print("UNKNOWN INFO REQUEST")
+
 
 # Useful function for constructing/deconstructing subhalo ids.
 def generate_subhalo_id_raw(snap_num, subfind_id):
@@ -19,6 +33,43 @@ def deconstruct_subhalo_id_raw(subhalo_id_raw):
     snap_num = subhalo_id_raw // 10**12
     subfind_id = subhalo_id_raw % 10**12
     return (snap_num, subfind_id)
+
+
+def explore_hdf5(file_path):
+    """
+    Recursively explore the contents of an HDF5 file.
+    
+    Parameters:
+        file_path (str): The path to the HDF5 file to explore.
+    
+    Returns:
+        dict: A dictionary containing information about the file's structure.
+    """
+    def recurse_through_group(group, prefix=''):
+        """Helper function to recurse through groups and datasets."""
+        info = {}
+        for key, item in group.items():
+            path = f"{prefix}/{key}" if prefix else key
+            if isinstance(item, h5py.Dataset):
+                # Gathering information for datasets
+                info[path] = {
+                    'type': 'Dataset',
+                    'data_type': str(item.dtype),
+                    'shape': item.shape,
+                    'size': item.size,
+                    'compression': item.compression
+                }
+            elif isinstance(item, h5py.Group):
+                # Recurse into groups
+                info[path] = {
+                    'type': 'Group',
+                    'contents': recurse_through_group(item, path)
+                }
+        return info
+    
+    # Open the HDF5 file
+    with h5py.File(file_path, 'r') as file:
+        return recurse_through_group(file)
 
 # Converting redshift to time function
 
