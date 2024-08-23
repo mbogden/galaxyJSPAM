@@ -111,7 +111,7 @@ These are written by Matthew Ogden for Matthew Ogden while creating and organizi
         - [x] Verify unit conversion is working correctly.   
     - [x] Preliminary SPAM runs on TNG target parameters
         - NOTE: Images do NOT look similar. (lead to historical affiliation above)
-    - [x] Unit Conversation error?  (Working properly)
+        - [x] Unit Conversation error?  (Working properly)
     - [x] Dynamical Friction? (Found and modified to work properly)
         - NOTE: Use lnl = 0.15 for best best of tng-target: 67000000350284    
     - [x] View TNG pts over time
@@ -119,21 +119,23 @@ These are written by Matthew Ogden for Matthew Ogden while creating and organizi
     - [x] Look at orbits!  Do orbits of TNG and SPAM match?
         - NOTE: They do not match with default SPAM settings
         - [x] Do simple velocity projection of 2nd galaxy  
-    - [w] Do particles have similar Tidal Features?
-      - [ ] Create plot for both particles?
-      - [ ] Do initial disks relatively align?
-      - [ ] Do tidal features match? 
-      
-      
-    - play with mass profiles of galaxies
-      - df_module -> ( mhalo, rhalo, rchalo )
-      - Make rhalo smaller
-      - Look up this: 
-        Lars Hernquist. N-body realizations of compound galaxies. The Astrophysical Journal Supplement Series, 86:389{400, June 1993.
+    - [w] Play with following variable to get matching tidal features.
+        - NOTE: Based on following: Lars Hernquist. N-body realizations of compound galaxies. The Astrophysical Journal Supplement Series, 86:389{400, June 1993.
+        - lnl 
+            - NOTE: Value around 0.15 works well.
+        - mhalo, rhalo, rchalo (in df_module)
+            - NOTE: These values were hardcoded based on Milky Way and M31.
+            - NOTE: Chancing rchalo to be bigger leads to better tidal features.
+        - velocity
+            - NOTE: Slightly slowly down vel (0.9) creates better matches.
+        - mass
+    - [w] Find targets with matching Tidal features.
+        - 
+
   
   - Ideas
     - Have function set the bulge/disk/halo scales/mass ratios.  
-      - These values are hardcoded based on Milky Way and M31.
+      
       - Analyze TNG targets to see if they're similar or drastically different.
         - 3 - 5
       - If many targets have very different ratios, then we may need to add these as variables to optimize upon
