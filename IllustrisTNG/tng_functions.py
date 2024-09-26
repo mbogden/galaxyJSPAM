@@ -1,12 +1,17 @@
-import numpy as np
+import numpy as np, h5py, pprint
 import matplotlib.pyplot as plt
 from astropy.cosmology import Planck18 as cosmo  # Planck 2018 parameters
+import illustris_python as il
+
+# A useful function I use for indented printing
+def tabprint( printme, start = '\t - ', end = '\n' ):
+    print( start + str(printme), end = end )
 
 # Read simulation header file for misc info
-def get_header_info( snap_num, get_info='dark_matter_particle_mass' ):
+def get_header_info( snap_num, sim_dir = '/home/tnguser/sims.TNG/TNG50-1/output', get_info='dark_matter_particle_mass' ):
     
     # Read header to find standardized mass of dark matter particles
-    with h5py.File(il.snapshot.snapPath(SIM_DIR, snap_num),'r') as f:
+    with h5py.File(il.snapshot.snapPath(sim_dir, snap_num),'r') as f:
         header = dict(f['Header'].attrs)
         
         if get_info == 'dark_matter_particle_mass':            
@@ -35,18 +40,23 @@ def deconstruct_subhalo_id_raw(subhalo_id_raw):
     return (snap_num, subfind_id)
 
 
-def explore_hdf5(file_path):
+
+def explore_hdf5(file_path, max_depth=-1):
     """
-    Recursively explore the contents of an HDF5 file.
+    Recursively explore the contents of an HDF5 file up to a specified depth.
     
     Parameters:
         file_path (str): The path to the HDF5 file to explore.
+        max_depth (int): The maximum depth to explore. A value of -1 means no limit.
     
     Returns:
         dict: A dictionary containing information about the file's structure.
     """
-    def recurse_through_group(group, prefix=''):
+    def recurse_through_group(group, prefix='', current_depth=0):
         """Helper function to recurse through groups and datasets."""
+        if max_depth != -1 and current_depth > max_depth:
+            return {}
+
         info = {}
         for key, item in group.items():
             path = f"{prefix}/{key}" if prefix else key
@@ -60,16 +70,18 @@ def explore_hdf5(file_path):
                     'compression': item.compression
                 }
             elif isinstance(item, h5py.Group):
-                # Recurse into groups
+                # Recurse into groups if within depth limit
                 info[path] = {
                     'type': 'Group',
-                    'contents': recurse_through_group(item, path)
+                    'contents': recurse_through_group(item, path, current_depth + 1)
                 }
         return info
     
     # Open the HDF5 file
     with h5py.File(file_path, 'r') as file:
-        return recurse_through_group(file)
+        h5py_info = recurse_through_group(file)
+        pprint.pprint(h5py_info)
+        return h5py_info
 
 # Converting redshift to time function
 
@@ -120,8 +132,8 @@ for i in range(len(snapshot_data['snapshots'])):
 def snap_to_time(snap_num):
     return snap_time[snap_num]
 
-
 def xy_scatter_plot(xy_pts=None, pt_labels=None, \
+                    select_n = 4000, rotate_x=0, rotate_y=0, \
                     plot_lines=None, plot_labels=None, \
                     sig_pts=None, sig_labels=None, \
                     vector_list=None, vector_labels=None, \
@@ -136,6 +148,9 @@ def xy_scatter_plot(xy_pts=None, pt_labels=None, \
     Args:
     xy_pts (np.ndarray): An N x 2 array of xy coordinates.
     pt_labels (np.ndarray): An N-sized array of labels for each point in xy_pts.
+    select_n (int): Select N random particle to plot if greater than N.
+    rotate_x (float): Rotate view of plot around x-axis.
+    rotate_y (float): Rotate view of plot around y-axis.
     plot_lines (list(np.ndarray)): An N2 list of M x 2 arrays of xy coordinates for lines to plot.
     plot_labels (list): An N2 sized list to label the plot_lines.
     sig_pts (np.ndarray): An M x 2 array of xy coordinates for significant positions.
@@ -172,6 +187,34 @@ def xy_scatter_plot(xy_pts=None, pt_labels=None, \
 
         if vector_labels is not None:
             assert len(vector_labels) == vector_list.shape[0], "vector_labels must match the number of vectors"
+            
+    # Reduce Particles to be plotted for effeciency sake
+    if xy_pts.shape[0] > select_n:
+
+        # Generate random indices
+        select_id = np.random.choice(xy_pts.shape[0], size=select_n, replace=False)
+
+        # Use these indices to sample rows from the large array
+        xy_pts = xy_pts[select_id, :]
+        pt_labels = pt_labels[select_id]
+    # End select
+    
+    # Rotate points if requested
+    # Convert angles to radians
+    theta = np.radians(rotate_x)
+    phi = np.radians(rotate_y)
+    
+    # Rotation matrices
+    R_x = np.array([[1, 0, 0],
+                    [0, np.cos(theta), -np.sin(theta)],
+                    [0, np.sin(theta), np.cos(theta)]])
+    
+    R_y = np.array([[np.cos(phi), 0, np.sin(phi)],
+                    [0, 1, 0],
+                    [-np.sin(phi), 0, np.cos(phi)]])
+    
+    # Apply rotations
+    xy_pts = xy_pts[:, :3].dot(R_x).dot(R_y)
 
     # Create a plot
     fig, ax = plt.subplots()
@@ -262,6 +305,7 @@ def xy_scatter_plot(xy_pts=None, pt_labels=None, \
 
 
 def interactive_3d_scatter_plot(xyz_pts=None, pt_labels=None, \
+                                select_n = 4000, \
                                 plot_lines = None, plot_labels = None, \
                                 sig_pts = None, sig_labels = None, \
                                 vector_list = None, vector_labels = None, \
@@ -273,6 +317,7 @@ def interactive_3d_scatter_plot(xyz_pts=None, pt_labels=None, \
     Args:
     xyz_pts (np.ndarray): An N1 x 3 array of xyz coordinates.
     labels (np.ndarray): An N1-sized array of labels for each point in xyz_pts.
+    select_n (int): The number of maximum points to plot.
     plot_lines (list(np.ndarray)): An N2 list of M x 3 arrays of xyz coordinates for lines to plot. 
     plot_label (list): An N2 sized list to labelt the plot_lines
     sig_pts (np.ndarray): An N4 x 3 array of xyz coordinates for significant positions.
@@ -314,6 +359,19 @@ def interactive_3d_scatter_plot(xyz_pts=None, pt_labels=None, \
 
         if vector_labels is not None:
             assert len(vector_labels) == vector_list.shape[0], "vector_labels must match the number of vectors"
+            
+    # Reduce number of plotted pts for effeciency
+           
+    # Reduce Particles to be plotted for effeciency sake
+    if xyz_pts.shape[0] > select_n:
+
+        # Generate random indices
+        select_id = np.random.choice(xyz_pts.shape[0], size=select_n, replace=False)
+
+        # Use these indices to sample rows from the large array
+        xyz_pts = xyz_pts[select_id, :]
+        pt_labels = pt_labels[select_id]
+    # End select
 
 
     # Create a Plotly figure
