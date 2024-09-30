@@ -6,13 +6,16 @@ import illustris_python as il
 # A useful function I use for indented printing
 def tabprint( printme, start = '\t - ', end = '\n' ):
     print( start + str(printme), end = end )
+    
 
 # Read simulation header file for misc info
 def get_header_info( snap_num, sim_dir = '/home/tnguser/sims.TNG/TNG50-1/output', get_info='dark_matter_particle_mass' ):
     
     # Read header to find standardized mass of dark matter particles
-    with h5py.File(il.snapshot.snapPath(sim_dir, snap_num),'r') as f:
+    with h5py.File( il.snapshot.snapPath(sim_dir, snap_num),'r') as f:
         header = dict(f['Header'].attrs)
+        
+        print(header.keys())
         
         if get_info == 'dark_matter_particle_mass':            
             return header['MassTable'][1]
@@ -492,3 +495,157 @@ def interactive_3d_scatter_plot(xyz_pts=None, pt_labels=None, \
 
     # Show plot
     fig.show()
+    
+def calculate_plane_normal(points):
+    """
+    Calculate the normal vector of the best-fitting plane for a set of 3D points.
+
+    Parameters:
+    - points: (numpy array) An Nx3 array of 3D points representing galaxy central orbits over time.
+
+    Returns:
+    - normal_vector: (numpy array) The normal vector of the best-fitting plane (3D).
+    """
+    # Step 1: Compute the centroid of the points
+    centroid = np.mean(points, axis=0)
+    
+    # Step 2: Center the points by subtracting the centroid
+    centered_points = points - centroid
+    
+    # Step 3: Perform Singular Value Decomposition (SVD)
+    _, _, vh = np.linalg.svd(centered_points)
+    
+    # Step 4: The normal vector to the plane is the last row of vh
+    normal_vector = vh[-1, :]
+    
+    return normal_vector
+
+def calculate_transformation_matrix(P1, P2, spin_vector):
+    """
+    Calculate the rotation matrix that aligns the vector from P1 to P2 with the x-axis,
+    and then aligns the spin vector to lie in the x-z plane, pointing in a positive direction.
+    
+    Parameters:
+    - P1: (numpy array) The central point of the first galaxy (3D vector).
+    - P2: (numpy array) The central point of the second galaxy (3D vector).
+    - spin_vector: (numpy array) The spin vector of the first galaxy (3D vector).
+    
+    Returns:
+    - transformation_matrix: (numpy array) The 4x4 transformation matrix to align and transform the points.
+    """
+    
+    # Step 1: Calculate the vector from P1 to P2
+    V = P2 - P1
+    
+    # Step 2: Normalize the vector
+    D = V / np.linalg.norm(V)
+    
+    # Step 3: Calculate the rotation matrix to align D with the x-axis
+    x_axis = np.array([1, 0, 0])
+    axis = np.cross(D, x_axis)
+    angle = np.arccos(np.dot(D, x_axis))
+    
+    if np.isclose(angle, 0):
+        rotation_matrix = np.eye(3)
+    else:
+        axis = axis / np.linalg.norm(axis)
+        cos_angle = np.cos(angle)
+        sin_angle = np.sin(angle)
+        one_minus_cos = 1 - cos_angle
+        
+        ux, uy, uz = axis
+        rotation_matrix = np.array([
+            [cos_angle + ux**2 * one_minus_cos, ux*uy*one_minus_cos - uz*sin_angle, ux*uz*one_minus_cos + uy*sin_angle],
+            [uy*ux*one_minus_cos + uz*sin_angle, cos_angle + uy**2 * one_minus_cos, uy*uz*one_minus_cos - ux*sin_angle],
+            [uz*ux*one_minus_cos - uy*sin_angle, uz*uy*one_minus_cos + ux*sin_angle, cos_angle + uz**2 * one_minus_cos]
+        ])
+    
+    # Rotate the spin vector using the rotation matrix
+    rotated_spin_vector = np.dot(rotation_matrix, spin_vector)
+    
+    # Step 4: Rotate the spin vector into the x-z plane
+    spin_xz = np.array([rotated_spin_vector[0], 0, rotated_spin_vector[2]])
+    spin_xz = spin_xz / np.linalg.norm(spin_xz)
+    
+    # Find the angle to rotate around the x-axis to align the spin vector
+    if rotated_spin_vector[2] < 0:
+        spin_xz = -spin_xz  # Ensure it points in the positive z direction
+    
+    axis_xz = np.cross(rotated_spin_vector, spin_xz)
+    angle_xz = np.arccos(np.dot(rotated_spin_vector / np.linalg.norm(rotated_spin_vector), spin_xz))
+    
+    if np.linalg.norm(axis_xz) > 0:
+        axis_xz = axis_xz / np.linalg.norm(axis_xz)
+        cos_angle_xz = np.cos(angle_xz)
+        sin_angle_xz = np.sin(angle_xz)
+        one_minus_cos_xz = 1 - cos_angle_xz
+        
+        ux, uy, uz = axis_xz
+        rotation_xz_matrix = np.array([
+            [1, 0, 0],
+            [0, cos_angle_xz, -sin_angle_xz],
+            [0, sin_angle_xz, cos_angle_xz]
+        ])
+        
+        # Combine rotations
+        rotation_matrix = np.dot(rotation_xz_matrix, rotation_matrix)
+    
+    # Step 5: Translation matrix to place the first galaxy at the origin
+    translation_matrix = np.eye(4)
+    translation_matrix[:3, 3] = -P1
+    
+    # Combine rotation and translation into a single transformation matrix
+    transformation_matrix = np.eye(4)
+    transformation_matrix[:3, :3] = rotation_matrix
+    
+    # Apply translation
+    transformation_matrix = np.dot(transformation_matrix, translation_matrix)
+    
+    return transformation_matrix
+
+
+def apply_transformation(matrix, points, additional_angle=0.0, degrees=None):
+    """
+    Apply a transformation matrix to a list of 3D points, with an optional additional rotation
+    around the x-axis.
+
+    Parameters:
+    - matrix: (numpy array) The 4x4 transformation matrix.
+    - points: (numpy array) An Nx3 array of 3D points.
+    - additional_angle: (float) Optional. An additional rotation angle around the x-axis in radians.
+    - degrees: (float) Optional. An additional rotation angle around the x-axis in degrees.
+
+    Returns:
+    - transformed_points: (numpy array) The Nx3 array of transformed points.
+    """
+    # Convert degrees to radians if degrees are provided
+    if degrees is not None:
+        additional_angle = np.radians(degrees)
+    
+    # Step 1: Convert points to homogeneous coordinates (Nx4)
+    n_points = points.shape[0]
+    homogeneous_points = np.ones((n_points, 4))
+    homogeneous_points[:, :3] = points
+
+    # Step 2: Apply the initial transformation matrix
+    transformed_homogeneous_points = np.dot(homogeneous_points, matrix.T)
+
+    # Step 3: Apply additional rotation around the x-axis if specified
+    if additional_angle != 0.0:
+        # Rotation matrix around the x-axis
+        cos_angle = np.cos(additional_angle)
+        sin_angle = np.sin(additional_angle)
+        rotation_x = np.array([
+            [1, 0,         0,        0],
+            [0, cos_angle, -sin_angle, 0],
+            [0, sin_angle, cos_angle,  0],
+            [0, 0,         0,         1]
+        ])
+        
+        # Apply this additional rotation
+        transformed_homogeneous_points = np.dot(transformed_homogeneous_points, rotation_x.T)
+
+    # Step 4: Convert back to 3D by dropping the homogeneous coordinate
+    transformed_points = transformed_homogeneous_points[:, :3]
+
+    return transformed_points
