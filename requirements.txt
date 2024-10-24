@@ -10,3 +10,5 @@ scikit-image
 scikit-learn
 tensorflow==2.9.1
 astropy
+hdf5
+dask

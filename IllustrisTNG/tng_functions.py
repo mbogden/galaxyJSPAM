@@ -1,7 +1,6 @@
 import numpy as np, h5py, pprint
 import matplotlib.pyplot as plt
 from astropy.cosmology import Planck18 as cosmo  # Planck 2018 parameters
-import illustris_python as il
 
 # A useful function I use for indented printing
 def tabprint( printme, start = '\t - ', end = '\n' ):
@@ -10,6 +9,7 @@ def tabprint( printme, start = '\t - ', end = '\n' ):
 
 # Read simulation header file for misc info
 def get_header_info( snap_num, sim_dir = '/home/tnguser/sims.TNG/TNG50-1/output', get_info='dark_matter_particle_mass' ):
+    import illustris_python as il
     
     # Read header to find standardized mass of dark matter particles
     with h5py.File( il.snapshot.snapPath(sim_dir, snap_num),'r') as f:
@@ -496,7 +496,7 @@ def interactive_3d_scatter_plot(xyz_pts=None, pt_labels=None, \
     # Show plot
     fig.show()
     
-def calculate_plane_normal(points):
+def calc_plane_normal_matrix(points):
     """
     Calculate the normal vector of the best-fitting plane for a set of 3D points.
 
@@ -520,7 +520,7 @@ def calculate_plane_normal(points):
     
     return normal_vector
 
-def calculate_transformation_matrix(P1, P2, spin_vector):
+def calc_spin_matrix(P1, P2, spin_vector):
     """
     Calculate the rotation matrix that aligns the vector from P1 to P2 with the x-axis,
     and then aligns the spin vector to lie in the x-z plane, pointing in a positive direction.
