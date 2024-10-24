@@ -108,10 +108,10 @@ These are written by Matthew Ogden for Matthew Ogden while creating and organizi
 
 - Comparing SPAM to TNG
     - [x] Unit conversion between simulations
-        - [x] Verify unit conversion is working correctly.   
+    - [x] Standardize SPAM and TNG parameter array.
+    - [x] Get SPAM running (See SPAM notes)
     - [x] Preliminary SPAM runs on TNG target parameters
-        - NOTE: Images do NOT look similar. (lead to historical affiliation above)
-        - [x] Unit Conversation error?  (Working properly)
+        - NOTE: Images do NOT look similar
     - [x] Dynamical Friction? (Found and modified to work properly)
         - NOTE: Use lnl = 0.15 for best best of tng-target: 67000000350284    
     - [x] View TNG pts over time
