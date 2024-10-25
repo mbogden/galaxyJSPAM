@@ -649,3 +649,74 @@ def apply_transformation(matrix, points, additional_angle=0.0, degrees=None):
     transformed_points = transformed_homogeneous_points[:, :3]
 
     return transformed_points
+
+
+
+def pt_apply_transformation(points_in, matrix, vel_matrix=None):
+    """
+    Apply a transformation matrix to a list of 3D points or a single 3D point.
+    Supports both 3x3 rotation matrices and 4x4 transformation matrices.
+    Optionally applies a velocity transformation to columns 3, 4, and 5.
+
+    Parameters:
+    -----------
+    - points_in: (numpy.ndarray) An NxM array of points (where M >= 3).
+    - matrix: (numpy.ndarray) A 3x3 rotation matrix or a 4x4 transformation matrix.
+    - vel_matrix: (numpy.ndarray, optional) A 3x3 or 4x4 matrix for velocity transformation.
+                 If provided, it will be applied to columns 3, 4, and 5.
+
+    Returns:
+    --------
+    - transformed_points: (numpy.ndarray) The NxM array of transformed points.
+    """
+    
+    # Copy the input points to avoid modifying the original array
+    points = points_in.copy()
+
+    # Handle single point case (if points_in is 1D with at least 3 elements)
+    if points.ndim == 1:
+        if points.shape[0] < 3:
+            raise ValueError("Point must have at least 3 elements.")
+        points = points.reshape(1, -1)  # Convert to 2D for consistent processing
+        single_point = True
+    else:
+        single_point = False
+
+    # Transform the first 3 columns
+    if matrix.shape == (3, 3):
+        # Case 1: Apply 3x3 rotation matrix
+        points[:, :3] = np.dot(points[:, :3], matrix.T)
+
+    elif matrix.shape == (4, 4):
+        # Case 2: Apply 4x4 transformation matrix (rotation + translation)
+        n_points = points.shape[0]
+        homogeneous_points = np.ones((n_points, 4))
+        homogeneous_points[:, :3] = points[:, :3]  # Use only first 3 columns
+        transformed_homogeneous_points = np.dot(homogeneous_points, matrix.T)
+        points[:, :3] = transformed_homogeneous_points[:, :3]  # Update original points
+
+    else:
+        raise ValueError("The transformation matrix must be either 3x3 or 4x4.")
+
+    # Apply velocity transformation if vel_matrix is provided
+    if vel_matrix is not None:
+        if vel_matrix.shape == (3, 3):
+            # Apply 3x3 rotation matrix to velocity columns
+            points[:, 3:6] = np.dot(points[:, 3:6], vel_matrix.T)
+
+        elif vel_matrix.shape == (4, 4):
+            # Apply 4x4 transformation matrix to velocity columns
+            homogeneous_vel = np.ones((n_points, 4))
+            homogeneous_vel[:, :3] = points[:, 3:6]
+            transformed_homogeneous_vel = np.dot(homogeneous_vel, vel_matrix.T)
+            points[:, 3:6] = transformed_homogeneous_vel[:, :3]
+
+        else:
+            raise ValueError("The velocity matrix must be either 3x3 or 4x4.")
+
+    # If it was a single point, return it as a 1D array
+    if single_point:
+        return points[0]
+
+    return points
+
