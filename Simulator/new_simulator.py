@@ -67,7 +67,7 @@ LOGGER = logging.getLogger(__name__)
 
 # ================================= CORE FUNCTIONS ================================= #
 
-def set_galaxy_mass_distribution( lnl = 0.1, r_scale = 10.0, mhalo = 5.8, mbulge = 0.3333, hbulge = 2.0, hdisk = 1.0 ):
+def set_simulation_variables( lnl = 0.1, r_scale = 10.0, mhalo = 5.8, mbulge = 0.3333, hbulge = 2.0, hdisk = 1.0 ):
     """
     This function defines the base mass distribution of the galaxy.   Custom collisions scale this distribution.
     The default values are derived from empirical data of the Milky Way and M31.  
@@ -96,7 +96,7 @@ def set_galaxy_mass_distribution( lnl = 0.1, r_scale = 10.0, mhalo = 5.8, mbulge
 
     return 
 
-def basic_disk_wrapper( collision_param, npts1 = 100, npts2 = 50, dynamic_friction_lnl = 0.001):
+def basic_disk_wrapper( collision_param, npts1 = 100, npts2 = 50):
     """
     This function is a wrapper for the custom_runs_module.basic_disk function.
 
@@ -104,7 +104,6 @@ def basic_disk_wrapper( collision_param, npts1 = 100, npts2 = 50, dynamic_fricti
         collision_param (np.ndarray): Array of collision parameters
         npt1 (int): Number of particles for the primary galaxy
         npt2 (int): Number of particles for the secondary galaxy
-        dynamic_friction_lnl (float): Variable to adjust strength of dynamic friction
     
     Returns:
         disk_pts (np.ndarray): Array of particles for primary and secondary disk
@@ -117,7 +116,7 @@ def basic_disk_wrapper( collision_param, npts1 = 100, npts2 = 50, dynamic_fricti
     # Call the Fortran function
     LOGGER.debug(f"Calling custom_runs.basic_disk: {collision_param}")
     try:
-        disk_pts = custom_runs.custom_runs_module.basic_disk( f_ar, npts1, npts2, dynamic_friction_lnl )
+        disk_pts = custom_runs.custom_runs_module.basic_disk( f_ar, npts1, npts2 )
 
     except:
         LOGGER.error(f"Failed to call custom_runs.basic_disk")
@@ -129,13 +128,12 @@ def basic_disk_wrapper( collision_param, npts1 = 100, npts2 = 50, dynamic_fricti
 
     return disk_pts
 
-def orbit_run_wrapper( collision_param, dynamic_friction_lnl = 0.001 ):
+def orbit_run_wrapper( collision_param ):
     """
     This function is a warpper for the custom_runs_module.orbit_run function.
 
     Parameters:
         collision_param (np.ndarray): Array of collision parameters
-        dynamic_friction_lnl (float): Variable to adjust strength of dynamic friction
 
     Returns:
         orbit_path (np.ndarray): Array of particles indicating the path of the secondary galaxy
@@ -151,16 +149,17 @@ def orbit_run_wrapper( collision_param, dynamic_friction_lnl = 0.001 ):
     # We need to know how large the final orbit path will be before calling the function
     LOGGER.debug(f"Calling custom_runs.calc_orbit_time_steps: {collision_param}")
     try:
-        n_time_steps = custom_runs.custom_runs_module.calc_orbit_integration_steps( in_ar, dynamic_friction_lnl )
+        n_time_steps = custom_runs.custom_runs_module.calc_orbit_integration_steps( in_ar )
 
-    except:
-        LOGGER.error(f"Failed to call 'custom_runs.calc_orbit_time_steps'")
+
+    except Exception as e:
+        LOGGER.error(f"Failed to call 'custom_runs.calc_orbit_time_steps'\ne: {e}")
         raise ValueError(f"Failed to call 'custom_runs.calc_orbit_time_steps'")
     
     # Call the Fortran function to create the orbit path
     LOGGER.debug(f"Calling custom_runs.orbit_run.  Time steps: {n_time_steps}")
     try:
-        orbit_path = custom_runs.custom_runs_module.orbit_run( in_ar, n_time_steps, dynamic_friction_lnl )
+        orbit_path = custom_runs.custom_runs_module.orbit_run( in_ar, n_time_steps )
     except:
         LOGGER.error(f"Failed to call 'custom_runs.orbit_run'")
         raise ValueError(f"Failed to call 'custom_runs.orbit_run'")
@@ -201,7 +200,7 @@ def testing_pos_vel_wrapper( collision_param, n_steps = 5000 ):
     # Reverse order of orbit path to go from initial to final
     return orbit_path[::-1]
 
-def basic_run_wrapper( collision_param, npts1 = 100, npts2 = 50, heat1 = 0.0, heat2 = 0.0, dynamic_friction_lnl = 0.001):
+def basic_run_wrapper( collision_param, npts1 = 100, npts2 = 50, heat1 = 0.0, heat2 = 0.0):
     """
     This function is a wrapper for the custom_runs_module.basic_disk function.
 
@@ -211,7 +210,6 @@ def basic_run_wrapper( collision_param, npts1 = 100, npts2 = 50, heat1 = 0.0, he
         npt2 (int): Number of particles for the secondary galaxy
         heat1 (float): random motion parameter for the primary galaxy
         heat2 (float): random motion parameter for the secondary galaxy
-        dynamic_friction_lnl (float): Variable to adjust strength of dynamic friction
     
     Returns:
         init_pts (np.ndarray): Array of particles before collision interactions
@@ -228,7 +226,7 @@ def basic_run_wrapper( collision_param, npts1 = 100, npts2 = 50, heat1 = 0.0, he
     # Call the Fortran function
     LOGGER.debug(f"Calling custom_runs.basic_disk: {collision_param}")
     try:
-        init_pts, final_pts = custom_runs.custom_runs_module.basic_run( in_ar, npts1, npts2, heat1, heat2, dynamic_friction_lnl )
+        init_pts, final_pts = custom_runs.custom_runs_module.basic_run( in_ar, npts1, npts2, heat1, heat2)
     except:
         LOGGER.error(f"Failed to call 'custom_runs.basic_run'")
         LOGGER.error(f"Collision Param: {collision_param}")

@@ -13,11 +13,11 @@ module custom_runs_module
     
     contains
 
-    subroutine basic_run(collision_param, npts1, npts2, h1, h2, lnl_in, init_pts, final_pts)
+    subroutine basic_run(collision_param, npts1, npts2, h1, h2, init_pts, final_pts)
         
         real(kind=8), intent(in), dimension(22) :: collision_param
         integer, intent(in) :: npts1, npts2
-        real(kind=8), intent(in) :: h1, h2, lnl_in
+        real(kind=8), intent(in) :: h1, h2
         
         real(kind=8), intent(out), dimension(npts1+npts2+1,6) :: init_pts, final_pts
 
@@ -38,7 +38,7 @@ module custom_runs_module
         call SIMR_SETUP_CUSTOM_COLLISION(collision_param, npts1, npts2, h1, h2)
     
         ! initialize dynamical friction, force/potential/acceleration profiles around galaxies, 
-        call SIMR_CREATE_COLLISION(lnl_in)
+        call SIMR_CREATE_COLLISION()
             
         ! ! Saving initial particles
         ! copy the initial particles
@@ -92,10 +92,9 @@ module custom_runs_module
         
     end subroutine basic_run
 
-    subroutine orbit_run(collision_param, in_n_steps, lnl_in, orbit_path)
+    subroutine orbit_run(collision_param, in_n_steps, orbit_path)
         
         real(kind=8), intent(in), dimension(22) :: collision_param
-        real(kind=8), intent(in) :: lnl_in
         integer, intent(in) :: in_n_steps
         real(kind=8), intent(out), dimension(in_n_steps,7) :: orbit_path
 
@@ -116,7 +115,7 @@ module custom_runs_module
         call SIMR_SETUP_CUSTOM_COLLISION(collision_param, 10, 5, 0.0d0, 0.0d0)
     
         ! Initialize the collision
-        call SIMR_CREATE_COLLISION(lnl_in)
+        call SIMR_CREATE_COLLISION()
             
         ! initialize rk routine for orbit prediction
         call INIT_RKVAR(x0, mass1, mass2, epsilon1, epsilon2, theta1, phi1, &
@@ -153,9 +152,8 @@ module custom_runs_module
         
     end subroutine orbit_run
 
-    subroutine calc_orbit_integration_steps( collision_param, out_n_steps, lnl_in )
+    subroutine calc_orbit_integration_steps( collision_param, out_n_steps )
         real(kind=8), intent(in), dimension(22) :: collision_param
-        real(kind=8), intent(in) :: lnl_in
         integer, intent(out) :: out_n_steps
 
         real (kind=8) :: t0, time_interval
@@ -172,7 +170,7 @@ module custom_runs_module
         call SIMR_SETUP_CUSTOM_COLLISION(collision_param, 10, 5, 0.0d0, 0.0d0)
 
         ! print *, "FR: Creating disk!"
-        call SIMR_CREATE_COLLISION(lnl_in)
+        call SIMR_CREATE_COLLISION()
 
         ! initialize rk routine for particle integration/perturbation
         call INIT_RKVAR(x0, mass1, mass2, epsilon1, epsilon2, theta1, phi1, &
@@ -195,10 +193,9 @@ module custom_runs_module
     end subroutine calc_orbit_integration_steps
 
 
-    subroutine basic_disk(collision_param, npts1, npts2, lnl_in, init_pts)
+    subroutine basic_disk(collision_param, npts1, npts2, init_pts)
         integer, intent(in) :: npts1, npts2
         real(kind=8), intent(in), dimension(22) :: collision_param
-        real(kind=8), intent(in) :: lnl_in
         real(kind=8), intent(out), dimension(npts1+npts2+1,6) :: init_pts
 
         ! print *, "FR: basic_disk!"
@@ -213,7 +210,7 @@ module custom_runs_module
         call SIMR_SETUP_CUSTOM_COLLISION(collision_param, npts1, npts2, 0.0d0, 0.0d0)
     
         ! print *, "FR: Creating disk!"
-        call SIMR_CREATE_COLLISION(lnl_in)
+        call SIMR_CREATE_COLLISION()
 
         ! ! Output particles to disk
         init_pts = x0
@@ -361,22 +358,16 @@ module custom_runs_module
 
     end subroutine SIMR_SETUP_CUSTOM_COLLISION
 
-    subroutine SIMR_CREATE_COLLISION(lnl_in)
+    subroutine SIMR_CREATE_COLLISION()
 
         implicit none
         real (kind=8), dimension(7) :: rv4min
         real (kind=8), dimension(4) :: tminVals
         real (kind=8) :: tmpT
-        real (kind=8) :: lnl_in
 
         ! write print statment saying hi from function
         ! print *, "FR: SIMR_CREATE_COLLISION!"
-        ! print function and lnl_in value
-        ! print *, "FR: create_collision.lnl_in: ", lnl_in
-      
-      ! Matt O.   testing if I can call this once at setup.
-        ! call SIMR_INIT_DISTRIBUTION(lnl_in)
-      
+            
         ! create the disks
       !  call SET_DIFFQ2_PARAMETERS(phi1, theta1, phi2, theta2, rscale1, rscale2, rout1, rout2)
       
