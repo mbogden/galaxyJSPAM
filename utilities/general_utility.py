@@ -91,11 +91,24 @@ class ArgHandler:
                     ''',
             formatter_class=argparse.RawDescriptionHelpFormatter
         )
+
+        # Just a handful of generic arguments I might need to misc scripts
+        # Use string so scripts can convert to other types as needed
+        parser.add_argument('-i','--input', type=str, help='General input argument 1')
+        parser.add_argument('-i2', '--input2', type=str, help='General input argument 2')
+        parser.add_argument('-i3', '--input3', type=str, help='General input argument 3')
+        parser.add_argument('-i4', '--input4', type=str, help='General input argument 4')
+
+        parser.add_argument('-o','--output', type=str, help='General output argument 1')
+        parser.add_argument('-o2', '--output2', type=str, help='General output argument 2')
+
+        parser.add_argument('-f', help='Arg needed for jupyter notebook')
         
         parser.add_argument('--config', type=str, help='Path to configuration file containing program arguments')
         parser.add_argument('--new-config', action='store_true', default=False, help='Overwrite config file with current arguments.')
         parser.add_argument('--log-level', type=str, choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG'], 
                             default='INFO', help='Set logging level for application. Options: CRITICAL, ERROR, WARNING, INFO, and DEBUG. Default is INFO.')
+        parser.add_argument('--log-file', type=str, help='Path to log file for application.')
         parser.add_argument('--test', action='store_true', default=False, help='Runs tests for current module.')
 
         parser.add_argument('--model-dir', type=str, help='Path to a model directory.')
@@ -132,7 +145,6 @@ class ArgHandler:
         parser.add_argument('--norm-name', type=str, help='Looks for a feature normalization file in target\'s WNDCHRM directory.')
         parser.add_argument('--norm-loc', type=str, help='Looks for feature normalization file in specified path.')
         parser.add_argument('--wndchrm-analysis', action='store_true', help='Performs wndchrm analysis.')
-
 
         # Use the provided args or sys.argv[1:] if args is None
         if args is None:  
@@ -229,11 +241,27 @@ def configure_logging(log_level: str = 'INFO') -> logging.Logger:
     if numeric_level is None:
         raise ValueError(f'Invalid log level: {log_level}')
     
-    log_format = 'Time:%(asctime)s - [%(module)s: %(funcName)s] - %(levelname)s - %(message)s'
+    # Default Log format
+    log_format = 'Time:%(asctime)s - [%(module)s.%(funcName)s] - %(levelname)s - %(message)s'
+
+    # Try to import mpi4py and get the rank and size
+    try:
+        from mpi4py import MPI
+        comm = MPI.COMM_WORLD
+        rank = comm.Get_rank()
+        size = comm.Get_size()
+        if size > 1:
+            # Update log format to include rank and size
+            log_format = f'Time:%(asctime)s - [%(module)s.%(funcName)s] - %(levelname)s - (Rank:{rank}/{size}) - %(message)s'
+    except ImportError:
+        # mpi4py is not installed; continue without MPI information
+        pass
+    except Exception as e:
+        # Handle any other exceptions related to MPI
+        logging.error(f'Error accessing MPI information: \n{e}')
     
     logging.basicConfig(level=numeric_level, format=log_format)
 
-    # Add custom filter to include RANK and SIZE
     logger = logging.getLogger()
     logger.setLevel(numeric_level)
     logger.filters = []  # Reset filters
@@ -253,6 +281,34 @@ def change_logging_level(log_level):
     logger = logging.getLogger()
     logger.setLevel(numeric_level)
     logging.info(f'Logging level changed to {log_level}')
+
+def new_logger_handler(log_file_path):
+    """
+    Add a new file handler to the logger.
+
+    Parameters:
+        log_file_path (str): The path to the log file.
+    """
+    logger = logging.getLogger()    
+    
+    # Assuming there is at least one handler already configured
+    if logger.handlers:
+        existing_handler = logger.handlers[0]
+        log_level = existing_handler.level
+        log_format = existing_handler.formatter._fmt
+
+        # Create a new file handler with the same settings
+        file_handler = logging.FileHandler(log_file_path)
+        file_handler.setLevel(log_level)
+        formatter = logging.Formatter(log_format)
+        file_handler.setFormatter(formatter)
+
+        # Add the new file handler to the logger
+        logger.addHandler(file_handler)
+
+    else:
+        raise ValueError("No existing handlers found to copy settings from.")
+
 
 # =====   OLD LOGGER FOR JUPYTER NOTEBOOKS   ===== #
 
@@ -393,6 +449,11 @@ def initialize_environment( args=None ):
     arg_handler = ArgHandler(args=args)
     logger = logging.getLogger()
     logger.setLevel( arg_handler.args.log_level )
+
+    # if log file is provided, add a new file handler
+    if arg_handler.args.log_file:
+        new_logger_handler(arg_handler.args.log_file)
+        
     return arg_handler.args, logger
 
 
