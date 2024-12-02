@@ -135,15 +135,13 @@ for i in range(len(snapshot_data['snapshots'])):
 def snap_to_time(snap_num):
     return snap_time[snap_num]
 
-def xy_scatter_plot(xy_pts=None, pt_labels=None, \
-                    select_n = 4000, rotate_x=0, rotate_y=0, \
+def xy_plot(xy_pts=None, pt_labels=None, select_n = 4000,  \
                     plot_lines=None, plot_labels=None, \
                     sig_pts=None, sig_labels=None, \
                     vector_list=None, vector_labels=None, \
-                    axis = 'xy', \
                     title="Scatter Plot with Labels", std_dev=3, \
                     square = True, figsize=None, legend=True, 
-                    save_loc = None):
+                    save_loc = None, external_ax=None):
     """
     Plots a scatter plot with labeled points having unique colors and large, unlabeled dots.
     Ignores points that are more than 3 standard deviations from the mean in either dimension.
@@ -151,22 +149,45 @@ def xy_scatter_plot(xy_pts=None, pt_labels=None, \
     Args:
     xy_pts (np.ndarray): An N x 2 array of xy coordinates.
     pt_labels (np.ndarray): An N-sized array of labels for each point in xy_pts.
-    select_n (int): Select N random particle to plot if greater than N.
-    rotate_x (float): Rotate view of plot around x-axis.
-    rotate_y (float): Rotate view of plot around y-axis.
+    select_n (int): Select N random particles to plot if greater than N.
     plot_lines (list(np.ndarray)): An N2 list of M x 2 arrays of xy coordinates for lines to plot.
     plot_labels (list): An N2 sized list to label the plot_lines.
     sig_pts (np.ndarray): An M x 2 array of xy coordinates for significant positions.
     sig_labels (list): An M sized list to label the sig_pts.
+    vector_list (np.ndarray): A list of 2D vectors to plot.
+    vector_labels (list): Labels for each vector.
     title (str): Title of the plot.
+    std_dev (float): Standard deviation threshold for outlier removal.
+    square (bool): Whether to keep plot aspect ratio square.
+    figsize (tuple): Figure size.
+    legend (bool): Whether to show legend.
+    save_loc (str): If specified, save plot to this location.
+    external_ax (matplotlib.axes.Axes): If provided, use this axis for plotting.
     """
 
     # Ensure input integrity for scatter
     if xy_pts is not None:
-        assert xy_pts.shape[1] >= 2, "xy_pts should be N x 2 in shape"
+        assert xy_pts.shape[1] >= 2, "xy_pts should be N x 2 in shape"  
 
         if pt_labels is not None:
-            assert xy_pts.shape[0] == len(pt_labels), "xy_pts and pt_labels must have the same length"
+            if pt_labels is not np.ndarray:
+                pt_labels = np.array(pt_labels)
+
+            assert xy_pts.shape[0] == pt_labels.shape[0], f"xy_pts and pt_labels don't have the same length: {xy_pts.shape} != {pt_labels.shape} "
+            
+        # Reduce Particles to be plotted for effeciency sake
+        if xy_pts.shape[0] > select_n:
+
+            # Generate random indices
+            select_id = np.random.choice(xy_pts.shape[0], size=select_n, replace=False)
+
+            # Use these indices to sample rows from the large array
+            xy_pts = xy_pts[select_id, :]
+
+            if pt_labels is not None:                
+                pt_labels = pt_labels[select_id]
+
+        # End select
 
     # Ensure input integrity for lines
     if plot_lines is not None:
@@ -178,6 +199,9 @@ def xy_scatter_plot(xy_pts=None, pt_labels=None, \
 
     # Ensure input integrity for significant points
     if sig_pts is not None:
+        if type( sig_pts ) is not np.ndarray:
+            sig_pts = np.array( sig_pts )
+
         assert sig_pts.shape[1] >= 2, "sig_pts should be N x 2 in shape"
 
         if sig_labels is not None:
@@ -190,37 +214,12 @@ def xy_scatter_plot(xy_pts=None, pt_labels=None, \
 
         if vector_labels is not None:
             assert len(vector_labels) == vector_list.shape[0], "vector_labels must match the number of vectors"
-            
-    # Reduce Particles to be plotted for effeciency sake
-    if xy_pts.shape[0] > select_n:
-
-        # Generate random indices
-        select_id = np.random.choice(xy_pts.shape[0], size=select_n, replace=False)
-
-        # Use these indices to sample rows from the large array
-        xy_pts = xy_pts[select_id, :]
-        pt_labels = pt_labels[select_id]
-    # End select
-    
-    # Rotate points if requested
-    # Convert angles to radians
-    theta = np.radians(rotate_x)
-    phi = np.radians(rotate_y)
-    
-    # Rotation matrices
-    R_x = np.array([[1, 0, 0],
-                    [0, np.cos(theta), -np.sin(theta)],
-                    [0, np.sin(theta), np.cos(theta)]])
-    
-    R_y = np.array([[np.cos(phi), 0, np.sin(phi)],
-                    [0, 1, 0],
-                    [-np.sin(phi), 0, np.cos(phi)]])
-    
-    # Apply rotations
-    xy_pts = xy_pts[:, :3].dot(R_x).dot(R_y)
+      
 
     # Create a plot
-    fig, ax = plt.subplots()
+    fig = None    
+    ax = external_ax or plt.subplots(figsize=figsize)[1]
+
 
     # Remove outliers from data
     if xy_pts is not None:
@@ -293,9 +292,9 @@ def xy_scatter_plot(xy_pts=None, pt_labels=None, \
     if square:
         ax.set_aspect('equal', 'box')
 
-    # Set figure size
-    if figsize is not None:
-        fig.set_size_inches(figsize)
+    # # Set figure size
+    # if figsize is not None:
+    #     fig.set_size_inches(figsize)
 
 
     # Show plot
@@ -373,7 +372,8 @@ def interactive_3d_scatter_plot(xyz_pts=None, pt_labels=None, \
 
         # Use these indices to sample rows from the large array
         xyz_pts = xyz_pts[select_id, :]
-        pt_labels = pt_labels[select_id]
+        if pt_labels is not None:
+            pt_labels = pt_labels[select_id]
     # End select
 
 
@@ -625,7 +625,7 @@ def apply_transformation(matrix, points, additional_angle=0.0, degrees=None):
     # Step 1: Convert points to homogeneous coordinates (Nx4)
     n_points = points.shape[0]
     homogeneous_points = np.ones((n_points, 4))
-    homogeneous_points[:, :3] = points
+    homogeneous_points[:, :3] = points[:,:3]
 
     # Step 2: Apply the initial transformation matrix
     transformed_homogeneous_points = np.dot(homogeneous_points, matrix.T)
@@ -647,6 +647,10 @@ def apply_transformation(matrix, points, additional_angle=0.0, degrees=None):
 
     # Step 4: Convert back to 3D by dropping the homogeneous coordinate
     transformed_points = transformed_homogeneous_points[:, :3]
+    
+    # Step 5: Add additional columns if they were present before
+    if points.shape[1] > 3:
+        transformed_points = np.hstack((transformed_points, points[:, 3:]))
 
     return transformed_points
 

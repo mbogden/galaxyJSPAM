@@ -30,7 +30,7 @@ sys.path.append(PROJECT_DIRECTORY)
 # import project modules
 import utilities.general_utility as gu
 import utilities.model_manager as mm
-import custom_runs
+import Simulator.custom_runs as custom_runs
 
 # ================================= GLOBALS ================================= #
 #   Standardized parameter array for SPAM model:
