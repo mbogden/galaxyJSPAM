@@ -724,3 +724,140 @@ def pt_apply_transformation(points_in, matrix, vel_matrix=None):
 
     return points
 
+import matplotlib.patheffects as path_effects
+
+def xy_histogram( hist_data,
+                plot_data = None, plot_labels = None,
+                annotations = None,
+                limits = None,
+                ext_ax=None,  title="2D Histogram", \
+                std_dev=3, bins=256, cmap='gray', \
+                log_scale=True, dim_inner = -1, \
+                show_labels=False, plotting=True, figsize=None):
+    """
+    Plots a 2D histogram on a given axis with x and y limits set to n standard deviations.
+
+    Args:
+    hist_data (np.ndarray): An N x 2 array of xy coordinates.
+    plot_data (list or np.ndarray): Optional. List of N x 2 arrays or a single N x 2 array of xy coordinates to overlay on the histogram.
+    plot_labels (list or str): Labels for each plot_data item.
+    annotations (list of tuples): List of (location, text) tuples. Each location is an xy coordinate, and text is a string to annotate.
+    limits (tuple): Axis limits for x and y.
+    ax (matplotlib.axes.Axes or None): The axis to plot on. If None, a new figure and axis will be created.
+    title (str): Title of the subplot.
+    std_dev (float): Number of standard deviations to set axis limits.
+    bins (int): Number of bins along each axis in the histogram.
+    cmap (str): Colormap for the histogram.
+    log_scale (bool): Whether to apply logarithmic scaling to the histogram.
+    dim_inner (int): Threshold for capping high histogram bin counts.
+    show_labels (bool): Whether to show axis labels.
+    plotting (bool): If true, shows the plot.
+    """
+
+    if hist_data is None:
+        print("hist_data cannot be None")
+        raise ValueError("hist_data cannot be None")
+    
+    # Ensure plot_data and plot_labels are lists
+    if plot_data is not None and not isinstance(plot_data, list):
+        plot_data = [plot_data]
+    if plot_labels is not None and not isinstance(plot_labels, list):
+        plot_labels = [plot_labels]
+
+
+    # If ax is None, create a new figure and axis
+    ax = ext_ax or plt.subplots(figsize=figsize)[1]
+
+    # Calculate the mean and standard deviation
+    mean_xy = np.mean(hist_data[:, 0:2], axis=0)
+    std_xy  = np.std( hist_data[:, 0:2], axis=0)
+
+    # Determine the maximum range to use for both axes
+    max_range = np.max(std_xy) * std_dev
+
+    # Set axis limits to be the same for both x and y
+    if limits is None:
+        xlim = (mean_xy[0] - max_range, mean_xy[0] + max_range)
+        ylim = (mean_xy[1] - max_range, mean_xy[1] + max_range)
+    else:
+        xlim = limits[0]
+        ylim = limits[1]
+
+    # Create the histogram
+    h, xedges, yedges, image = ax.hist2d(hist_data[:, 0], hist_data[:, 1], bins=bins, range=[xlim, ylim], cmap=cmap)
+    
+    # 
+    if dim_inner != -1:
+        
+        # Calculate the mean and standard deviation of the histogram bin counts
+        mean_bin_count = np.mean(h)
+        std_bin_count = np.std(h)
+
+        # Set a threshold to cap the brightest regions
+        threshold = mean_bin_count + dim_inner * std_bin_count  # You can adjust this multiplier
+
+        # Apply the threshold to cap the values in the histogram
+        h[h > threshold] = threshold  # Cap all bin counts above the threshold
+
+    
+    # Apply log1p to enhance visibility of low count regions
+    if log_scale:
+        h = np.log1p(h)  
+
+    # Clear the axis and plot with modified histogram data
+    ax.clear()
+    image2 = ax.imshow(h.T, interpolation='nearest', origin='lower', aspect='auto',
+                      extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]],
+                      cmap=cmap)
+    
+    # Plot each set of plot_data with a unique color and label
+    if plot_data is not None:
+        colors = plt.cm.tab10(np.linspace(0, 1, len(plot_data)))  # Choose colors from tab10 colormap
+        for i, data in enumerate(plot_data):
+            label = plot_labels[i] if plot_labels and i < len(plot_labels) else f"Data {i+1}"
+            ax.plot(data[:, 0], data[:, 1], color=colors[i], linewidth=2, zorder=5, label=label)
+            ax.plot(data[:, 0], data[:, 1], color=colors[i], linewidth=3, zorder=4, alpha=0.5)
+
+        # Show legend
+        ax.legend()
+    
+    # Annotate data points with large white points and text with a black outline
+    if annotate_data is not None:
+        for location, text in annotate_data:
+            # Check if the annotation is within the plot bounds
+            if xlim[0] <= location[0] <= xlim[1] and ylim[0] <= location[1] <= ylim[1]:
+                ax.scatter(*location, color='white', s=25, edgecolor='black', linewidth=1.5, zorder=6)  # Large white point with black outline
+                text_obj = ax.text(location[0], location[1], text, fontsize=10, color='white',
+                                ha='left', va='bottom', zorder=7)
+                # Apply a black outline to text
+                text_obj.set_path_effects([path_effects.Stroke(linewidth=2, foreground='black'), path_effects.Normal()])
+
+
+    # Set titles and labels
+    ax.set_title(title)
+    
+    if show_labels:
+        # Add axis labels and ticks (they are no longer removed)
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+
+    else:   
+        # Remove the axis labels and ticks
+        ax.set_xticks([])
+        ax.set_yticks([])
+    
+    ax.legend()
+
+    # Set axis limits
+    ax.set_xlim(xlim)
+    ax.set_ylim(ylim)
+    ax.set_aspect('equal')
+
+    # If ax was None, display the plot
+    if ax is None:
+        plt.show()
+
+    # Enforce square aspect ratio
+    ax.set_aspect('equal')
+    
+    return
