@@ -19,7 +19,6 @@ References:  Sections of this code were written with the assistance
 # Standard library imports
 import logging, os, sys
 import numpy as np
-import matplotlib.pyplot as plt
 
 
 # Add main project directory based on current script location.
@@ -59,20 +58,16 @@ spam_param_description = '''
     [21]: Scaling factor for halo in the secondary galaxy
 '''
 
- # Arbitrary limit in case of typo, can be changed if needed
-MAX_PARTICLE_COUNT = 1e5
-
 # Global logger from main program
 LOGGER = logging.getLogger(__name__)
 
 # ================================= CORE FUNCTIONS ================================= #
-
-def set_simulation_variables( lnl = 0.1, r_scale = 10.0, mhalo = 5.8, mbulge = 0.3333, hbulge = 2.0, hdisk = 1.0 ):
+def set_spam_parameters( lnl = 0.1, r_scale = 10.0, mhalo = 5.8, mbulge = 0.3333, hbulge = 2.0, hdisk = 1.0 ):
     """
-    This function defines the base mass distribution of the galaxy.   Custom collisions scale this distribution.
+    This fuunction defines the base mass distribution of the galaxy.   Custom collisions scale this distribution.
     The default values are derived from empirical data of the Milky Way and M31.  
     See https://ui.adsabs.harvard.edu/abs/1993ApJS...86..389H/abstract
-
+    
     Parameters:
         lnl (float): Variable to adjust the strength of the dynamic friction
         r_scale (float): Radial scaling factor for mass distribution of galaxy
@@ -86,17 +81,154 @@ def set_simulation_variables( lnl = 0.1, r_scale = 10.0, mhalo = 5.8, mbulge = 0
     """
 
     # Call the Fortran function
-    LOGGER.debug("Calling custom_runs.simr_init_distribution: ")
+    LOGGER.info("Calling custom_runs.simr_init_distribution: ")
+    LOGGER.debug("Setting SPAM Simulation Variables...")
+    LOGGER.debug("lnl: %.2e, r_scale: %.2f, mhalo: %.2f, mbulge: %.2f, hbulge: %.2f, hdisk: %.2f" % (lnl, r_scale, mhalo, mbulge, hbulge, hdisk))
+
     try:
         custom_runs.custom_runs_module.simr_init_distribution(lnl, r_scale, mhalo, hdisk, hbulge, mbulge)
 
     except:
         LOGGER.error("Failed to call 'custom_runs.simr_init_distribution'")
-        raise ValueError("Failed to call 'custom_runs.simr_init_distribution'")
+        LOGGER.error(f"lnl: {lnl}, r_scale: {r_scale}, mhalo: {mhalo}, mbulge: {mbulge}, hbulge: {hbulge}, hdisk: {hdisk}")
+        LOGGER.error(f"Input Types: {type(lnl)}, {type(r_scale)}, {type(mhalo)}, {type(mbulge)}, {type(hbulge)}, {type(hdisk)}")
+        LOGGER.error(f"Exception: \n",exc_info=True)
+        raise ValueError("Failed to call 'custom_runs.simr_init_distribution'") from e
 
-    return 
+    return
 
-def basic_disk_wrapper( collision_param, npts1 = 100, npts2 = 50):
+def initialize_setup( collision_param, spam_setup_params = None ):
+
+    LOGGER.debug("Initializing Collision Parameters and Simulation Variables")
+
+    # validate the collision_param is a 1D list or np.array of size 22
+    if not isinstance(collision_param, (list, np.ndarray)):
+        LOGGER.error("Collision parameters must be a list or numpy array")
+        LOGGER.error("Collision Param Type: %s" % type(collision_param))
+        raise ValueError("Collision parameters must be a list or numpy array")
+        
+    if len(collision_param) != 22:
+        LOGGER.error("Collision parameters must be a list or numpy array of size 22")
+        LOGGER.error("Collision Param Length: %d" % len(collision_param))
+        raise ValueError("Collision parameters must be a list or numpy array of size 22")
+    
+    # ensure array is in the correct format for fortran
+    fortran_ar = np.asfortranarray(np.array(collision_param).astype(np.float64))
+    
+    # Setup the simulation paramaters if given
+    if spam_setup_params is not None:
+        # Create new dict with only valid keys
+        valid_keys = ['lnl', 'r_scale', 'mhalo', 'mbulge', 'hbulge', 'hdisk']
+        valid_setup_params = {k:spam_setup_params[k] for k in valid_keys if k in spam_setup_params}
+        set_spam_parameters( **valid_setup_params ) # Missing keys will use default value from function
+    
+    return fortran_ar
+
+def spam_orbit( collision_param, spam_setup_params = None, current_time = 0.0 ):
+    """
+    This function is a wrapper for the custom_runs_module.orbit_run function.
+
+    Parameters:
+        collision_param (np.ndarray): Array of collision parameters
+        spam_setup_params (dict, optional): Dictionary of parameters to set the simulation variables
+        current_time (float, optional): Current time of the simulation, for adjusting the times returned by SPAM.
+
+    Returns:
+        orbit_path (np.ndarray [x,y,z,vz,vz,t] ): 
+            Array of particles indicating the path of the secondary galaxy
+            NOTE: The primary galaxy is fixed at origin throughout the simulation.
+    """
+    LOGGER.info("Running SPAM Simulation - Orbit Run")
+    LOGGER.debug("Collision Param: %s" % str(collision_param))
+    LOGGER.debug("Current Time: %.2f" % current_time)
+
+    # Check input parameters
+    try:
+        fortran_ar = initialize_setup( collision_param, spam_setup_params )
+    except Exception as e:
+        LOGGER.error("Failed to initialize setup")
+        LOGGER.error(f"Collision Param: {collision_param}")
+        LOGGER.error("Setup Params: {spam_setup_params}")
+        LOGGER.error(f"Current_time:{current_time}")
+        raise ValueError("Failed to initialize setup") from e
+
+    # We need to know how large the final orbit path will be before calling the function
+    try:
+        LOGGER.debug(f"Calling custom_runs.calc_orbit_time_steps")
+        n_time_steps = custom_runs.custom_runs_module.calc_orbit_integration_steps( fortran_ar )
+    except Exception as e:
+        LOGGER.error("Failed to call 'custom_runs.calc_orbit_time_steps'")
+        LOGGER.error(f"Collision Param: {collision_param}")
+        LOGGER.error(f"Setup Params: {spam_setup_params}")
+        LOGGER.error(f"Current_time: {current_time}")
+        LOGGER.error(f"Exception: \n",exc_info=True)
+        raise ValueError(f"Failed to call 'custom_runs.calc_orbit_time_steps'") from e
+    
+    # Call the Fortran function to create the orbit path
+    try:
+        LOGGER.debug(f"Calling custom_runs.orbit_run.  Time steps: {n_time_steps}")
+        orbit_path = custom_runs.custom_runs_module.orbit_run( fortran_ar, n_time_steps )
+        LOGGER.debug(f"Returned Orbit Path: {orbit_path.shape}")
+    except:
+        LOGGER.error("Failed to call 'custom_runs.orbit_run'")
+        LOGGER.error(f"Collision Param: {collision_param}")
+        LOGGER.error(f"Setup Params: {spam_setup_params}")
+        LOGGER.error(f"Current_time: {current_time}")
+        LOGGER.error(f"Time Steps: {n_time_steps}")
+        LOGGER.error(f"Exception: \n",exc_info=True)
+        raise ValueError(f"Failed to call 'custom_runs.orbit_run'") from e
+
+    # Adjust the time of the orbit path
+    if current_time != 0.0:
+        LOGGER.debug(f"Adjusting Orbit Path by Time: {current_time}")
+        LOGGER.debug(f"Before Time: {orbit_path[-1,-1]}")
+        orbit_path[:,-1] += current_time - orbit_path[-1,-1]
+        LOGGER.debug(f"After Time: {orbit_path[-1,-1]}")
+
+    return orbit_path
+
+def basic_run( collision_param, spam_setup_params = None,
+                      npts1 = 100, npts2 = 50, heat1 = 0.0, heat2 = 0.0):
+    """
+    This function is a wrapper for the custom_runs_module.basic_disk function.
+
+    Parameters:
+        collision_param (np.ndarray): Array of collision parameters
+        spam_setup_params (dict, optional): Dictionary of parameters to set the simulation variables
+        npt1 (int): Number of particles for the primary galaxy
+        npt2 (int): Number of particles for the secondary galaxy
+        heat1 (float): random motion parameter for the primary galaxy
+        heat2 (float): random motion parameter for the secondary galaxy
+    
+    Returns:
+        init_pts (np.ndarray): Array of particles before collision interactions
+        final_pts (np.ndarray): Array of particles after collision interactions
+
+    """
+    LOGGER.info("Running SPAM Simulation - Basic Run")
+    LOGGER.debug("Collision param: %s" % collision_param)
+    LOGGER.debug("Number of Particles: %d - %d" % (npts1, npts2))
+    LOGGER.debug("Heat Parameters: %f - %f" % (heat1, heat2))
+
+    fortran_ar = initialize_setup( collision_param, spam_setup_params )
+
+    # Call the Fortran function
+    try:
+        LOGGER.debug(f"Calling custom_runs.basic_run")
+        init_pts, final_pts = custom_runs.custom_runs_module.basic_run( fortran_ar, npts1, npts2, heat1, heat2)
+        LOGGER.debug(f"Returned Disk Particles: {init_pts.shape} - {final_pts.shape}")
+    except:
+        LOGGER.error(f"Failed to call 'custom_runs.basic_run'")
+        LOGGER.error(f"Collision Param: {collision_param}")
+        LOGGER.error(f"npts1 - npts2: {npts1} - {npts2}")
+        LOGGER.error(f"heat1 - heat2: {heat1} - {heat2}")
+        LOGGER.error(f"Exception: \n",exc_info=True)
+        raise ValueError(f"Failed to call 'custom_runs.basic_run'") from e
+
+    return (init_pts, final_pts)
+
+
+def basic_disk( collision_param, spam_setup_params = None, npts1 = 1000, npts2 = 1000):
     """
     This function is a wrapper for the custom_runs_module.basic_disk function.
 
@@ -110,179 +242,30 @@ def basic_disk_wrapper( collision_param, npts1 = 100, npts2 = 50):
 
     """
 
-    # ensure array is in the correct format for fortran
-    f_ar = np.asfortranarray(np.array(collision_param).astype(np.float64))
+    LOGGER.info("Running SPAM Simulation - Basic Disk")
+    LOGGER.debug(f"Collision Param: {collision_param}")
+    LOGGER.debug(f"Number of Particles: {npts1} - {npts2}")
+
+    #initialize the simulation variables
+    fortran_ar = initialize_setup( collision_param, spam_setup_params )
 
     # Call the Fortran function
-    LOGGER.debug("Calling custom_runs.basic_disk: {collision_param}")
     try:
-        disk_pts = custom_runs.custom_runs_module.basic_disk( f_ar, npts1, npts2 )
-
-    except:
-        LOGGER.error("Failed to call custom_runs.basic_disk")
-        LOGGER.error(f"Collision Param: {collision_param}")
-        LOGGER.error(f"npts1 - npts2: {npts1} - {npts2}")
-        raise ValueError("Failed to call custom_runs.basic_disk")
-    
-    LOGGER.debug(f"Returned Disk Particles: {disk_pts.shape}")
-
-    return disk_pts
-
-def orbit_run_wrapper( collision_param, spam_setup_params = None, current_time = 0.0 ):
-    """
-    This function is a warpper for the custom_runs_module.orbit_run function.
-
-    Parameters:
-        collision_param (np.ndarray): Array of collision parameters
-        spam_setup_params (dict, optional): Dictionary of parameters to set the simulation variables
-        current_time (float, optional): Current time of the simulation, for adjusting the orbit times
-
-    Returns:
-        orbit_path (np.ndarray): Array of particles indicating the path of the secondary galaxy
-                        NOTE: The primary galaxy is fixed at origin throughout the simulation.
-    """
-    LOGGER.info("Running SPAM Simulation - Orbit Run")
-
-    # validate the collision_param is a 1D list or array of size 22
-    if not isinstance(collision_param, (list, np.ndarray)):
-        LOGGER.error("Collision parameters must be a list or numpy array")
-        raise ValueError("Collision parameters must be a list or numpy array")
-    if len(collision_param) != 22:
-        LOGGER.error("Collision parameters must be a list or numpy array of size 22")
-        raise ValueError("Collision parameters must be a list or numpy array of size 22")
-
-    # ensure array is in the correct value format
-    in_ar = np.array(collision_param).astype(np.float64)
-
-    # Convert the array to Fortran contiguous
-    in_ar = np.asfortranarray(in_ar)
-
-    # Setup the simulation paramaters if given
-    if spam_setup_params:
-        # Verify only valid keys are passed
-        valid_keys = ['lnl', 'r_scale', 'mhalo', 'mbulge', 'hbulge', 'hdisk']
-        valid_setup_params = {k:spam_setup_params[k] for k in valid_keys if k in spam_setup_params}
-        set_simulation_variables( **valid_setup_params )
-
-    # We need to know how large the final orbit path will be before calling the function
-    LOGGER.debug(f"Calling custom_runs.calc_orbit_time_steps: {collision_param}")
-    try:
-        n_time_steps = custom_runs.custom_runs_module.calc_orbit_integration_steps( in_ar )
-
+        LOGGER.debug(f"Calling custom_runs.basic_disk")
+        disk_pts = custom_runs.custom_runs_module.basic_disk( fortran_ar, npts1, npts2 )
+        LOGGER.debug(f"Returned Disk Particles: {disk_pts.shape}")
 
     except Exception as e:
-        LOGGER.error(f"Failed to call 'custom_runs.calc_orbit_time_steps'\ne: {e}")
+        LOGGER.error("Failed to call custom_runs.basic_disk")
         LOGGER.error(f"Collision Param: {collision_param}")
-        raise ValueError(f"Failed to call 'custom_runs.calc_orbit_time_steps'")
+        LOGGER.error(f"Setup Params: {spam_setup_params}")
+        LOGGER.error(f"Number of Particles: {npts1} - {npts2}")
+        LOGGER.error(f"Exception: \n",exc_info=True)
+        raise ValueError("Failed to call custom_runs.basic_disk:") from e
     
-    # Call the Fortran function to create the orbit path
-    LOGGER.debug(f"Calling custom_runs.orbit_run.  Time steps: {n_time_steps}")
-    try:
-        orbit_path = custom_runs.custom_runs_module.orbit_run( in_ar, n_time_steps )
-    except:
-        LOGGER.error(f"Failed to call 'custom_runs.orbit_run'")
-        raise ValueError(f"Failed to call 'custom_runs.orbit_run'")
+    LOGGER.debug(f"Returned Disk Particles: {disk_pts.shape}")
+    return disk_pts
 
-    # Adjust the time of the orbit path
-    if current_time != 0.0:
-        LOGGER.debug(f"Adjusting Orbit Path by Time: {current_time}")
-        orbit_path[:,-1] += current_time - orbit_path[-1,-1]
-
-    LOGGER.debug(f"Returned Orbit Path: {orbit_path.shape}")
-    return orbit_path
-
-def testing_pos_vel_wrapper( collision_param, n_steps = 5000 ):
-    """
-    This function is a wrapper for the custom_runs_module.testing_position_velocity function.
-
-    Parameters:
-        collision_param (np.ndarray): Array of collision parameters
-        n_steps (int): Number of steps to calculate backwards in time
-
-    Returns:
-        orbit_path (np.ndarray): Array of particles indicating the path of the secondary galaxy
-                        NOTE: The primary galaxy is fixed at origin throughout the simulation.
-    """
-
-    # ensure array is in the correct value format
-    in_ar = np.array(collision_param).astype(np.float64)
-
-    # Convert the array to Fortran contiguous
-    in_ar = np.asfortranarray(in_ar)
-
-    # We need to know how large the final orbit path will be before calling the function
-    LOGGER.debug(f"Calling custom_runs.testing_position_velocity: {collision_param}")
-    try:
-        orbit_path = custom_runs.custom_runs_module.testing_position_velocity( in_ar, n_steps )
-    except:
-        LOGGER.error(f"Failed to call 'custom_runs.testing_position_velocity'")
-        raise ValueError(f"Failed to call 'custom_runs.testing_position_velocity'")
-
-    LOGGER.debug(f"Returned Orbit Path: {orbit_path.shape}")
-
-    # Reverse order of orbit path to go from initial to final
-    return orbit_path[::-1]
-
-def basic_run_wrapper( collision_param, spam_setup_params = None,
-                      npts1 = 100, npts2 = 50, heat1 = 0.0, heat2 = 0.0):
-    """
-    This function is a wrapper for the custom_runs_module.basic_disk function.
-
-    Parameters:
-        collision_param (np.ndarray): Array of collision parameters
-        npt1 (int): Number of particles for the primary galaxy
-        npt2 (int): Number of particles for the secondary galaxy
-        heat1 (float): random motion parameter for the primary galaxy
-        heat2 (float): random motion parameter for the secondary galaxy
-    
-    Returns:
-        init_pts (np.ndarray): Array of particles before collision interactions
-        final_pts (np.ndarray): Array of particles after collision interactions
-
-    """
-    LOGGER.info("Running SPAM Simulation - Basic Run")
-
-    # validate the collision_param is a 1D list or array of size 22
-    if not isinstance(collision_param, (list, np.ndarray)):
-        LOGGER.error(f"Collision parameters must be a list or numpy array")
-        raise ValueError("Collision parameters must be a list or numpy array")
-    if len(collision_param) != 22:
-        LOGGER.error(f"Collision parameters must be a list or numpy array of size 22")
-        raise ValueError("Collision parameters must be a list or numpy array of size 22")
-
-    # ensure array is in the correct value format
-    in_ar = np.array(collision_param).astype(np.float64)
-
-    # Convert the array to Fortran contiguous
-    in_ar = np.asfortranarray(in_ar)
-
-    # Setup the simulation paramaters if given
-    if spam_setup_params:
-        # Verify only valid keys are passed
-        valid_keys = ['lnl', 'r_scale', 'mhalo', 'mbulge', 'hbulge', 'hdisk']
-        valid_setup_params = {k:spam_setup_params[k] for k in valid_keys if k in spam_setup_params}
-        set_simulation_variables( **valid_setup_params )
-    
-    # ensure array is in the correct value format
-    in_ar = np.array(collision_param).astype(np.float64)
-
-    # Convert the array to Fortran contiguous
-    in_ar = np.asfortranarray(in_ar)
-
-    # Call the Fortran function
-    LOGGER.debug(f"Calling custom_runs.basic_disk: {collision_param}")
-    try:
-        init_pts, final_pts = custom_runs.custom_runs_module.basic_run( in_ar, npts1, npts2, heat1, heat2)
-    except:
-        LOGGER.error(f"Failed to call 'custom_runs.basic_run'")
-        LOGGER.error(f"Collision Param: {collision_param}")
-        LOGGER.error(f"npts1 - npts2: {npts1} - {npts2}")
-        LOGGER.error(f"heat1 - heat2: {heat1} - {heat2}")
-        raise ValueError(f"Failed to call 'custom_runs.basic_run'")
-    
-    LOGGER.debug(f"Returned Disk Particles: {init_pts.shape} - {final_pts.shape}")
-
-    return (init_pts, final_pts)
 
 # ======================== PLOT FUNCTIONS ======================== #
 
@@ -308,8 +291,8 @@ def plot_all_from_param(collision_param, plot_loc=None):
     n2 = 500
 
     # Call functions to get orbit and particle data
-    orbit_path = orbit_run_wrapper(collision_param)
-    init_pts, final_pts = basic_run_wrapper(collision_param, n1, n2)
+    orbit_path = spam_orbit(collision_param)
+    init_pts, final_pts = basic_run(collision_param, npts1=n1, npts2=n2)
 
     # Calculate index of minimum radius to origin (Distance of closest approach)
     min_r_idx = np.argmin(np.linalg.norm(orbit_path, axis=1))
@@ -402,17 +385,17 @@ if __name__ == '__main__':
     print( f"\nManager Model Data: \n{test_manager.info['model_data']}" )
 
     print("\nTesting basic_disk")
-    basic_disk_wrapper( test_param )
+    basic_disk( test_param )
 
     print("\nTesting orbit_run")
-    orbit_run_wrapper( test_param )
+    spam_orbit( test_param )
 
     print("\nTesting Basic Run")
-    ipts, fpts = basic_run_wrapper( test_param )
+    ipts, fpts = basic_run( test_param )
 
     print("\nThis SHOULD cause an issue")
     try:
-        basic_disk_wrapper( None )
+        basic_disk( None )
     except:
         print("Failed as expected")
 
