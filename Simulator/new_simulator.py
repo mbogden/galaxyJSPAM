@@ -29,7 +29,8 @@ sys.path.append(PROJECT_DIRECTORY)
 # import project modules
 import utilities.general_utility as gu
 import utilities.model_manager as mm
-import Simulator.custom_runs as custom_runs
+from Simulator.custom_runs import custom_runs_module as spam_module
+spam_module.simr_init()
 
 # ================================= GLOBALS ================================= #
 #   Standardized parameter array for SPAM model:
@@ -81,21 +82,44 @@ def set_spam_parameters( lnl = 0.1, r_scale = 10.0, mhalo = 5.8, mbulge = 0.3333
     """
 
     # Call the Fortran function
-    LOGGER.info("Calling custom_runs.simr_init_distribution: ")
-    LOGGER.debug("Setting SPAM Simulation Variables...")
+    LOGGER.info("Setting SPAM Parameters: ")
     LOGGER.debug("lnl: %.2e, r_scale: %.2f, mhalo: %.2f, mbulge: %.2f, hbulge: %.2f, hdisk: %.2f" % (lnl, r_scale, mhalo, mbulge, hbulge, hdisk))
 
     try:
-        custom_runs.custom_runs_module.simr_init_distribution(lnl, r_scale, mhalo, hdisk, hbulge, mbulge)
+        spam_module.simr_init_distribution(lnl, r_scale, mhalo, hdisk, hbulge, mbulge)
 
     except:
-        LOGGER.error("Failed to call 'custom_runs.simr_init_distribution'")
+        LOGGER.error("Failed to call 'spam_module.simr_init_distribution'")
         LOGGER.error(f"lnl: {lnl}, r_scale: {r_scale}, mhalo: {mhalo}, mbulge: {mbulge}, hbulge: {hbulge}, hdisk: {hdisk}")
         LOGGER.error(f"Input Types: {type(lnl)}, {type(r_scale)}, {type(mhalo)}, {type(mbulge)}, {type(hbulge)}, {type(hdisk)}")
         LOGGER.error(f"Exception: \n",exc_info=True)
-        raise ValueError("Failed to call 'custom_runs.simr_init_distribution'") from e
+        raise ValueError("Failed to call 'spam_module.simr_init_distribution'") from e
 
     return
+
+# set_spam_parameters() # Run once to set the default values
+
+def get_spam_parameters():
+    """
+    This function returns the current SPAM parameters
+
+    Returns:
+        spam_params (dict): Dictionary of the current SPAM parameters
+    """
+    LOGGER.info("Querying SPAM Parameters")
+
+    keys = ['lnl', 'r_scale', 'mhalo', 'mbulge', 'hbulge', 'hdisk']
+    spam_values = spam_module.get_spam_parameters()
+    spam_parameters = {}
+
+    # Create dictionary of parameters
+    for i, key in enumerate(keys):
+        LOGGER.debug(f"{key}: {spam_values[i]}")
+        spam_parameters[key] = spam_values[i]
+    
+    return spam_parameters
+
+# print( get_spam_parameters() )
 
 def initialize_setup( collision_param, spam_setup_params = None ):
 
@@ -126,7 +150,7 @@ def initialize_setup( collision_param, spam_setup_params = None ):
 
 def spam_orbit( collision_param, spam_setup_params = None, current_time = 0.0 ):
     """
-    This function is a wrapper for the custom_runs_module.orbit_run function.
+    This function is a wrapper for the spam_module.orbit_run function.
 
     Parameters:
         collision_param (np.ndarray): Array of collision parameters
@@ -154,29 +178,29 @@ def spam_orbit( collision_param, spam_setup_params = None, current_time = 0.0 ):
 
     # We need to know how large the final orbit path will be before calling the function
     try:
-        LOGGER.debug(f"Calling custom_runs.calc_orbit_time_steps")
-        n_time_steps = custom_runs.custom_runs_module.calc_orbit_integration_steps( fortran_ar )
+        LOGGER.debug(f"Calling spam_module.calc_orbit_time_steps")
+        n_time_steps = spam_module.calc_orbit_integration_steps( fortran_ar )
     except Exception as e:
-        LOGGER.error("Failed to call 'custom_runs.calc_orbit_time_steps'")
+        LOGGER.error("Failed to call 'spam_module.calc_orbit_time_steps'")
         LOGGER.error(f"Collision Param: {collision_param}")
         LOGGER.error(f"Setup Params: {spam_setup_params}")
         LOGGER.error(f"Current_time: {current_time}")
         LOGGER.error(f"Exception: \n",exc_info=True)
-        raise ValueError(f"Failed to call 'custom_runs.calc_orbit_time_steps'") from e
+        raise ValueError(f"Failed to call 'spam_module.calc_orbit_time_steps'") from e
     
     # Call the Fortran function to create the orbit path
     try:
-        LOGGER.debug(f"Calling custom_runs.orbit_run.  Time steps: {n_time_steps}")
-        orbit_path = custom_runs.custom_runs_module.orbit_run( fortran_ar, n_time_steps )
+        LOGGER.debug(f"Calling spam_module.orbit_run.  Time steps: {n_time_steps}")
+        orbit_path = spam_module.orbit_run( fortran_ar, n_time_steps )
         LOGGER.debug(f"Returned Orbit Path: {orbit_path.shape}")
     except:
-        LOGGER.error("Failed to call 'custom_runs.orbit_run'")
+        LOGGER.error("Failed to call 'spam_module.orbit_run'")
         LOGGER.error(f"Collision Param: {collision_param}")
         LOGGER.error(f"Setup Params: {spam_setup_params}")
         LOGGER.error(f"Current_time: {current_time}")
         LOGGER.error(f"Time Steps: {n_time_steps}")
         LOGGER.error(f"Exception: \n",exc_info=True)
-        raise ValueError(f"Failed to call 'custom_runs.orbit_run'") from e
+        raise ValueError(f"Failed to call 'spam_module.orbit_run'") from e
 
     # Adjust the time of the orbit path
     if current_time != 0.0:
@@ -190,7 +214,7 @@ def spam_orbit( collision_param, spam_setup_params = None, current_time = 0.0 ):
 def basic_run( collision_param, spam_setup_params = None,
                       npts1 = 100, npts2 = 50, heat1 = 0.0, heat2 = 0.0):
     """
-    This function is a wrapper for the custom_runs_module.basic_disk function.
+    This function is a wrapper for the spam_module.basic_disk function.
 
     Parameters:
         collision_param (np.ndarray): Array of collision parameters
@@ -214,23 +238,23 @@ def basic_run( collision_param, spam_setup_params = None,
 
     # Call the Fortran function
     try:
-        LOGGER.debug(f"Calling custom_runs.basic_run")
-        init_pts, final_pts = custom_runs.custom_runs_module.basic_run( fortran_ar, npts1, npts2, heat1, heat2)
+        LOGGER.debug(f"Calling spam_module.basic_run")
+        init_pts, final_pts = spam_module.basic_run( fortran_ar, npts1, npts2, heat1, heat2)
         LOGGER.debug(f"Returned Disk Particles: {init_pts.shape} - {final_pts.shape}")
     except:
-        LOGGER.error(f"Failed to call 'custom_runs.basic_run'")
+        LOGGER.error(f"Failed to call 'spam_module.basic_run'")
         LOGGER.error(f"Collision Param: {collision_param}")
         LOGGER.error(f"npts1 - npts2: {npts1} - {npts2}")
         LOGGER.error(f"heat1 - heat2: {heat1} - {heat2}")
         LOGGER.error(f"Exception: \n",exc_info=True)
-        raise ValueError(f"Failed to call 'custom_runs.basic_run'") from e
+        raise ValueError(f"Failed to call 'spam_module.basic_run'") from e
 
     return (init_pts, final_pts)
 
 
 def basic_disk( collision_param, spam_setup_params = None, npts1 = 1000, npts2 = 1000):
     """
-    This function is a wrapper for the custom_runs_module.basic_disk function.
+    This function is a wrapper for the spam_module.basic_disk function.
 
     Parameters:
         collision_param (np.ndarray): Array of collision parameters
@@ -251,17 +275,17 @@ def basic_disk( collision_param, spam_setup_params = None, npts1 = 1000, npts2 =
 
     # Call the Fortran function
     try:
-        LOGGER.debug(f"Calling custom_runs.basic_disk")
-        disk_pts = custom_runs.custom_runs_module.basic_disk( fortran_ar, npts1, npts2 )
+        LOGGER.debug(f"Calling spam_module.basic_disk")
+        disk_pts = spam_module.basic_disk( fortran_ar, npts1, npts2 )
         LOGGER.debug(f"Returned Disk Particles: {disk_pts.shape}")
 
     except Exception as e:
-        LOGGER.error("Failed to call custom_runs.basic_disk")
+        LOGGER.error("Failed to call spam_module.basic_disk")
         LOGGER.error(f"Collision Param: {collision_param}")
         LOGGER.error(f"Setup Params: {spam_setup_params}")
         LOGGER.error(f"Number of Particles: {npts1} - {npts2}")
         LOGGER.error(f"Exception: \n",exc_info=True)
-        raise ValueError("Failed to call custom_runs.basic_disk:") from e
+        raise ValueError("Failed to call spam_module.basic_disk:") from e
     
     LOGGER.debug(f"Returned Disk Particles: {disk_pts.shape}")
     return disk_pts

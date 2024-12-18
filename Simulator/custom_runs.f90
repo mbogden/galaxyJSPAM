@@ -10,6 +10,7 @@ module custom_runs_module
     implicit none
 
     integer (kind=4) :: pre_setup = 0
+    real(kind=8) :: rchalo, mhalo, mbulge, hbulge, hdisk
     
     contains
 
@@ -413,6 +414,8 @@ module custom_runs_module
         implicit none
 
         integer :: nparticles1, nparticles2
+        
+        print *, "FR: SIMR_INIT!"
 
         ! Setup default parameters for a quick test
         nparticles1 = 100
@@ -430,9 +433,29 @@ module custom_runs_module
 
         call TEST_COLLISION(n, n1, n2, time, inclination_degree, omega_degree, &
           rmin, velocity_factor, h, nstep, nout) 
+        
+        pre_setup = 1 ! Let everyone know we are already setup
 
     end subroutine SIMR_INIT
 
+  subroutine GET_SPAM_PARAMETERS(lnl_out, rchalo_out, mhalo_out, mbulge_out, hbulge_out, hdisk_out)
+  ! subroutine GET_SPAM_PARAMETERS(lnl_out)
+
+    implicit none
+    real (kind=8), intent(out) :: lnl_out, rchalo_out, mhalo_out, mbulge_out, hbulge_out, hdisk_out
+    ! real (kind=8), intent(out) :: lnl_out
+    ! real (kind=8) :: lnl, rchalo, mhalo, mbulge, hbulge, hdisk
+    ! print *, "FR: GET_SPAM_PARAMETERS!"
+    lnl_out = lnl
+    rchalo_out = rchalo
+    mhalo_out = mhalo
+    mbulge_out = mbulge
+    hbulge_out = hbulge
+    hdisk_out = hdisk
+
+    return
+
+  end subroutine GET_SPAM_PARAMETERS
       
   subroutine SIMR_INIT_DISTRIBUTION(lnl_in, rchalo_in, mhalo_in, mbulge_in, hbulge_in, hdisk_in)
     !     -----Description: initializes the distribution 
@@ -446,9 +469,11 @@ module custom_runs_module
         real (kind=8) :: mold, dmold, mtot
         real (kind=8) :: rscale
         real (kind=8) :: dx, x
-        real (kind=8) :: alphahalo, qhalo, gammahalo, mhalo, rchalo, rhalo, epsilon_halo
-        real (kind=8) :: zdisk, hdisk, zdiskmax
-        real (kind=8) :: hbulge, mbulge
+        ! real (kind=8) :: alphahalo, qhalo, gammahalo, mhalo, rchalo, rhalo, epsilon_halo
+        real (kind=8) :: alphahalo, qhalo, gammahalo, rhalo, epsilon_halo
+        ! real (kind=8) :: zdisk, hdisk, zdiskmax
+        real (kind=8) :: zdisk, zdiskmax
+        ! real (kind=8) :: hbulge, mbulge
         real (kind=8) :: rho_tmp
         real (kind=8) :: G, factor
         real (kind=8) :: r, m, sqrtpi
