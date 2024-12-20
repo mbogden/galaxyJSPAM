@@ -63,7 +63,7 @@ spam_param_description = '''
 LOGGER = logging.getLogger(__name__)
 
 # ================================= CORE FUNCTIONS ================================= #
-def set_spam_parameters( lnl = 0.1, r_scale = 10.0, mhalo = 5.8, mbulge = 0.3333, hbulge = 2.0, hdisk = 1.0 ):
+def set_spam_parameters( lnl = 0.1, r_scale = 10.0, m_halo = 5.8, m_bulge = 0.3333, h_bulge = 2.0, h_disk = 1.0 ):
     """
     This fuunction defines the base mass distribution of the galaxy.   Custom collisions scale this distribution.
     The default values are derived from empirical data of the Milky Way and M31.  
@@ -72,10 +72,10 @@ def set_spam_parameters( lnl = 0.1, r_scale = 10.0, mhalo = 5.8, mbulge = 0.3333
     Parameters:
         lnl (float): Variable to adjust the strength of the dynamic friction
         r_scale (float): Radial scaling factor for mass distribution of galaxy
-        mhalo (float): Mass of the halo
-        mbulge (float): Mass of the bulge
-        hbulge (float): Exp. decay rate of bulge density profile
-        hdisk (float): Exp. decay rate of disk density profile
+        m_halo (float): Mass of the halo
+        m_bulge (float): Mass of the bulge
+        h_bulge (float): Exp. decay rate of bulge density profile
+        h_disk (float): Exp. decay rate of disk density profile
 
     Returns:
         None
@@ -83,15 +83,15 @@ def set_spam_parameters( lnl = 0.1, r_scale = 10.0, mhalo = 5.8, mbulge = 0.3333
 
     # Call the Fortran function
     LOGGER.info("Setting SPAM Parameters: ")
-    LOGGER.debug("lnl: %.2e, r_scale: %.2f, mhalo: %.2f, mbulge: %.2f, hbulge: %.2f, hdisk: %.2f" % (lnl, r_scale, mhalo, mbulge, hbulge, hdisk))
+    LOGGER.debug("lnl: %.2e, r_scale: %.2f, m_halo: %.2f, m_bulge: %.2f, h_bulge: %.2f, h_disk: %.2f" % (lnl, r_scale, m_halo, m_bulge, h_bulge, h_disk))
 
     try:
-        spam_module.simr_init_distribution(lnl, r_scale, mhalo, hdisk, hbulge, mbulge)
+        spam_module.simr_init_distribution(lnl, r_scale, m_halo, h_disk, h_bulge, m_bulge)
 
     except:
         LOGGER.error("Failed to call 'spam_module.simr_init_distribution'")
-        LOGGER.error(f"lnl: {lnl}, r_scale: {r_scale}, mhalo: {mhalo}, mbulge: {mbulge}, hbulge: {hbulge}, hdisk: {hdisk}")
-        LOGGER.error(f"Input Types: {type(lnl)}, {type(r_scale)}, {type(mhalo)}, {type(mbulge)}, {type(hbulge)}, {type(hdisk)}")
+        LOGGER.error(f"lnl: {lnl}, r_scale: {r_scale}, m_halo: {m_halo}, m_bulge: {m_bulge}, h_bulge: {h_bulge}, h_disk: {h_disk}")
+        LOGGER.error(f"Input Types: {type(lnl)}, {type(r_scale)}, {type(m_halo)}, {type(m_bulge)}, {type(h_bulge)}, {type(h_disk)}")
         LOGGER.error(f"Exception: \n",exc_info=True)
         raise ValueError("Failed to call 'spam_module.simr_init_distribution'") from e
 
@@ -108,7 +108,7 @@ def get_spam_parameters():
     """
     LOGGER.info("Querying SPAM Parameters")
 
-    keys = ['lnl', 'r_scale', 'mhalo', 'mbulge', 'hbulge', 'hdisk']
+    keys = ['lnl', 'r_scale', 'm_halo', 'm_bulge', 'h_bulge', 'h_disk']
     spam_values = spam_module.get_spam_parameters()
     spam_parameters = {}
 
@@ -142,7 +142,7 @@ def initialize_setup( collision_param, spam_setup_params = None ):
     # Setup the simulation paramaters if given
     if spam_setup_params is not None:
         # Create new dict with only valid keys
-        valid_keys = ['lnl', 'r_scale', 'mhalo', 'mbulge', 'hbulge', 'hdisk']
+        valid_keys = ['lnl', 'r_scale', 'm_halo', 'm_bulge', 'h_bulge', 'h_disk']
         valid_setup_params = {k:spam_setup_params[k] for k in valid_keys if k in spam_setup_params}
         set_spam_parameters( **valid_setup_params ) # Missing keys will use default value from function
     
