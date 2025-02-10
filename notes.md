@@ -2,16 +2,15 @@
 These are written by Matthew Ogden for Matthew Ogden while creating and organizing code.  
 *Might* be good for others to view.
     
-- Commands to remember
-    - `python3 main_SIMR.py -targetDir path/to/target -newInfo -newRunInfo -newBase -newRunBase` 
-    - `python3 main_SIMR.py -dataDir path/to/data -newScore -newImage -paramName zoo_0_direct_scores`
-    -  ``
-
 # Matt's Working To-Do
 [ ]: Not Started
 [w]: Work in progress
 [d]: Draft - Partially working
 [x]: Complete - Fully working
+
+- Big Picture:
+  - WOrking on 'spam_tuner_tng_targets.py' in SPAM.
+  - Run Optimizer on TNG targets to fine tune spam params.
 
 - Simulator
   - [x] Custom_runs: Working draft 
@@ -47,20 +46,20 @@ These are written by Matthew Ogden for Matthew Ogden while creating and organizi
           [x] Was Hard coded to 0.  Changed to 1.
     - [x] Verify dynamical friction is working correctly.
 
-- Illustris TNG
-    - [w] Git access on TNG server.
-    - [w] Find potential targets: Mergers-of-interest (moi)
-        - [x] Preliminary Filters (Moi_1)
-            - NOTE: MOI_1 are ideal galaxies predicted to undergo a merger event soon.
-            - [x] TNG-50 (most detailed simulation)
-            - [x] Mass
-            - [x] Morphology (Disk, Elliptical, etc)
-            - [x] Merger History
-            - [x] Central vs Satellite (Not used at this time)
-            - [x] Performed search on snapshots
-                - [x] 50 - 67
-                - [x] 67 - 99
-                - [ ] 60 - 75
+- Illustris TNG (Target Search)
+  - [w] Git access on TNG server.
+  - [w] Find potential targets: Mergers-of-interest (moi)
+      - [x] Preliminary Filters (Moi_1)
+          - NOTE: MOI_1 are ideal galaxies predicted to undergo a merger event soon.
+          - [x] TNG-50 (most detailed simulation)
+          - [x] Mass
+          - [x] Morphology (Disk, Elliptical, etc)
+          - [x] Merger History
+          - [x] Central vs Satellite (Not used at this time)
+          - [x] Performed search on snapshots
+              - [x] 50 - 67
+              - [x] 67 - 99
+              - [ ] 60 - 75
                 
         - [x] Search For children of merger in Merger Tree (Moi_2)
             - NOTE: MOI_2 are future children who have already undergone a merger. 
@@ -95,31 +94,55 @@ These are written by Matthew Ogden for Matthew Ogden while creating and organizi
             - NOTE: Found that primary galaxy seems to have "stolen" secondary particles after the flyby event, despite pts being closer/orbiting to secondary still.
         - [x] Use historical affiliations to reassign particle ownership
         - [x] Do parameter calculations on new set of pts based on historical affiliation.
+        - 
+    - [x] Create Standardized Reference Frames (RFs).
+      - [x] Orbital Reference Frame
+        - [x] Set the orbital "plane" to be the xy-plane
+        - [x] Place galaxies centers on the x-axis.
+        - [x] Set the origin as the half way distance between both galaxies.
+        - [x] Place angular momentum in the positive z-direction.
+      - [x] Tidal features
+        - [x] Using PCA, to find plane most likely to show tidal features.
+        - [x] Apply to both galaxies, and seperately
 
-    - [x] Get images
+    - [x] Create images
         - [x] Preliminary automated URL
             - [w] Duos: 50 - 67
-            - [ ] Duos: 67 - 99
-            - [ ] All: 50 - 67
-            - [ ] All: 67 - 99
-        - [ ] Modify viewing angle and update collision parameters.
-        - [ ] Standard visualization.  Ex SDSS, JWST, wavelenths, etc. 
+        - [x] Orbital RF image
+        - [x] Tidal RF image
+          - [x] Both
+          - [x] Primary
+          - [x] Secondary
+        - [w] Spread of angles
+          - [w] Automate changing/tilting angles to get images of galaxies from every point of view
+      - [x] Use histogram of star particles
+        - NOTE: While not the most accurate representation of the galaxy, it does show the general shape of the galaxy.   Thus it does captures tidal features. 
+      - [ ] Standard wavelgenth visualization.  Ex SDSS, JWST, wavelenths, etc. 
+        - NOTE:  Only certain snapshots have photometric data.   Get list of potentials targets from these snapshots first.  
+
+- [x] Find targets to anlayze
+  - [x] Generated 1200 composite images showing orbital and tidal features.
+  - [x] Create UI to "Rate" tidal features for images
+    - [x] Finish rating images
+  - [x] Review ratings and create target list
 
 
-- Comparing SPAM to TNG
+- Preliminary Comparing SPAM to TNG
     - [x] Unit conversion between simulations
     - [x] Standardize SPAM and TNG parameter array.
+      - [ ] Analyze SPIN and halfmass radius before and after flyby.
     - [x] Get SPAM running (See SPAM notes)
     - [x] Preliminary SPAM runs on TNG target parameters
         - NOTE: Images do NOT look similar
     - [x] Dynamical Friction? (Found and modified to work properly)
         - NOTE: Use lnl = 0.15 for best best of tng-target: 67000000350284    
     - [x] View TNG pts over time
-    - [x] Viewing particles Together 
-    - [x] Look at orbits!  Do orbits of TNG and SPAM match?
+    - [w] Viewing particles Together 
+    - [w] Look at orbits!  Do orbits of TNG and SPAM match?
         - NOTE: They do not match with default SPAM settings
         - [x] Do simple velocity projection of 2nd galaxy  
     - [w] Play with following variable to get matching tidal features.
+      - SETBACK:  Too many variables to adjust.  Will need to find an optimize method.  
         - NOTE: Based on following: Lars Hernquist. N-body realizations of compound galaxies. The Astrophysical Journal Supplement Series, 86:389{400, June 1993.
         - lnl 
             - NOTE: Value around 0.15 works well.
@@ -132,15 +155,38 @@ These are written by Matthew Ogden for Matthew Ogden while creating and organizi
     - [w] Find targets with matching Tidal features.
         - 
 
-  
-  - Ideas
-    - Have function set the bulge/disk/halo scales/mass ratios.  
-      
-      - Analyze TNG targets to see if they're similar or drastically different.
-        - 3 - 5
-      - If many targets have very different ratios, then we may need to add these as variables to optimize upon
-      - If they're semi consistent, then perhaps we can optimize them now using TNG targets.  
+- Convert TNG to SPAM 
+  - [x] Converting TNG kinematics to SPAM units
+    - [x] v1: Working kinematics to SPAM (Uses only current values)
+    - [d] v2: Using past kinematics that might have changed (orientation, radius, mass etc)
 
+  - [x] Implement SPAM testing on TNG parameters
+    - [x] Gridsearch through lnl, r_scale, and halo_mass_ratio
+    - [x] Create orbits for future anlaysis. 
+
+  - [w] Scoring function centered on moment of closest approach.  
+    - [x] Uses guassian curve centered on moment of closest approach.
+    - [x] Auto gen guassian_variance based on edges = 0.01.
+    - [w] Shorten the best orbit and verify the score changes. 
+
+  - [d] Loop through orbits,
+    - [ ] Analyze orbit length
+    - [ ] Analyze shape
+      
+    - Analyze TNG targets to see if they're similar or drastically different.
+      - 3 - 5
+    - If many targets have very different ratios, then we may need to add these as variables to optimize upon
+    - If they're semi consistent, then perhaps we can optimize them now using TNG targets.  
+
+- Parallel Processing Manager
+  - [x] Create MPI general purpose Queue Master/Worker system
+    - NOTE: Uses MPI so it can be scaled as needed on cluster for cmdline use.
+    - [x] Working draft w/ tests
+  - [ ] Create a Multithreading queue manager so jupyter notebook can use it.
+  
+
+- Optimization Manager
+  - [x] 
 
 - Docker
   - [x] Update beta-3
@@ -150,8 +196,12 @@ These are written by Matthew Ogden for Matthew Ogden while creating and organizi
     - [x] Make notes on how to update
   - [ ] Update Beta-4: (Builds on beta-3)
     - [ ] Add 'll' alias to bash file.
-  - [ ] Slim Docker Image
-    - NOTE:  I grabbed a working Docker image from Dr. Phillips.  While it does work, it has GB's of unused packages, making it 20+ GB to build... 
+    - [ ] pip install --upgrade pip
+    - [ ] pip install --upgrade nbconvert
+    - [ ] pip install scikit-optimize
+
+  - [ ] Slim down Docker Image
+    - NOTE:  I grabbed a working Docker image from Dr. Phillips.  Most importantly, it does work.  But it has GB's of unused packages, making it 20+ GB to build... 
 
 - Reorganization
   - [x] utilites
@@ -161,9 +211,15 @@ These are written by Matthew Ogden for Matthew Ogden while creating and organizi
 
 - Look into WandB for DL metrics
 
-
-
-
 4000 particles
 256 generations
 256 pop size
+
+
+- Commands to remember
+    - `python3 main_SIMR.py -targetDir path/to/target -newInfo -newRunInfo -newBase -newRunBase` 
+    - `python3 main_SIMR.py -dataDir path/to/data -newScore -newImage -paramName zoo_0_direct_scores`
+    -  ``
+- For cluster use
+  - Create cmdlines of all possible runs, save as scripts in galStuff/runs/whatever_folder/
+  
