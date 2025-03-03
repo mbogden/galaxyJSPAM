@@ -25,7 +25,7 @@ import time
 import numpy as np
 import dill
 import concurrent.futures
-from mpi4py import MPI
+from mpi4py import MPI 
 from mpi_master_slave import Master, Slave, WorkQueue
 
 # Add main project directory to import project modules
@@ -39,6 +39,7 @@ import utilities.general_utility as gu
 
 # ================================ GLOBAL VARIABLES ================================ #
 LOGGER = logging.getLogger()
+logger = LOGGER
 
 # Define MPI tags
 TAG_TASK = 1
@@ -46,21 +47,55 @@ TAG_ERROR = 2
 TAG_RESULT = 3
 TAG_TERMINATE = 4
 
+# Define Local concurrent.future variables
+_local_eval_function = None
+
+def _local_worker_initializer(serialized_func):
+    global _local_eval_function
+    _local_eval_function = dill.loads(serialized_func)
+
+# @staticmethod
+# def _local_run_task(serialized_args):
+#     global _local_eval_function
+#     args = dill.loads(serialized_args)
+#     try:
+#         return _local_eval_function(args)
+#     except Exception as e:
+#         LOGGER.error(f"Local task failed: {e}")
+#         return None
+
 # ================================ CLASSES ================================ 
 
 class Queue_Manager():
 
-    def __init__(self,in_function, hard_mode = None):
+    def __init__(self, in_function, batch_size=1, hard_mode = None,
+                 function_logger=None, function_log_level=logging.WARNING, queue_log_level = logging.INFO
+                ):
 
-        # Save functions to run
+        # Save inputs for later
         self.eval_function = in_function
+        self.batch_size = batch_size
+
+        # Initialize a custom queue logger with class name in formatting
+        self.logger = gu.configure_logging( logger_name='Queue_Manager',
+                                            log_level=queue_log_level,
+                                            class_name='Queue_Manager',
+                                            )
+
+        # if None, assume Root logger, otherwise use provided Logger 
+        self.func_logger = function_logger if function_logger is not None else logging.getLogger('')
+        self.func_log_level = function_log_level
 
         # Initialize MPI
         self.comm = MPI.COMM_WORLD
         self.size = self.comm.Get_size()
         self.rank = self.comm.Get_rank()
+        self.master = None
+
+        # Set local machine variables
         self.cpu_count = os.cpu_count()
-        self.master = Master(range(1, self.size))
+        self.serialized_func = dill.dumps(self.eval_function)
+        self.executor = None
         
         # Determine mode:
         # If hard coded, use that
@@ -82,57 +117,30 @@ class Queue_Manager():
             else:
                 self._set_solo_mode()
         else:
-            LOGGER.error("Invalid Parallel Processing Mode: %s" % hard_mode)
-            LOGGER.error("Valid Modes: 'mpi', 'local', 'solo'")
+            self.logger.error("Invalid Parallel Processing Mode: %s" % hard_mode)
+            self.logger.error("Valid Modes: 'mpi', 'local', 'solo'")
             raise ValueError("Invalid Parallel Processing Mode %s" % hard_mode)
     # end __init__
 
     def __del__(self):
-        LOGGER.info(f"Queue Manager Deleted")
+
+        # Terminate workers is master is not None
+        if self.master is not None:
+            self.terminate_workers()
+
+        # Shutdown Executor if not None
+        if self.executor is not None:
+            self.executor.shutdown(wait=True)
+
+        self.logger.info(f"Queue Manager Deleted")
     # end __del__
 
     def terminate_workers(self):
         if self.rank == 0 and self.size > 1:
             self.master.terminate_slaves()
+            self.master = None
+            self.queue = None
     # end terminate_workers
-
-    def _set_mpi_mode(self,):
-        self.mode = 'mpi'
-        self.queue = WorkQueue(self.master)
-        self.wait_time = 0.01
-        LOGGER.info(f"MPI Manager initialized with {self.size} Workers in MPI mode.")
-    # end _set_mpi_mode
-
-    def _set_local_mode(self,):
-        self.mode = 'local'
-        self.local_workers = self.cpu_count
-        LOGGER.info(f"Local Manager initialized with {self.local_workers} workers using local multiprocessing (futures).")
-    # end _set_local_mode
-    
-    def _set_solo_mode(self,):
-        self.mode = 'solo'
-        LOGGER.info("Solo Loop Mode.")
-    # end _set_solo_mode
-
-    def set_parallel_mode(self, mode):
-        if mode == 'mpi':
-            self._set_mpi_mode()
-        elif mode == 'local':
-            self._set_local_mode()
-        elif mode == 'solo':
-            self._set_solo_mode()
-        else:
-            LOGGER.error("Invalid Parallel Processing Mode: %s" % mode)
-            LOGGER.error("Valid Modes: 'mpi', 'local', 'solo'")
-            raise ValueError("Invalid Parallel Processing Mode %s" % mode)
-
-    def gen_simple_progress_string( self, n_tasks, n_completed, length=20, char='=' ):
-        """
-        Generate a simple progress string
-        """
-        n = int( n_completed / n_tasks * length )
-        return f"[{char*n}{' '*(length-n)}] {n_completed}/{n_tasks}"
-    # end gen_simple_progress_string
 
     def evaluate_tasks(self, task_list):
         """
@@ -145,27 +153,101 @@ class Queue_Manager():
         elif isinstance(task_list, np.ndarray):
             n = task_list.shape[0]
         else:
-            LOGGER.error("Invalid task_list type: %s" % type(task_list))
-            LOGGER.error("Valid types: list, numpy.ndarray")
+            self.logger.error("Invalid task_list type: %s" % type(task_list))
+            self.logger.error("Valid types: list, numpy.ndarray")
             raise ValueError("Invalid task_list type: %s" % type(task_list))
         
         # Verify there are tasks to run
         if n == 0:
-            LOGGER.error("No tasks to evaluate")
+            self.logger.error("No tasks to evaluate")
             return []
+
+        # Change function logger level
+        prev_level = self.func_logger.level
+        self.func_logger.setLevel( self.func_log_level )
 
         # Run tasks based on mode   
         if self.mode == 'mpi':
-            return self._run_mpi_queue(task_list)
+            results = self._run_mpi_queue(task_list)
         elif self.mode == 'local':
-            return self._run_local_processes(task_list)
+            results =  self._run_local_processes(task_list)
         elif self.mode == 'solo':  # single_core
-            return self._run_single_core(task_list)
+            results =  self._run_single_core(task_list)
         else:
-            LOGGER.error("Invalid Parallel Processing Mode: %s" % self.mode)
-            LOGGER.error("Valid Modes: 'mpi', 'local', 'solo'")
+            self.func_logger.setLevel( prev_level )
+            self.logger.error("Invalid Parallel Processing Mode: %s" % self.mode)
+            self.logger.error("Valid Modes: 'mpi', 'local', 'solo'")
             raise ValueError("Invalid Parallel Processing Mode %s" % self.mode)
+    
+        # Return to previous level.
+        self.func_logger.setLevel( prev_level )
+
+        # Print number of errors returned
+        error_list = [(i,e) for i,e in enumerate(results) if isinstance(e, Exception)]
+        if len(error_list) > 0:
+            self.logger.error(f"Errors Returned: {len(error_list)} of {len(results)} results")
+            c = 0
+            for i,e in error_list:
+                self.logger.error(f"Error {i}: {e}")
+                c += 1
+                if c > 2:
+                    self.logger.error("...")
+                    break
+                
+
+        # return results
+        return results
+    
     # end evaluate_tasks
+
+    def _set_solo_mode(self,):
+        self.mode = 'solo'
+        self.logger.info("Solo Loop Mode.")
+    # end _set_solo_mode
+
+    def _set_mpi_mode(self,):
+
+        self.mode = 'mpi'
+        if self.master is None:
+            self.master = Master(range(1, self.size))
+            self.queue = WorkQueue(self.master)
+        self.wait_time = 0.01
+        self.logger.info(f"MPI Manager initialized with {self.size} Workers in MPI mode.")
+    # end _set_mpi_mode
+
+    def _set_local_mode(self,):
+        self.mode = 'local'
+
+        if self.executor is None:
+            self.executor = concurrent.futures.ProcessPoolExecutor(
+                max_workers=self.cpu_count,
+                initializer=_local_worker_initializer,
+                initargs=(self.serialized_func,)
+            )
+
+        self.logger.info(f"Local Manager initialized with {self.cpu_count} workers using local multiprocessing (futures).")
+    # end _set_local_mode
+    
+    def set_parallel_mode(self, mode):
+        if mode == 'mpi':
+            self._set_mpi_mode()
+        elif mode == 'local':
+            self._set_local_mode()
+        elif mode == 'solo':
+            self._set_solo_mode()
+        else:
+            self.logger.error("Invalid Parallel Processing Mode: %s" % mode)
+            self.logger.error("Valid Modes: 'mpi', 'local', 'solo'")
+            raise ValueError("Invalid Parallel Processing Mode %s" % mode)
+
+    def gen_simple_progress_string( self, n_tasks, n_completed, length=20, char='=' ):
+        """
+        Generate a simple progress string
+        """
+        n = int( n_completed / n_tasks * length )
+        return f"[{char*n}{' '*(length-n)}] {n_completed}/{n_tasks}"
+    # end gen_simple_progress_string
+
 
     def _run_single_core(self, task_list):
         """
@@ -178,23 +260,23 @@ class Queue_Manager():
 
         # Initial progress print
         prog_str = self.gen_simple_progress_string(n, 0)
-        LOGGER.info("Solo Manager: Progress: %s" % (prog_str))
+        self.logger.info("Solo Manager: Progress: %s" % (prog_str))
 
         # Loop through tasks
         for i, t in enumerate(task_list):
             try:
                 compiled_results[i] = self.eval_function(t)
             except Exception as e:
-                LOGGER.error(f"Single-core task failed: {e}")
-                compiled_results[i] = None
+                LOGGER.warning(f"Queue Task {i} Failed: '{e}'")
+                compiled_results[i] = e
 
             if time.time() - curr_time > 1:
                 prog_str = self.gen_simple_progress_string(n, len(compiled_results))
-                LOGGER.info("Solo Manager: Progress: %s" % (prog_str))
+                self.logger.info("Solo Manager: Progress: %s" % (prog_str))
                 curr_time = time.time()
 
         prog_str = self.gen_simple_progress_string(n, len(compiled_results))
-        LOGGER.info("Solo Manager: Progress: %s - Queue Complete" % (prog_str))
+        self.logger.info("Solo Manager: Progress: %s - Queue Complete" % (prog_str))
         return [compiled_results[i] for i in range(n)]
     # end _run_single_core
 
@@ -209,7 +291,7 @@ class Queue_Manager():
         
         # Do initial progress print
         prog_str = self.gen_simple_progress_string(n, 0)
-        LOGGER.info("MPI Manager: Progress: %s" % (prog_str))
+        self.logger.info("MPI Manager: Progress: %s" % (prog_str))
 
         # Keep 'poking' workers while there is work to do
         while not self.queue.done():
@@ -220,67 +302,63 @@ class Queue_Manager():
                 worker_done, worker_results = result
                 if worker_done:
                     idx, return_value = worker_results
-                    LOGGER.debug(f'Manager: Received results {idx}:{return_value}')
+                    self.logger.debug(f'Manager: Received results {idx}:{return_value}')
                     compiled_results[idx] = return_value
 
             if time.time() - curr_time > 1:
                 prog_str = self.gen_simple_progress_string(n, len(compiled_results))
-                LOGGER.info("MPI Manager: Progress: %s" % (prog_str))
+                self.logger.info("MPI Manager: Progress: %s" % (prog_str))
                 curr_time = time.time()
 
             time.sleep(self.wait_time)
 
         # Queue is empty
         prog_str = self.gen_simple_progress_string(n, len(compiled_results))
-        LOGGER.info("MPI Manager: Progress: %s - Queue Complete" % (prog_str))
+        self.logger.info("MPI Manager: Progress: %s - Queue Complete" % (prog_str))
         return [compiled_results[i] for i in range(n)]
     # end _run_mpi_queue
 
     @staticmethod
-    def run_task(serialized_func, serialized_args):
-        # Deserialize the function and arguments
-        func = dill.loads(serialized_func)
-        args = dill.loads(serialized_args)
+    def _run_local_task(task):
+        global _local_eval_function
         try:
-            return func(args)
+            return _local_eval_function(task)
         except Exception as e:
-            LOGGER.error(f"Task failed: {e}")
-            return None
-    # end run_task
+            return e
+    # end _run_local_task
 
     def _run_local_processes(self, task_list):
         n = len(task_list)
         curr_time = time.time()
-        compiled_results = {}
+        compiled_results = [None] * n  # Pre-allocate a list for ordered results
 
-        # Initial progress print
-        prog_str = self.gen_simple_progress_string(n, 0)
-        LOGGER.info(f"Local Manager: Progress: {prog_str}")
+        # Submit all tasks and map futures to their indices
+        future_to_idx = {
+            self.executor.submit(Queue_Manager._run_local_task, task): i for i, task in enumerate(task_list)
+        }
 
-        # Run tasks using local processes
-        with concurrent.futures.ProcessPoolExecutor(max_workers=self.local_workers) as executor:
-            future_to_idx = {
-                executor.submit(
-                    Queue_Manager.run_task,
-                    dill.dumps(self.eval_function),  # Serialize the function
-                    dill.dumps(task,)  # Serialize the arguments
-                ): i for i, task in enumerate(task_list)
-            }
-
-            for future in concurrent.futures.as_completed(future_to_idx):
-                i = future_to_idx[future]
+        # Collect results as they complete
+        for future in concurrent.futures.as_completed(future_to_idx):
+            i = future_to_idx[future]
+            try:
                 compiled_results[i] = future.result()
+            except Exception as e:
+                self.logger.warning(f"Queue Task {i} failed: '{e}'")
+                compiled_results[i] = e
 
-                if time.time() - curr_time > 1:
-                    prog_str = self.gen_simple_progress_string(n, len(compiled_results))
-                    LOGGER.info(f"Local Manager: Progress: {prog_str}")
-                    curr_time = time.time()
+                # Periodic progress update
+            if time.time() - curr_time > 1:
+                prog_str = self.gen_simple_progress_string(n, sum(r is not None for r in compiled_results))
+                self.logger.info(f"Local Manager: Progress: {prog_str}")
+                curr_time = time.time()
 
-        prog_str = self.gen_simple_progress_string(n, len(compiled_results))
-        LOGGER.info(f"Local Manager: Progress: {prog_str} - Queue Complete")
-        return [compiled_results[i] for i in range(n)]
+        # Final progress update
+        prog_str = self.gen_simple_progress_string(n, sum(r is not None for r in compiled_results))
+        self.logger.info(f"Local Manager: Progress: {prog_str} - Queue Complete")
+
+        return compiled_results  # Guaranteed to be in the same order as task_list
     # end _run_local_processes
-
+    
 # end Queue_Manager
 
 class Queue_Worker(Slave):
@@ -289,36 +367,43 @@ class Queue_Worker(Slave):
     and calls 'Slave.run'. The Master will do the rest
     """
 
-    def __init__(self, in_function ):
+    def __init__(self, in_function, worker_log_level=logging.INFO ):
         super(Queue_Worker, self).__init__()
 
         # Get MPI rank
         self.rank = MPI.COMM_WORLD.Get_rank()
 
+        # Create logger
+        self.logger = gu.configure_logging( logger_name=f'Queue_Worker_{self.rank}',
+                                            log_level=worker_log_level,
+                                            class_name='Queue_Worker',
+                                            )
+
         # Save dictionary of possible functions to run
         self.eval_function = in_function
-        LOGGER.info(f"Queue Worker {self.rank}: Initialized")
+        self.logger.info(f"Queue Worker {self.rank}: Initialized")
 
         # Start worker
         self.run()
 
     def __del__(self):
-        LOGGER.info(f"Queue Worker {self.rank}: Deleted")
+        self.logger.info(f"Queue Worker {self.rank}: Deleted")
     
     def do_work(self, in_message):
 
         task_idx, task_input = in_message
 
-        LOGGER.debug( f"Worker {self.rank}: Received task {task_idx}" )
+        self.logger.debug( f"Worker {self.rank}: Received task {task_idx}" )
 
         try:
-            # Choose functcion to run based on given task
+            # Run function
             task_output = self.eval_function(task_input)
-        except Exception as e:
-            LOGGER.error( f"Worker {self.rank}: Task {task_idx} failed: \n{e}" )
-            task_output = None
 
-        LOGGER.debug( f"Worker completed task: {task_idx}" )
+        except Exception as e:
+            self.logger.warning( f"Queue Task {task_idx} failed: \n{e}" )
+            task_output = e
+
+        self.logger.debug( f"Worker completed task: {task_idx}" )
         return (True, (task_idx, task_output))
 # end Queue_Worker
 
@@ -354,6 +439,7 @@ def test_queue( ):
 
     # Have only rank 0 print to avoid duplicate prints
     if rank == 0:
+        time.sleep(1)
         print("\nTESTING QUEUE MANAGER\n")
 
     # Setup Workers, and have them on standby
@@ -385,7 +471,7 @@ def test_queue( ):
             print("\n# ================================ #\n")
             print("\nTEST 2: LOCAL MACHINE MODE\n")
             manager.set_parallel_mode('local')
-            n = 100
+            n = 120
             test_list = [ (2, np.random.random(10)) for i in range(n) ]
             start_time = time.time()
             results = manager.evaluate_tasks( test_list )
@@ -395,14 +481,14 @@ def test_queue( ):
             print(f"\nTest 2 Results: {len(results)/time_taken:.2f} tasks per second")
             gu.tabprint(f"Results: {len(results)}")
             gu.tabprint(f"Time Taken: {time_taken:.2f} seconds")
-            gu.tabprint(f"Num Cores: {manager.local_workers}")
+            gu.tabprint(f"Num Cores: {manager.cpu_count}")
             time.sleep(1)
 
             # MPI mode
             print("\n# ================================ #\n")
             print("\nTEST 3: MPI MODE\n")
             manager.set_parallel_mode('mpi')
-            n = 20
+            n = 12
             test_list = [ (2, np.random.random(10)) for i in range(n) ]
             start_time = time.time()
             results = manager.evaluate_tasks( test_list )

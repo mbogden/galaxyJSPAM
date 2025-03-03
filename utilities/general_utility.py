@@ -102,7 +102,8 @@ class ArgHandler:
         parser.add_argument('-o','--output', type=str, help='General output argument 1')
         parser.add_argument('-o2', '--output2', type=str, help='General output argument 2')
 
-        parser.add_argument('-f', help='Arg needed for jupyter notebook')
+        parser.add_argument('-f', '--function', help='Misc function name to run')
+        parser.add_argument('-id', '--target_id', type=int, help='Misc ID argument')
         
         parser.add_argument('--config', type=str, help='Path to configuration file containing program arguments')
         parser.add_argument('--new-config', action='store_true', default=False, help='Overwrite config file with current arguments.')
@@ -183,6 +184,28 @@ class ArgHandler:
             for key, value in data.items():
                 # Replace dashes with underscores for attribute names and update the Namespace
                 setattr(args, key.replace('-', '_'), value)
+            
+    def parse_args_from_string(self, arg_string):
+        """
+        Parses command-line arguments from a string and returns a Namespace object.
+        
+        Parameters:
+            arg_string (str): The string containing command-line arguments.
+        
+        Returns:
+            Namespace: A Namespace object populated with the parsed arguments.
+        """
+        arg_list = arg_string.split()
+
+        # If first item involves "python" executable, remove it
+        if 'python' in arg_list[0]:
+            arg_list = arg_list[1:]
+
+        # if script name is included, remove it
+        if '.py' in arg_list[0]:
+            arg_list = arg_list[1:]
+
+        return self.parse_args(arg_list)
 
     def save_args_to_file(self, file_path, args):
         """
@@ -220,7 +243,7 @@ def in_jupyter_notebook():
 # - ERROR: A serious problem that occurred but does not stop the program.
 # - CRITICAL: A very serious error suggesting the program might not continue running.
     
-def configure_logging(log_level: str = 'INFO') -> logging.Logger:
+def configure_logging( log_level: int = logging.INFO, logger_name: str = '', class_name: str=None) -> logging.Logger:
     """
     Configures the logging for the application.
 
@@ -229,20 +252,26 @@ def configure_logging(log_level: str = 'INFO') -> logging.Logger:
     Allows specifying the logging level to control the verbosity of log messages.
 
     Parameters:
-        log_level (str): The logging level to set for the application as a string 
-                         (e.g., 'INFO', 'DEBUG', 'WARNING', 'ERROR', 'CRITICAL'). 
-                         Defaults to 'INFO'.
+        log_level (int): the logging levels {DEBUG, INFO, WARNING, ERROR, CRITICAL}
+                            Defaults to logging.INFO
+
+        logger_name (str): The name of the logger to configure. 
+                            Defaults to an empty string which is root.
+
+        class_name (str): Since classes have an extra level of hierarchy,
+                          this parameter can be used to include the class name in the log
+                          format. Defaults to None.
 
     Returns:
         logging.Logger: The configured logger.
     """
-
-    numeric_level = getattr(logging, log_level.upper(), None)
-    if numeric_level is None:
-        raise ValueError(f'Invalid log level: {log_level}')
     
     # Default Log format
-    log_format = 'Time:%(asctime)s - [%(module)s.%(funcName)s] - %(levelname)s - %(message)s'
+    log_format = '[%(asctime)s - %(levelname)s - %(module)s.%(funcName)s]: %(message)s'
+
+    # Add extra information for class name if provided
+    if class_name:
+        log_format = log_format.replace('%(module)s.%(funcName)s', f'%(module)s.{class_name}.%(funcName)s')    
 
     # Try to import mpi4py and get the rank and size
     try:
@@ -252,7 +281,7 @@ def configure_logging(log_level: str = 'INFO') -> logging.Logger:
         size = comm.Get_size()
         if size > 1:
             # Update log format to include rank and size
-            log_format = f'Time:%(asctime)s - [%(module)s.%(funcName)s] - %(levelname)s - (Rank:{rank}/{size}) - %(message)s'
+            log_format = log_format.replace('%(funcName)s', f'%(funcName)s - MPI:{rank}/{size}' )
     except ImportError:
         # mpi4py is not installed; continue without MPI information
         pass
@@ -260,6 +289,24 @@ def configure_logging(log_level: str = 'INFO') -> logging.Logger:
         # Handle any other exceptions related to MPI
         logging.error(f'Error accessing MPI information: \n{e}')
     
+    # # Create a new logger with the specified name
+    logger = logging.getLogger(logger_name)
+
+    # Prevent duplicate hanglers
+    if logger_name == '':
+        if not logger.handlers:
+            # Create a StreamHandler to output logs to the console
+            stream_handler = logging.StreamHandler()
+            formatter = logging.Formatter(log_format)
+            stream_handler.setFormatter(formatter)
+            logger.addHandler(stream_handler)
+    
+    logger.setLevel(log_level)
+    logger.propagate = True if logger_name else False
+
+    return logger
+
+    # Old method with 1 root logger
     logging.basicConfig(level=numeric_level, format=log_format)
 
     logger = logging.getLogger()
@@ -308,6 +355,42 @@ def new_logger_handler(log_file_path):
 
     else:
         raise ValueError("No existing handlers found to copy settings from.")
+
+def add_jupyter_stream_handler(log_level: str = 'INFO'):
+    """
+    Adds a StreamHandler to the root logger to output logs in Jupyter notebooks.
+
+    Ensures that the handler is not added multiple times.
+
+    Parameters:
+        log_level (str): The logging level to set for the handler as a string 
+                         (e.g., 'INFO', 'DEBUG', 'WARNING', 'ERROR', 'CRITICAL'). 
+                         Defaults to 'INFO'.
+    """
+    import logging
+    import sys
+
+    numeric_level = getattr(logging, log_level.upper(), None)
+    if numeric_level is None:
+        raise ValueError(f'Invalid log level: {log_level}')
+
+    logger = logging.getLogger()
+
+    # Avoid adding the handler multiple times
+    if any(isinstance(handler, logging.StreamHandler) and handler.stream == sys.stdout for handler in logger.handlers):
+        return logger
+
+    stream_handler = logging.StreamHandler(sys.stdout)
+    stream_handler.setLevel(numeric_level)
+
+    log_format = 'Time:%(asctime)s - [%(module)s.%(funcName)s] - %(levelname)s - %(message)s'
+    formatter = logging.Formatter(log_format)
+    stream_handler.setFormatter(formatter)
+
+    logger.addHandler(stream_handler)
+
+    return logger
+
 
 
 # =====   OLD LOGGER FOR JUPYTER NOTEBOOKS   ===== #
@@ -392,6 +475,7 @@ def new_logger_handler(log_file_path):
 
 # Pretty Printer Configuration
 PP = PrettyPrinter(width=42, compact=True)
+pp = PP.pprint
 
 def pretty_log(message, log_level):
     """
@@ -435,11 +519,11 @@ def tabprint(message, begin='\t - ', end='\n'):
 
 # =========================== INITIALIZE APPLIATION ============================ #
 
-def initialize_environment( args=None ):
+def initialize_environment( args=None, module_name = None, ):
     """
     Whichever script is running this function should be main and have its 
     arguments parsed and logging configured for all modules.
-    
+
     Args:
 
     Return:
@@ -447,14 +531,9 @@ def initialize_environment( args=None ):
     """
     configure_logging()
     arg_handler = ArgHandler(args=args)
-    logger = logging.getLogger()
-    logger.setLevel( arg_handler.args.log_level )
-
-    # if log file is provided, add a new file handler
-    if arg_handler.args.log_file:
-        new_logger_handler(arg_handler.args.log_file)
+    x_logger = configure_logging( arg_handler.args.log_level, module_name )
         
-    return arg_handler.args, logger
+    return arg_handler.args, x_logger
 
 
 # ========================= READING/WRITING DISK =========+================== #
