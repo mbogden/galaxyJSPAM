@@ -13,11 +13,14 @@ These are written by Matthew Ogden for Matthew Ogden while creating and organizi
   - Run Optimizer on TNG targets to fine tune spam params.
 
 - Simulator
-  - [x] Custom_runs: Working draft 
+  - [d] Custom_runs: Working draft 
     - NOTE: both init and final particles are off.
     - [x] Figure out why pts are off by a single timestep for init and final particles.  Look at code between initializing particles and writing them.
       - NOTE: Found hard-coded tStart = -5 causing issue.  Modified to 0.
   - [d] Rewrite main_simulator.py to use custom_runs with new SIMR pipeline
+  - [ ] Change simulation stopping condition to go back further in time.
+    - NOTE: I suspect it's designed to find the moment-of-closest-approach (MOCA) and double the time between start and MOCA.
+            Going back further would improve SPAM hyper parameter search and scoring function.  
   - [ ] Add many endings.
   - [ ] Encorporate into SIMR pipeline
   - [ ] Look up Allen Harvey Dissertation: A Pipeline for Constructing Optimized N-Body Models of Interacting Galaxies
@@ -47,8 +50,8 @@ These are written by Matthew Ogden for Matthew Ogden while creating and organizi
     - [x] Verify dynamical friction is working correctly.
 
 - Illustris TNG (Target Search)
-  - [w] Git access on TNG server.
-  - [w] Find potential targets: Mergers-of-interest (moi)
+  - [x] Git access on TNG server.
+  - [x] Find potential targets: Mergers-of-interest (moi)
       - [x] Preliminary Filters (Moi_1)
           - NOTE: MOI_1 are ideal galaxies predicted to undergo a merger event soon.
           - [x] TNG-50 (most detailed simulation)
@@ -119,8 +122,7 @@ These are written by Matthew Ogden for Matthew Ogden while creating and organizi
         - NOTE: While not the most accurate representation of the galaxy, it does show the general shape of the galaxy.   Thus it does captures tidal features. 
       - [ ] Standard wavelgenth visualization.  Ex SDSS, JWST, wavelenths, etc. 
         - NOTE:  Only certain snapshots have photometric data.   Get list of potentials targets from these snapshots first.  
-
-- [x] Find targets to anlayze
+  - [x] Find targets to anlayze
   - [x] Generated 1200 composite images showing orbital and tidal features.
   - [x] Create UI to "Rate" tidal features for images
     - [x] Finish rating images
@@ -137,11 +139,11 @@ These are written by Matthew Ogden for Matthew Ogden while creating and organizi
     - [x] Dynamical Friction? (Found and modified to work properly)
         - NOTE: Use lnl = 0.15 for best best of tng-target: 67000000350284    
     - [x] View TNG pts over time
-    - [w] Viewing particles Together 
-    - [w] Look at orbits!  Do orbits of TNG and SPAM match?
+    - [x] Viewing particles Together 
+    - [x] Look at orbits!  Do orbits of TNG and SPAM match?
         - NOTE: They do not match with default SPAM settings
         - [x] Do simple velocity projection of 2nd galaxy  
-    - [w] Play with following variable to get matching tidal features.
+    - [x] Play with following variable to get matching tidal features.
       - SETBACK:  Too many variables to adjust.  Will need to find an optimize method.  
         - NOTE: Based on following: Lars Hernquist. N-body realizations of compound galaxies. The Astrophysical Journal Supplement Series, 86:389{400, June 1993.
         - lnl 
@@ -152,27 +154,21 @@ These are written by Matthew Ogden for Matthew Ogden while creating and organizi
         - velocity
             - NOTE: Slightly slowly down vel (0.9) creates better matches.
         - mass
-    - [w] Find targets with matching Tidal features.
+    - [x] Find targets with matching Tidal features.
         - 
 
 - Convert TNG to SPAM 
   - [x] Converting TNG kinematics to SPAM units
     - [x] v1: Working kinematics to SPAM (Uses only current values)
-    - [d] v2: Using past kinematics that might have changed (orientation, radius, mass etc)
-
+    - [x] v2: Using past kinematics that might have changed (orientation, radius, mass etc)
   - [x] Implement SPAM testing on TNG parameters
     - [x] Gridsearch through lnl, r_scale, and halo_mass_ratio
     - [x] Create orbits for future anlaysis. 
-
-  - [w] Scoring function centered on moment of closest approach.  
+  - [x] Scoring function centered on moment of closest approach.  
     - [x] Uses guassian curve centered on moment of closest approach.
     - [x] Auto gen guassian_variance based on edges = 0.01.
-    - [w] Shorten the best orbit and verify the score changes. 
+    - [x] Shorten the best orbit and verify the score changes. 
 
-  - [d] Loop through orbits,
-    - [ ] Analyze orbit length
-    - [ ] Analyze shape
-      
     - Analyze TNG targets to see if they're similar or drastically different.
       - 3 - 5
     - If many targets have very different ratios, then we may need to add these as variables to optimize upon
@@ -184,9 +180,53 @@ These are written by Matthew Ogden for Matthew Ogden while creating and organizi
     - [x] Working draft w/ tests
   - [ ] Create a Multithreading queue manager so jupyter notebook can use it.
   
+PAPER 1: Can SPAM recreate realistic tidal features with Artificial Targets?
+- [x] Yes, BUT.  I have to change hard-coded variables to re-create tidal features.  These may become  The variables I can change.
+  - lnl: A variable that controls the strength of dynamical friction as the galaxies interact.
+  - r_scale: Believed to control the size ratio between baryonic matter and the dark matter halo
+  - m_halo: Believed to contorl the mass ratio between baryonic matter and the dark matter halo. 
+  - NOTE: If the same set of values can work for multiple targets, then it may be as simple as updating the values to be more realistics.  r_scale, and m_halo are based on Milky War measurements from the 90's.  
+- [x] Metric for tidal features:   I found that the more the spam orbit and the artificial orbit converges, the more similar the tidal features during interaction.  This makes sense
+  - [x] Scoring Metric v1: Avg-error squared between SPAM and TNG orbits.
+    - [x] Time-based Avg-error squared between TNG spline and SPAM orbit
+    - [x] Nearest-position based avg-error squared between TNG spline and SPAM orbit.  
+    - [x] Weight function:  Since the moment-of-closest-approach (moca) is theorized to be the most infulential moment for the tidal features, i created a gaussian weight function centered on the moca.
+    - [x] Inital Gridsearch:  Found 2 issues.
+      - Degeneracy:  For test target 1, the 3 variables were degenerate for orbit metric v1.  There exists a continuous range of value sets, that have low error.  
+      - Pulling orbit to pre-moca.  I noticed the SPAM orbit often diverged  
+  - [x] Scoring Metric v2: Pre-MOCA scale
+    - NOTE: Based on gridseach, 
+- [x] Do grid-search, analyze results
+  - [x] Initial grid search
+
+- 
+
 
 - Optimization Manager
-  - [x] 
+  - [x] Space Manager
+    - [x] Define spacial dimension.
+    - [x] Define limits
+    - [x] Define scale (linera, logithmic)
+    - [x] Normalize range (linear & Log)
+    - [ ] Set ints or specific values
+      - NOTE: Setting specific values such as [ -1, 1 ] can help with symmetries.
+  - [x] Execution Manger
+    - [x] Integrate with Space Manager
+    - [x] Run Black box with Queue Manager
+    - [x] Auto change function logger level for convenient prints
+    - [x] Reciprical standardizes error function between 0 and 1 nicely. 
+
+  - [ ] Genetic Algorithm
+    - [x] Base pyGAD Inputs
+    - [x] Get Basic Example Working
+    - [d] Get SPAM to TNG Target Tuning working.
+      - [x] Works for test target 1
+      - [w] Fails terribly for test target 2.  Bad target or bad coding referencing target 1? 
+    - [ ] Custom Gene Mask: For variables that are degenerate, it may be useful to keep them together.
+      - NOTE: Clumping degenerate variables together, (variables related to symmetry) could improve convergence.
+    - [ ] Simulated Annealing Mutation Rate: Because I like the idea of converging to a solution over time.
+    - [x] Store dest solutions for later evalution
+    - [ ] Spacial Analysis:  Good zones, dependencies, etc. 
 
 - Docker
   - [x] Update beta-3
