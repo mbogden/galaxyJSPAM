@@ -17,7 +17,7 @@ References:  Sections of this code were written with the assistance
 # ================================ IMPORTS ================================ #
 
 # Standard library imports
-import logging, os, sys
+import hashlib, logging, os, sys
 import numpy as np
 
 
@@ -32,7 +32,13 @@ import utilities.model_manager as mm
 from Simulator.custom_runs import custom_runs_module as spam_module
 spam_module.simr_init()
 
+# Global logger from main program
+LOGGER = gu.configure_logger(logger_name='')
 # ================================= GLOBALS ================================= #
+
+# An example collision model
+test_param = [-9.93853,-4.5805,3.27377,-0.50008,-2.45565,-1.07799,23.33004,24.69427,3.49825,5.32056,309.6923,36.8125,41.78471,51.42857,0.3,0.3,0.0,0.0,0.0,0.0,0.0,0.0,0.94594,0,0,0.18901,-22.47999,9.02372,0.0,1.0,0.0,0.0,0.0,0.0][0:22]
+
 #   Standardized parameter array for SPAM model:
 spam_param_description = '''
     [0]: X-coordinate of the secondary galaxy's position
@@ -59,8 +65,6 @@ spam_param_description = '''
     [21]: Scaling factor for halo in the secondary galaxy
 '''
 
-# Global logger from main program
-LOGGER = logging.getLogger(__name__)
 
 # ================================= CORE FUNCTIONS ================================= #
 def set_spam_parameters( lnl = 0.1, r_scale = 10.0, m_halo = 5.8, m_bulge = 0.3333, h_bulge = 2.0, h_disk = 1.0 ):
@@ -98,6 +102,16 @@ def set_spam_parameters( lnl = 0.1, r_scale = 10.0, m_halo = 5.8, m_bulge = 0.33
     return
 
 # set_spam_parameters() # Run once to set the default values
+
+def set_spam_parameters_from_dict( spam_params ):
+    
+    # Setup the simulation paramaters if given
+    if spam_params is not None:
+        # Create new dict with only valid keys
+        valid_keys = ['lnl', 'r_scale', 'm_halo', 'm_bulge', 'h_bulge', 'h_disk']
+        valid_setup_params = {k:spam_params[k] for k in valid_keys if k in spam_params}
+        set_spam_parameters( **valid_setup_params ) # Missing keys will use default value from function
+    
 
 def get_spam_parameters():
     """
@@ -212,7 +226,8 @@ def spam_orbit( collision_param, spam_setup_params = None, current_time = 0.0 ):
     return orbit_path
 
 def basic_run( collision_param, spam_setup_params = None,
-                      npts1 = 100, npts2 = 50, heat1 = 0.0, heat2 = 0.0):
+                      npts1 = 100, npts2 = 50, heat1 = 0.0, heat2 = 0.0, 
+                      save_dir = '/home/mbo2d/galStuff/data/spam_runs/' ):
     """
     This function is a wrapper for the spam_module.basic_disk function.
 
@@ -234,6 +249,100 @@ def basic_run( collision_param, spam_setup_params = None,
     LOGGER.debug("Number of Particles: %d - %d" % (npts1, npts2))
     LOGGER.debug("Heat Parameters: %f - %f" % (heat1, heat2))
 
+    # Setup up SPAM simulation inputs
+    fortran_ar = initialize_setup( collision_param, spam_setup_params )
+
+    # Create unique hex from collision and spam parameters
+    if save_dir:
+
+        c_str = ",".join( [f"-{val:.5f}" for val in collision_param] )
+        LOGGER.debug("Collision Param String: %s" % c_str)
+        
+        spam_param = get_spam_parameters() # get all params
+        spam_str = ",".join( [f"-{spam_param[k]:.5f}" for k in spam_param] )
+        LOGGER.debug("SPAM Param String: %s" % spam_str)
+
+        sim_param = {
+            'npts1': npts1,
+            'npts2': npts2,
+            'heat1': heat1,
+            'heat2': heat2,
+        }
+        sim_str = ",".join( [f"-{sim_param[k]:.5f}" for k in sim_param] )
+        LOGGER.debug("Simulation Param String: %s" % sim_str)
+
+        # Combine all strings to create a unique identifier
+        total_str = "_".join( [c_str, spam_str, sim_str] )
+        LOGGER.debug("Total String: %s" % total_str)
+        # Create a unique hex string from the total string
+
+        hex_str = hashlib.md5( total_str.encode() ).hexdigest()
+        save_loc = os.path.join( save_dir, f"{hex_str}.npz" )
+    
+    # Check if the file already exists
+    init_pts = None
+    final_pts = None
+
+    if save_dir and os.path.exists(save_loc):
+        LOGGER.info(f"File already exists. Loading: {save_loc}")
+        try:
+            LOGGER.info( f"Loading Orbit: {save_loc}" )
+            with np.load( save_loc ) as data:
+                init_pts = data['init_pts']
+                final_pts = data['final_pts']
+                LOGGER.debug(f"Loaded SPAM Particles: {init_pts.shape} - {final_pts.shape}")
+            return (init_pts, final_pts)
+
+        except:
+            pass
+    
+    # Call the Fortran function
+    try:
+        LOGGER.debug(f"Calling spam_module.basic_run")
+        init_pts, final_pts = spam_module.basic_run( fortran_ar, npts1, npts2, heat1, heat2)
+        LOGGER.debug(f"Returned Disk Particles: {init_pts.shape} - {final_pts.shape}")
+    except Exception as e:
+        LOGGER.error(f"Failed to call 'spam_module.basic_run'")
+        LOGGER.error(f"Collision Param: {collision_param}")
+        LOGGER.error(f"npts1 - npts2: {npts1} - {npts2}")
+        LOGGER.error(f"heat1 - heat2: {heat1} - {heat2}")
+        LOGGER.error(f"Exception: \n",exc_info=True)
+        raise ValueError(f"Failed to call 'spam_module.basic_run'") from e
+
+    # If save_dir given, save the initial and final particles to files
+    if save_dir:
+        LOGGER.info(f"Saving Particles to: {save_loc}")
+        np.savez( save_loc, init_pts=init_pts, final_pts=final_pts )
+        LOGGER.debug(f"Saved SPAM Particles: {init_pts.shape} - {final_pts.shape}")
+
+    return (init_pts, final_pts)
+
+def run_spam_bundle_1( collision_param, spam_setup_params = None,
+                npts1 = 1000, npts2 = 1000, heat1 = 0.1, heat2 = 0.1,
+                save_dir = '/home/mbo2d/galStuff/data/spam_runs/'
+        ):
+    """
+    This function is a wrapper for the spam_module.basic_run function.
+
+    Parameters:
+        collision_param (np.ndarray): Array of collision parameters
+        spam_setup_params (dict, optional): Dictionary of parameters to set the simulation variables
+        npt1 (int): Number of particles for the primary galaxy
+        npt2 (int): Number of particles for the secondary galaxy
+        heat1 (float): random motion parameter for the primary galaxy
+        heat2 (float): random motion parameter for the secondary galaxy
+        save_loc (str): Save location for the particles
+    
+    Returns:
+        init_pts (np.ndarray): Array of particles before collision interactions
+        final_pts (np.ndarray): Array of particles after collision interactions
+
+    """
+    LOGGER.info("Running SPAM Simulation - Basic Run")
+    LOGGER.debug("Collision param: %s" % collision_param)
+    LOGGER.debug("Number of Particles: %d - %d" % (npts1, npts2))
+    LOGGER.debug("Heat Parameters: %f - %f" % (heat1, heat2))
+
     fortran_ar = initialize_setup( collision_param, spam_setup_params )
 
     # Call the Fortran function
@@ -241,7 +350,7 @@ def basic_run( collision_param, spam_setup_params = None,
         LOGGER.debug(f"Calling spam_module.basic_run")
         init_pts, final_pts = spam_module.basic_run( fortran_ar, npts1, npts2, heat1, heat2)
         LOGGER.debug(f"Returned Disk Particles: {init_pts.shape} - {final_pts.shape}")
-    except:
+    except Exception as e:
         LOGGER.error(f"Failed to call 'spam_module.basic_run'")
         LOGGER.error(f"Collision Param: {collision_param}")
         LOGGER.error(f"npts1 - npts2: {npts1} - {npts2}")
@@ -403,7 +512,6 @@ if __name__ == '__main__':
     importlib.reload(mm)
 
     print("\n Testing model_manager (storage_mode = memory)\n")
-    test_param = [-9.93853,-4.5805,3.27377,-0.50008,-2.45565,-1.07799,23.33004,24.69427,3.49825,5.32056,309.6923,36.8125,41.78471,51.42857,0.3,0.3,0.0,0.0,0.0,0.0,0.0,0.0,0.94594,0,0,0.18901,-22.47999,9.02372,0.0,1.0,0.0,0.0,0.0,0.0][0:22]
     test_manager = mm.Model_Manager( model_data=test_param )
     print( f"\nModel_Manger: \n{test_manager}" )
     print( f"\nManager Model Data: \n{test_manager.info['model_data']}" )
