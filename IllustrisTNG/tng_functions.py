@@ -729,9 +729,10 @@ import matplotlib.patheffects as path_effects
 def xy_histogram( hist_data,
                 plot_data = None, plot_labels = None,
                 annotations = None,
+                scatter_data = None,
                 limits = None,
                 ext_ax=None,  title="2D Histogram", \
-                std_dev=3, bins=256, cmap='gray', \
+                std_dev=3, bins=128, cmap='gray', \
                 log_scale=True, dim_inner = -1, \
                 show_labels=False, plotting=True, figsize=None):
     """
@@ -757,19 +758,12 @@ def xy_histogram( hist_data,
     if hist_data is None:
         print("hist_data cannot be None")
         raise ValueError("hist_data cannot be None")
-    
-    # Ensure plot_data and plot_labels are lists
-    if plot_data is not None and not isinstance(plot_data, list):
-        plot_data = [plot_data]
-    if plot_labels is not None and not isinstance(plot_labels, list):
-        plot_labels = [plot_labels]
-
 
     # If ax is None, create a new figure and axis
     ax = ext_ax or plt.subplots(figsize=figsize)[1]
 
     # Calculate the mean and standard deviation
-    mean_xy = np.mean(hist_data[:, 0:2], axis=0)
+    mean_xy = np.mean( hist_data[:, 0:2], axis=0)
     std_xy  = np.std( hist_data[:, 0:2], axis=0)
 
     # Determine the maximum range to use for both axes
@@ -813,20 +807,87 @@ def xy_histogram( hist_data,
     # Plot each set of plot_data with a unique color and label
     if plot_data is not None:
         colors = plt.cm.tab10(np.linspace(0, 1, len(plot_data)))  # Choose colors from tab10 colormap
+
+        # Verify it's a list to loop through, other make a list of 1 item
+        if not isinstance(plot_data, list):
+            plot_data = [plot_data]
+
         for i, data in enumerate(plot_data):
-            label = plot_labels[i] if plot_labels and i < len(plot_labels) else f"Data {i+1}"
-            ax.plot(data[:, 0], data[:, 1], color=colors[i], linewidth=2, zorder=5, label=label)
-            ax.plot(data[:, 0], data[:, 1], color=colors[i], linewidth=3, zorder=4, alpha=0.5)
+            
+            # Check if additional data is given
+            if isinstance( data, tuple ):
+                data, info = data
+
+            else:
+                # Check if in plot_labels
+                if plot_labels is not None and i < len(plot_labels):
+                    info = plot_labels[i]
+
+                else:
+                    info = ""
+                
+            
+            # Check if a string is given, if so, use it as a label
+            if isinstance( info, str ):
+                info = { 'label': info, 'color':colors[i], 'linewidth':2, 'zorder':4, }
+
+
+
+            # Prep black outline for plot 
+            outline_info = info.copy()  # Copy the info for the outline
+            outline_info['linewidth'] =  info.get('linewidth', 5) + 1  # Make the outline thicker
+            outline_info['color'] = 'black'  # Set the outline color to black
+            if outline_info.get('linestyle') is not None:   outline_info.pop('linestyle', None)  # Ignore style
+            if outline_info.get('alpha') is not None:    outline_info.pop('alpha', None)
+            outline_info.pop('label', None)    # Remove any labels
+            
+            ax.plot( data[:, 0], data[:, 1], **outline_info )
+            ax.plot( data[:, 0], data[:, 1], **info )
 
         # Show legend
         ax.legend()
     
+    # Scatter data points if given as basic white on black dots
+    if scatter_data is not None:
+
+        if not isinstance(scatter_data, list):
+            scatter_data = [ scatter_data ]
+
+        for data in scatter_data:
+
+            # If tuple, assume graph info is given
+            if isinstance( data, tuple ):
+                data, info = data
+            else:
+                info = ""
+            
+            # If info is a string, assume it's the label and add default scatter settings
+            if isinstance( info, str ):
+                info = { 'label': info, "color":'white', 'edgecolors':'black', 'linewidths':1, 's':10, 'zorder':6, }
+
+            # Plot the data points
+            ax.scatter( data[:,0], data[:,1], **info )
+            
+
+    
     # Annotate data points with large white points and text with a black outline
-    if annotate_data is not None:
-        for location, text in annotate_data:
+    if annotations is not None:
+        if not isinstance(annotations, list):
+            annotations = [annotations]
+        
+        for i, anno in enumerate(annotations):
+
+            # Check if annotation is a tuple of (location, text)
+            if isinstance(anno, tuple):
+                location, text = anno
+                
+            else:
+                location = anno
+                text = f"{i}"
+
             # Check if the annotation is within the plot bounds
             if xlim[0] <= location[0] <= xlim[1] and ylim[0] <= location[1] <= ylim[1]:
-                ax.scatter(*location, color='white', s=25, edgecolor='black', linewidth=1.5, zorder=6)  # Large white point with black outline
+                ax.scatter(location[0], location[1], color='white', s=25, edgecolor='black', linewidth=1.5, zorder=6)  # Large white point with black outline
                 text_obj = ax.text(location[0], location[1], text, fontsize=10, color='white',
                                 ha='left', va='bottom', zorder=7)
                 # Apply a black outline to text
