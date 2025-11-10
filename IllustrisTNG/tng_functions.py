@@ -621,6 +621,10 @@ def apply_transformation(matrix, points, additional_angle=0.0, degrees=None):
     # Convert degrees to radians if degrees are provided
     if degrees is not None:
         additional_angle = np.radians(degrees)
+        
+    # Ensure points are 2D incase of a single point
+    points = np.atleast_2d(points)
+    # print( f"Shape: {points.shape}")
     
     # Step 1: Convert points to homogeneous coordinates (Nx4)
     n_points = points.shape[0]
