@@ -1,0 +1,8 @@
+# E6a working-folder outputs and large data stay out of git
+data/*
+!data/dl-s2-10-folds.json
+models/
+results/
+logs/
+tuner/
+*.sif
