@@ -1,0 +1,18 @@
+# Store text files with LF line endings on every machine (Windows, WSL, Babbage).
+* text=auto eol=lf
+
+# Windows scripts keep CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary files: never convert.
+*.h5 binary
+*.npy binary
+*.npz binary
+*.png binary
+*.jpg binary
+*.gif binary
+*.pdf binary
+*.zip binary
+*.sif binary

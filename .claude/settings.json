@@ -1,0 +1,53 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(docker system prune *)",
+      "Bash(docker image prune *)",
+      "Bash(docker container prune *)",
+      "Bash(docker volume prune *)",
+      "Bash(docker rmi *)",
+      "Bash(docker image rm *)",
+      "Bash(docker volume rm *)",
+      "Bash(docker rm -f *)",
+      "Bash(docker * --privileged *)",
+      "Bash(rm -rf *)",
+      "Bash(rm -fr *)",
+      "Bash(git push --force *)",
+      "Bash(git push -f *)",
+      "Bash(git push * --force*)",
+      "Bash(git push * -f *)",
+      "Bash(git reset --hard *)",
+      "PowerShell(docker system prune *)",
+      "PowerShell(docker image prune *)",
+      "PowerShell(docker container prune *)",
+      "PowerShell(docker volume prune *)",
+      "PowerShell(docker rmi *)",
+      "PowerShell(docker image rm *)",
+      "PowerShell(docker volume rm *)",
+      "PowerShell(docker rm -f *)",
+      "PowerShell(docker * --privileged *)",
+      "PowerShell(git push --force *)",
+      "PowerShell(git push -f *)",
+      "PowerShell(git push * --force*)",
+      "PowerShell(git push * -f *)",
+      "PowerShell(git reset --hard *)"
+    ],
+    "ask": [
+      "Bash(docker run *)",
+      "Bash(docker build *)",
+      "Bash(git push *)",
+      "PowerShell(docker run *)",
+      "PowerShell(docker build *)",
+      "PowerShell(git push *)",
+      "PowerShell(Remove-Item * -Recurse*)"
+    ],
+    "allow": [
+      "Bash(docker ps *)",
+      "Bash(docker images *)",
+      "Bash(docker logs *)",
+      "PowerShell(docker ps *)",
+      "PowerShell(docker images *)",
+      "PowerShell(docker logs *)"
+    ]
+  }
+}

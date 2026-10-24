@@ -195,3 +195,28 @@ dmypy.json
 # --------------------------------------------------------------------------- #
 .vscode
 *.sw*
+
+# --------------------------------------------------------------------------- #
+# Data, models, containers (data lives in galStuff/data/, outside the repo)
+# --------------------------------------------------------------------------- #
+/data
+Neural_Network/data
+targetDir
+
+# Trained models and checkpoints
+*.h5
+*.keras
+*.ckpt
+*.pt
+*.pth
+checkpoint
+checkpoints/
+Neural_Network/models/
+Neural_Network/tuner/
+Machine_Score/nn_models/
+
+# Container images
+*.sif
+
+# Personal Claude Code settings
+.claude/settings.local.json
