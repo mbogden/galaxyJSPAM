@@ -27,9 +27,6 @@ This file records what has been decided. Items are added one at a time as they a
     subpackage only when it grows.
   - Entry points start as runnable modules (`python -m galactic_tidal_constraints.<module>`);
     a short command can come later.
-  - **Specific experiments live outside the repo** (their configs, cluster job scripts,
-    results, exploratory notebooks). Each run saves its merged config, so results stay
-    reproducible. Configs behind published figures are added to the repo at publication time.
   - Committed notebooks have their outputs stripped.
 - **Packaging:** `pyproject.toml` + `uv`. The lockfile is part of reproducibility.
 - **Environment:** one Docker image, run with Apptainer on the cluster.
