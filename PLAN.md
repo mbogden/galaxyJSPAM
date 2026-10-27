@@ -26,6 +26,14 @@ This file records what has been decided. Items are added one at a time as they a
   - Parameter studies are lists of override sets, one run per set.
   - Runtime flags (`argparse`) don't change results and stay outside the tree: `--config`, the
     override list, `--log-level`, `--mode`, output folder.
+- **Testing:** `pytest`, with tests in `tests/`.
+  - Compare numbers with `numpy.testing.assert_allclose`, not `==`.
+  - Golden tests: save reference outputs once, compare later runs against them. Orbits match
+    exactly; particle runs only statistically until the Fortran RNG takes a seed.
+  - Mark long tests `@pytest.mark.slow` so quick runs can skip them.
+  - Parallel code is tested in solo mode (built-in `map`); one small test checks the MPI pool
+    under `mpiexec`.
+  - Later: coverage (`pytest-cov`) and CI (GitHub Actions), once the Fortran build is settled.
 - **Parallel:** code takes a `map` function (default: built-in `map`). The entry point picks it
   once from `--mode`:
   - solo: built-in `map`
