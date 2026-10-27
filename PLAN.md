@@ -16,7 +16,16 @@ This file records what has been decided. Items are added one at a time as they a
   - OpenMPI 4.1.6, matching the cluster
   - Built locally, pushed to Docker Hub, pulled on the cluster with `apptainer pull`
 - **Data:** never in git; it lives outside the repo.
-- **Input:** command-line arguments with `argparse`.
+- **Input:** one config tree for everything that can change a result, plus a few runtime flags.
+  - Config tree: one section per component (`run`, `simulator`, `fitness`, `ga`, …); `run`
+    holds per-run values like target and seed.
+  - Precedence: defaults in code (dataclasses) < JSON config file < command-line `key=value`
+    overrides (e.g. `ga.population=128`).
+  - Unknown keys or wrong types are an error. Each run saves its full merged config with its
+    output.
+  - Parameter studies are lists of override sets, one run per set.
+  - Runtime flags (`argparse`) don't change results and stay outside the tree: `--config`, the
+    override list, `--log-level`, `--mode`, output folder.
 - **Parallel:** code takes a `map` function (default: built-in `map`). The entry point picks it
   once from `--mode`:
   - solo: built-in `map`
