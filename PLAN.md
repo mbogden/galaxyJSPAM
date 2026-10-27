@@ -28,6 +28,18 @@ This file records what has been decided. Items are added one at a time as they a
   - Entry points start as runnable modules (`python -m galactic_tidal_constraints.<module>`);
     a short command can come later.
   - Committed notebooks have their outputs stripped.
+- **No import side effects:** importing a module only defines things (functions, classes,
+  constants). It never runs code: no SPAM or MPI initialization, no logging setup, no file
+  reads, no `sys.path` changes. That work happens in functions, called from an entry point.
+  Avoid module-level mutable state; pass values in as arguments.
+- **Type hints** on function signatures (arguments and return values), checked by the editor
+  (VS Code / Pylance). No strict type checker for now. Array shapes go in the docstring.
+- **`ruff`** for linting (`ruff check`) and formatting (`ruff format`), configured in
+  `pyproject.toml`.
+- **Design notes:** before a module is ported, a short note in `docs/design/<module>.md`:
+  purpose, main functions with inputs and outputs, what it ports or changes from the old
+  code, known issues. Mention future features only when they shape the current design;
+  other ideas don't go in design notes.
 - **Packaging:** `pyproject.toml` + `uv`. The lockfile is part of reproducibility.
 - **Environment:** one Docker image, run with Apptainer on the cluster.
   - CUDA 12.x only (the cluster driver is 12.4)
