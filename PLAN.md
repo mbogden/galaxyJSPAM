@@ -17,6 +17,23 @@ This file records what has been decided. Items are added one at a time as they a
   - Built locally, pushed to Docker Hub, pulled on the cluster with `apptainer pull`
 - **Data:** never in git; it lives outside the repo.
 - **Input:** command-line arguments with `argparse`.
+- **Parallel:** code takes a `map` function (default: built-in `map`). The entry point picks it
+  once from `--mode`:
+  - solo: built-in `map`
+  - local: `concurrent.futures.ProcessPoolExecutor`
+  - MPI: `mpi4py.futures.MPIPoolExecutor`, launched with `python -m mpi4py.futures`
+
+  Both pools hand out tasks dynamically, one at a time. Start simple; add per-task error
+  capture and progress reporting later if needed.
+  - The entry point creates the pool once and shuts it down at the end (`with`). It passes
+    the pool's `map` down to the code that needs it.
+  - Parallelize at one level only: the outermost loop with many independent tasks, each
+    taking at least seconds (e.g. the models in one optimizer generation).
+  - No nesting: a task running in a worker never starts its own pool.
+  - The lowest level stays plain: functions like a single SPAM run know nothing about pools
+    or MPI, so they can be tested and called on their own.
+  - Parallelism above the pool comes from Slurm, not Python (e.g. a job array with one task
+    per target, each running its own pool).
 - **Logging:** Python's standard `logging` module, used throughout.
   - DEBUG logs trace what the code did; checks that a result is correct belong in tests.
   - DEBUG statements are kept for development and testing. They must cost almost nothing when
