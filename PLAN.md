@@ -1,6 +1,7 @@
 # Modernization Plan
 
-The `modern` branch is a rewrite of galaxyJSPAM as an installable, reproducible package.
+The `modern` branch is a rewrite of galaxyJSPAM as an installable, reproducible package,
+renamed `galactic_tidal_constraints`.
 This file records what has been decided. Items are added one at a time as they are decided.
 
 ## Scope
@@ -9,6 +10,11 @@ This file records what has been decided. Items are added one at a time as they a
   machine scoring come later.
 
 ## Decided
+- **Name:** `galactic_tidal_constraints` for the GitHub repo, the local folder and the Python
+  package (`import galactic_tidal_constraints as gtc`).
+- **Layout:** `src/galactic_tidal_constraints/`, with `tests/` and `docs/` at the top level.
+  Modules are added only when their code is ported. Entry points start as runnable modules
+  (`python -m galactic_tidal_constraints.<module>`); a short command can come later.
 - **Packaging:** `pyproject.toml` + `uv`. The lockfile is part of reproducibility.
 - **Environment:** one Docker image, run with Apptainer on the cluster.
   - CUDA 12.x only (the cluster driver is 12.4)

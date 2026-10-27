@@ -1,10 +1,10 @@
-# galaxyJSPAM: agent instructions
+# galactic_tidal_constraints: agent instructions
 
 Rules for AI agents working in this repo.
 
 ## What this branch is
-`modern` is a from-scratch rewrite of galaxyJSPAM (SPAM galaxy-collision simulations,
-scoring and optimization) as an installable, reproducible package.
+`modern` is a from-scratch rewrite of this project (formerly galaxyJSPAM: SPAM
+galaxy-collision simulations, scoring and optimization) as an installable, reproducible package.
 
 - `working_research` holds the old code and is still used for research until `modern` reaches parity.
   Port code from it one module at a time; don't copy whole folders.
