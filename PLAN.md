@@ -12,9 +12,25 @@ This file records what has been decided. Items are added one at a time as they a
 ## Decided
 - **Name:** `galactic_tidal_constraints` for the GitHub repo, the local folder and the Python
   package (`import galactic_tidal_constraints as gtc`).
-- **Layout:** `src/galactic_tidal_constraints/`, with `tests/` and `docs/` at the top level.
-  Modules are added only when their code is ported. Entry points start as runnable modules
-  (`python -m galactic_tidal_constraints.<module>`); a short command can come later.
+- **Layout:**
+  ```
+  galactic_tidal_constraints/
+  ├── pyproject.toml, uv.lock, README.md, PLAN.md, CLAUDE.md
+  ├── src/galactic_tidal_constraints/   ← the package (incl. spam/, the Fortran source)
+  ├── tests/
+  ├── docs/
+  ├── docker/
+  └── examples/                         ← example configs, a generic Slurm template, curated notebooks
+  ```
+  - Only `src/galactic_tidal_constraints/` is installed; everything else stays in the repo.
+  - Modules are added only when their code is ported: one file per component, split into a
+    subpackage only when it grows.
+  - Entry points start as runnable modules (`python -m galactic_tidal_constraints.<module>`);
+    a short command can come later.
+  - **Specific experiments live outside the repo** (their configs, cluster job scripts,
+    results, exploratory notebooks). Each run saves its merged config, so results stay
+    reproducible. Configs behind published figures are added to the repo at publication time.
+  - Committed notebooks have their outputs stripped.
 - **Packaging:** `pyproject.toml` + `uv`. The lockfile is part of reproducibility.
 - **Environment:** one Docker image, run with Apptainer on the cluster.
   - CUDA 12.x only (the cluster driver is 12.4)
