@@ -220,3 +220,6 @@ Machine_Score/nn_models/
 
 # Personal Claude Code settings
 .claude/settings.local.json
+
+# Obsidian vault settings (folders opened in Obsidian)
+.obsidian/
