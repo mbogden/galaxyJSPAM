@@ -15,7 +15,4 @@ scoring and optimization) as an installable, reproducible package.
 - Never commit data or large outputs. Data lives outside the repo (`../data/` in the workspace).
 - Keep commits small, with one change each, and explain why in the message.
 - Add a dependency only when code needs it.
-- Python 3.12. Container and cluster work target CUDA 12.x (the cluster driver is 12.4) and OpenMPI 4.1.6.
-
-## Planned layout
-To be filled in as the package takes shape: `pyproject.toml` + `uv`, `src/` layout, Fortran built with meson-python, tests.
+- Follow the decisions in `PLAN.md`. Don't add tools or structure that aren't listed there without asking.
