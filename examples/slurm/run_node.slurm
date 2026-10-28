@@ -50,15 +50,18 @@ git_info() {
 # The .sif header's ID is unique to each build of the image.
 sif_id=$(apptainer sif header "$SIF" 2>/dev/null | awk '/^ID:/ {sub(/^ID: */, ""); id=$0} /^Created At:/ {sub(/^Created At: */, ""); at=$0} END {print id " (built " at ")"}')
 
-task=${SLURM_ARRAY_TASK_ID:+ (array task $SLURM_ARRAY_TASK_ID)}
-echo "=== gtc job $SLURM_JOB_ID$task · $(date '+%Y-%m-%d %H:%M:%S %Z')"
+# Array tasks are named <array id>_<task>, as in squeue and the log file name.
+job=${SLURM_ARRAY_TASK_ID:+${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}}
+echo "=== gtc job ${job:-$SLURM_JOB_ID} · $(date '+%Y-%m-%d %H:%M:%S %Z')"
 echo "nodes:     $SLURM_JOB_NODELIST ($SLURM_JOB_NUM_NODES × $SLURM_NTASKS_PER_NODE ranks = $SLURM_NTASKS)"
 echo "partition: $SLURM_JOB_PARTITION"
 echo "image:     $SIF"
 echo "image id:  $sif_id"
 echo "apptainer: $(apptainer --version | cut -d' ' -f3)    modules: $MODULES"
 echo "git:       $(git_info)"
-echo "command:   $*"
+# run_array.slurm sets GTC_COMMANDS_FILE and GTC_COMMAND (the line as written in the file).
+[ -n "$GTC_COMMANDS_FILE" ] && echo "commands:  $GTC_COMMANDS_FILE, line $SLURM_ARRAY_TASK_ID"
+echo "command:   ${GTC_COMMAND:-$*}"
 echo "==="
 
 start=$(date +%s)

@@ -30,5 +30,5 @@ if [ -z "$line" ]; then
     exit 2
 fi
 
-echo "commands:  $COMMANDS, line $SLURM_ARRAY_TASK_ID of array $SLURM_ARRAY_JOB_ID"
+export GTC_COMMANDS_FILE=$COMMANDS GTC_COMMAND=$line
 exec bash "$REPO/examples/slurm/run_node.slurm" bash -c "$line"
