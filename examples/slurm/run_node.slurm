@@ -34,19 +34,30 @@ module load $MODULES || exit 1
 # isn't available; turn it off instead of warning about it on every run.
 export OMPI_MCA_btl_vader_single_copy_mechanism=none
 
-# The .sif's sha256 identifies the exact image; it is computed once and kept next to the file.
-if [ ! -f "$SIF.sha256" ] || [ "$SIF" -nt "$SIF.sha256" ]; then
-    sha256sum "$SIF" | cut -d' ' -f1 > "$SIF.sha256"
-fi
+# Babbage's compute nodes have no git, so read the branch and commit from .git directly.
+git_info() {
+    local head ref sha
+    head=$(cat "$REPO/.git/HEAD" 2>/dev/null) || { echo "no repo at $REPO"; return; }
+    if [[ $head == ref:* ]]; then
+        ref=${head#ref: }
+        sha=$(cat "$REPO/.git/$ref" 2>/dev/null || grep " $ref\$" "$REPO/.git/packed-refs" | cut -d' ' -f1)
+        echo "${ref#refs/heads/} @ ${sha:0:7}"
+    else
+        echo "detached @ ${head:0:7}"
+    fi
+}
+
+# The .sif header's ID is unique to each build of the image.
+sif_id=$(apptainer sif header "$SIF" 2>/dev/null | awk -F': *' '/^ID:/ {id=$2} /^Created At:/ {at=$2} END {print id " (built " at ")"}')
 
 task=${SLURM_ARRAY_TASK_ID:+ (array task $SLURM_ARRAY_TASK_ID)}
-echo "=== gtc job $SLURM_JOB_ID$task · $(date '+%Y-%m-%d %H:%M:%S')"
+echo "=== gtc job $SLURM_JOB_ID$task · $(date '+%Y-%m-%d %H:%M:%S %Z')"
 echo "nodes:     $SLURM_JOB_NODELIST ($SLURM_JOB_NUM_NODES × $SLURM_NTASKS_PER_NODE ranks = $SLURM_NTASKS)"
 echo "partition: $SLURM_JOB_PARTITION"
 echo "image:     $SIF"
-echo "sha256:    $(cat "$SIF.sha256")"
+echo "image id:  $sif_id"
 echo "apptainer: $(apptainer --version | cut -d' ' -f3)    modules: $MODULES"
-echo "git:       $(git -C "$REPO" rev-parse --abbrev-ref HEAD 2>/dev/null) @ $(git -C "$REPO" rev-parse --short HEAD 2>/dev/null)"
+echo "git:       $(git_info)"
 echo "command:   $*"
 echo "==="
 
