@@ -61,7 +61,7 @@ echo "apptainer: $(apptainer --version | cut -d' ' -f3)    modules: $MODULES"
 echo "git:       $(git_info)"
 # run_array.slurm sets GTC_COMMANDS_FILE and GTC_COMMAND (the line as written in the file).
 [ -n "$GTC_COMMANDS_FILE" ] && echo "commands:  $GTC_COMMANDS_FILE, line $SLURM_ARRAY_TASK_ID"
-echo "command:   ${GTC_COMMAND:-$*}"
+echo "command:   ${GTC_COMMAND:-$(printf '%q ' "$@")}"
 echo "==="
 
 start=$(date +%s)
