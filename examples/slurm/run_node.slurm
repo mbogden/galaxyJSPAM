@@ -47,6 +47,15 @@ git_info() {
     fi
 }
 
+# The command as you'd type it: arguments with spaces or special characters in single quotes.
+quote_args() {
+    local a out=()
+    for a in "$@"; do
+        if [[ $a =~ ^[A-Za-z0-9_./=:,+@%-]+$ ]]; then out+=("$a"); else out+=("'${a//\'/\'\\\'\'}'"); fi
+    done
+    echo "${out[*]}"
+}
+
 # The .sif header's ID is unique to each build of the image.
 sif_id=$(apptainer sif header "$SIF" 2>/dev/null | awk '/^ID:/ {sub(/^ID: */, ""); id=$0} /^Created At:/ {sub(/^Created At: */, ""); at=$0} END {print id " (built " at ")"}')
 
@@ -61,7 +70,7 @@ echo "apptainer: $(apptainer --version | cut -d' ' -f3)    modules: $MODULES"
 echo "git:       $(git_info)"
 # run_array.slurm sets GTC_COMMANDS_FILE and GTC_COMMAND (the line as written in the file).
 [ -n "$GTC_COMMANDS_FILE" ] && echo "commands:  $GTC_COMMANDS_FILE, line $SLURM_ARRAY_TASK_ID"
-echo "command:   ${GTC_COMMAND:-$(printf '%q ' "$@")}"
+echo "command:   ${GTC_COMMAND:-$(quote_args "$@")}"
 echo "==="
 
 start=$(date +%s)
