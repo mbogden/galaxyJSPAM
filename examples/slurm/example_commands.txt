@@ -1,0 +1,8 @@
+# Example commands file for submit_array.sh: one array task per line.
+# Each line runs inside the image, once per MPI rank, on its own whole node.
+
+python /opt/gtc/checks/mpi_check.py
+python -c "import numpy, mpi4py; print('numpy', numpy.__version__, '| mpi4py', mpi4py.__version__)"
+
+# A comment between lines doesn't count as a task.
+python /opt/gtc/checks/mpi_check.py
