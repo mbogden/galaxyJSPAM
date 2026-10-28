@@ -17,7 +17,8 @@ total = comm.allreduce(rank + 1, op=MPI.SUM)
 hosts = comm.gather(socket.gethostname(), root=0)
 
 if rank == 0:
-    library = MPI.Get_library_version().splitlines()[0]
+    # Open MPI's version string ends with a null character; strip it so logs stay plain text.
+    library = MPI.Get_library_version().replace("\x00", "").splitlines()[0]
     print(f"MPI: {library}")
     for r, host in enumerate(hosts):
         print(f"rank {r}: {host}")
