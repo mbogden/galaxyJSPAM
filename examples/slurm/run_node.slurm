@@ -48,7 +48,7 @@ git_info() {
 }
 
 # The .sif header's ID is unique to each build of the image.
-sif_id=$(apptainer sif header "$SIF" 2>/dev/null | awk -F': *' '/^ID:/ {id=$2} /^Created At:/ {at=$2} END {print id " (built " at ")"}')
+sif_id=$(apptainer sif header "$SIF" 2>/dev/null | awk '/^ID:/ {sub(/^ID: */, ""); id=$0} /^Created At:/ {sub(/^Created At: */, ""); at=$0} END {print id " (built " at ")"}')
 
 task=${SLURM_ARRAY_TASK_ID:+ (array task $SLURM_ARRAY_TASK_ID)}
 echo "=== gtc job $SLURM_JOB_ID$task · $(date '+%Y-%m-%d %H:%M:%S %Z')"
